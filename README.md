@@ -301,16 +301,19 @@ detectMediaType('https://youtube.com/...') // 'youtube'
 ## Architecture
 
 ```
-Foundation (your code)
-        │
-        ▼
-   @uniweb/kit ──── Components, hooks, utilities
-        │
-        ▼
-   @uniweb/core ─── Uniweb, Website, Page, Block
-        │
-        ▼
-   @uniweb/runtime ─ React renderers, initialization
+┌─────────────────────────────────────────────────────────────┐
+│  Foundation (your code)                                     │
+│    ├── imports @uniweb/kit (bundled into foundation)        │
+│    └── @uniweb/core marked as external                      │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  @uniweb/runtime (browser)                                  │
+│    ├── Loads foundation dynamically                         │
+│    ├── Provides @uniweb/core singleton                      │
+│    └── Orchestrates React rendering                         │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## For Foundation Creators
@@ -318,18 +321,24 @@ Foundation (your code)
 1. **Use kit components** for common UI patterns
 2. **Use hooks** like `useWebsite` for localization and routing
 3. **Don't access `globalThis.uniweb`** directly - use kit's abstractions
-4. **Mark `@uniweb/kit` as external** in your Vite config
+4. **Bundle kit, externalize core** - kit gets tree-shaken into your foundation
 
 ```js
 // vite.config.js
 export default {
   build: {
     rollupOptions: {
-      external: ['react', 'react-dom', '@uniweb/kit', '@uniweb/core']
+      // Kit is bundled (tree-shaken), core is external (provided by runtime)
+      external: ['react', 'react-dom', 'react-router-dom', '@uniweb/core']
     }
   }
 }
 ```
+
+This approach lets you:
+- Tree-shake unused kit components
+- Override or extend kit components
+- Bring your own alternative components
 
 ## License
 
