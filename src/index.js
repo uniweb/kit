@@ -27,6 +27,14 @@ export { Image } from './components/Image/index.js'
 export { SafeHtml } from './components/SafeHtml/index.js'
 export { Icon } from './components/Icon/index.js'
 
+// Typography
+export {
+  Text,
+  H1, H2, H3, H4, H5, H6,
+  P, Span, Div,
+  PlainText
+} from './components/Text/index.js'
+
 // Media
 export { Media } from './components/Media/index.js'
 export { FileLogo } from './components/FileLogo/index.js'

@@ -97,6 +97,44 @@ import { Icon } from '@uniweb/kit'
 
 Built-in icons: check, alert, user, heart, settings, star, close, menu, chevronDown, chevronRight, externalLink, download, play
 
+### Typography
+
+#### Text
+
+Smart typography component for rendering semantic parser output. Handles strings or arrays with automatic tag selection.
+
+```jsx
+import { Text, H1, H2, P, PlainText } from '@uniweb/kit'
+
+// Using semantic aliases (recommended)
+<H1 text="Main Title" />
+<H2 text={["Multi-line", "Subtitle"]} />
+<P text="A paragraph of content" />
+<P text={["First paragraph", "Second paragraph"]} />
+
+// Using Text directly
+<Text text="Hello" as="h1" />
+<Text text={["Line 1", "Line 2"]} as="h2" />
+
+// Plain text (HTML tags shown as text)
+<PlainText text="Show <strong>tags</strong> as text" />
+```
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `text` | `string\|string[]` | Content to render |
+| `as` | `string` | Tag: 'h1'-'h6', 'p', 'div', 'span' |
+| `html` | `boolean` | Render as HTML (default: true) |
+| `lineAs` | `string` | Tag for array items |
+| `className` | `string` | CSS classes |
+
+**Semantic aliases**: `H1`, `H2`, `H3`, `H4`, `H5`, `H6`, `P`, `Span`, `Div`, `PlainText`
+
+**Key behaviors**:
+- Empty strings/arrays return `null` (no empty elements)
+- Headings with arrays: all lines wrapped in single heading tag
+- Paragraphs with arrays: each line gets its own `<p>` tag
+
 ### Media
 
 #### Media
