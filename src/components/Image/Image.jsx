@@ -11,22 +11,22 @@
  * @module @uniweb/kit/Image
  */
 
-import React, { useState, useCallback } from 'react'
-import { Link } from '../Link/index.js'
-import { cn } from '../../utils/index.js'
+import React, { useState, useCallback } from "react";
+import { Link } from "../Link/index.js";
+import { cn } from "../../utils/index.js";
 
 /**
  * Size presets for images
  */
 const SIZE_CLASSES = {
-  xs: 'w-8 h-8',
-  sm: 'w-12 h-12',
-  md: 'w-16 h-16',
-  lg: 'w-24 h-24',
-  xl: 'w-32 h-32',
-  '2xl': 'w-48 h-48',
-  full: 'w-full h-full'
-}
+  xs: "w-8 h-8",
+  sm: "w-12 h-12",
+  md: "w-16 h-16",
+  lg: "w-24 h-24",
+  xl: "w-32 h-32",
+  "2xl": "w-48 h-48",
+  full: "w-full h-full",
+};
 
 /**
  * Build CSS filter string from filter object
@@ -34,18 +34,18 @@ const SIZE_CLASSES = {
  * @returns {string} CSS filter value
  */
 function buildFilterStyle(filter) {
-  if (!filter || typeof filter !== 'object') return undefined
+  if (!filter || typeof filter !== "object") return undefined;
 
-  const filters = []
+  const filters = [];
 
-  if (filter.blur) filters.push(`blur(${filter.blur}px)`)
-  if (filter.brightness) filters.push(`brightness(${filter.brightness}%)`)
-  if (filter.contrast) filters.push(`contrast(${filter.contrast}%)`)
-  if (filter.grayscale) filters.push(`grayscale(${filter.grayscale}%)`)
-  if (filter.saturate) filters.push(`saturate(${filter.saturate}%)`)
-  if (filter.sepia) filters.push(`sepia(${filter.sepia}%)`)
+  if (filter.blur) filters.push(`blur(${filter.blur}px)`);
+  if (filter.brightness) filters.push(`brightness(${filter.brightness}%)`);
+  if (filter.contrast) filters.push(`contrast(${filter.contrast}%)`);
+  if (filter.grayscale) filters.push(`grayscale(${filter.grayscale}%)`);
+  if (filter.saturate) filters.push(`saturate(${filter.saturate}%)`);
+  if (filter.sepia) filters.push(`sepia(${filter.sepia}%)`);
 
-  return filters.length > 0 ? filters.join(' ') : undefined
+  return filters.length > 0 ? filters.join(" ") : undefined;
 }
 
 /**
@@ -91,78 +91,84 @@ export function Image({
   value,
   src,
   url,
-  alt = '',
+  alt = "",
   href,
   rounded,
   filter,
-  loading = 'lazy',
+  loading = "lazy",
   className,
   ariaHidden,
   onError,
   onLoad,
   ...props
 }) {
-  const [hasError, setHasError] = useState(false)
-  const [imageSrc, setImageSrc] = useState(null)
+  const [hasError, setHasError] = useState(false);
+  const [imageSrc, setImageSrc] = useState(null);
 
   // Determine the image source
-  let resolvedSrc = src || url || ''
-  let resolvedAlt = alt
+  let resolvedSrc = src || url || "";
+  let resolvedAlt = alt;
 
   // Handle profile-based images
   if (profile && type) {
-    if (type === 'avatar' || type === 'banner') {
+    if (type === "avatar" || type === "banner") {
       // Use profile methods if available
-      if (typeof profile.getImageInfo === 'function') {
-        const imageInfo = profile.getImageInfo(type, size)
-        resolvedSrc = imageInfo?.url || resolvedSrc
-        resolvedAlt = imageInfo?.alt || resolvedAlt
+      if (typeof profile.getImageInfo === "function") {
+        const imageInfo = profile.getImageInfo(type, size);
+        resolvedSrc = imageInfo?.url || resolvedSrc;
+        resolvedAlt = imageInfo?.alt || resolvedAlt;
       }
-    } else if (value && typeof profile.getAssetInfo === 'function') {
-      const assetInfo = profile.getAssetInfo(value, true, alt)
-      resolvedSrc = assetInfo?.src || resolvedSrc
-      resolvedAlt = assetInfo?.alt || resolvedAlt
+    } else if (value && typeof profile.getAssetInfo === "function") {
+      const assetInfo = profile.getAssetInfo(value, true, alt);
+      resolvedSrc = assetInfo?.src || resolvedSrc;
+      resolvedAlt = assetInfo?.alt || resolvedAlt;
     }
   }
 
   // Handle value as direct source
   if (!resolvedSrc && value) {
-    if (typeof value === 'string') {
-      resolvedSrc = value
+    if (typeof value === "string") {
+      resolvedSrc = value;
     } else if (value.url || value.src) {
-      resolvedSrc = value.url || value.src
-      resolvedAlt = value.alt || resolvedAlt
+      resolvedSrc = value.url || value.src;
+      resolvedAlt = value.alt || resolvedAlt;
     }
   }
 
   // Build classes
-  const sizeClass = size && SIZE_CLASSES[size]
-  const roundedClass = rounded === true ? 'rounded-full' : (typeof rounded === 'string' ? rounded : '')
+  const sizeClass = size && SIZE_CLASSES[size];
+  const roundedClass =
+    rounded === true
+      ? "rounded-full"
+      : typeof rounded === "string"
+      ? rounded
+      : "";
 
-  const imageClasses = cn(
-    'object-cover',
-    sizeClass,
-    roundedClass,
-    className
-  )
+  const imageClasses = cn("object-cover", sizeClass, roundedClass, className);
 
   // Build filter style
-  const filterStyle = buildFilterStyle(filter)
+  const filterStyle = buildFilterStyle(filter);
 
   // Handle error
-  const handleError = useCallback((e) => {
-    setHasError(true)
-    onError?.(e)
-  }, [onError])
+  const handleError = useCallback(
+    (e) => {
+      setHasError(true);
+      onError?.(e);
+    },
+    [onError]
+  );
 
   // Handle load
-  const handleLoad = useCallback((e) => {
-    onLoad?.(e)
-  }, [onLoad])
+  const handleLoad = useCallback(
+    (e) => {
+      onLoad?.(e);
+    },
+    [onLoad]
+  );
 
   // Don't render if no source or error
   if (!resolvedSrc || hasError) {
-    return null
+    return null;
   }
 
   const imageElement = (
@@ -177,7 +183,7 @@ export function Image({
       aria-hidden={ariaHidden}
       {...props}
     />
-  )
+  );
 
   // Wrap in link if href provided
   if (href) {
@@ -185,10 +191,10 @@ export function Image({
       <Link to={href} className="inline-block">
         {imageElement}
       </Link>
-    )
+    );
   }
 
-  return imageElement
+  return imageElement;
 }
 
-export default Image
+export default Image;
