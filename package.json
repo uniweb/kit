@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.js",
+    "./tailwind": "./src/tailwind/index.js",
     "./styles": "./src/styles/index.css",
     "./search": "./src/search/index.js"
   },

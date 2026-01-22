@@ -49,6 +49,9 @@ export { Asset } from './components/Asset/index.js'
 export { Disclaimer } from './components/Disclaimer/index.js'
 
 // Layout
+// Note: SidebarLayout uses Tailwind classes. For Tailwind v4 projects,
+// import from '@uniweb/kit/tailwind' and add the path to your @source directive.
+// See: https://github.com/uniweb/kit#tailwind-components
 export { SidebarLayout } from './components/SidebarLayout/index.js'
 
 // Social
