@@ -26,6 +26,30 @@ function Hero() {
 }
 ```
 
+## Why @uniweb/kit?
+
+Kit provides the standard primitives that make Uniweb foundations work correctly:
+
+1. **Handle Uniweb conventions** — Components like `Link` and `Image` understand topic links, locale prefixes, and asset resolution automatically.
+
+2. **Runtime integration** — The `useWebsite()` hook gives you access to the website instance, localization functions, and routing utilities.
+
+3. **Semantic parser output** — Typography components (`H1`, `P`, `Text`) handle both strings and string arrays correctly, matching the semantic parser's output format.
+
+4. **Portability** — Your foundation works identically in development, static builds, and the Uniweb platform.
+
+### When to use kit vs custom components
+
+| Use @uniweb/kit for | Use custom components for |
+|---------------------|---------------------------|
+| Links and navigation | Custom button styles |
+| Images with filters | Specialized image treatments |
+| Text rendering | Domain-specific formatting |
+| Video embeds | Custom media players |
+| Website/locale access | Business logic |
+
+Kit components are designed to be composed and styled, not replaced wholesale. Wrap them, extend them, or use them as building blocks.
+
 ## Components
 
 ### Primitives
