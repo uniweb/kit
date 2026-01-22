@@ -48,11 +48,32 @@ export { Code, Alert, Warning, Table, Details, Divider } from './components/Sect
 export { Asset } from './components/Asset/index.js'
 export { Disclaimer } from './components/Disclaimer/index.js'
 
+// Social
+export {
+  SocialIcon,
+  getSocialPlatform,
+  isSocialLink,
+  filterSocialLinks
+} from './components/SocialIcon/index.jsx'
+
 // ============================================================================
 // Hooks
 // ============================================================================
 
-export { useWebsite, useRouting, useActiveRoute } from './hooks/index.js'
+export {
+  useWebsite,
+  useRouting,
+  useActiveRoute,
+  useScrolled,
+  useMobileMenu,
+  useAccordion,
+  useGridLayout,
+  getGridClasses,
+  useTheme,
+  getThemeClasses,
+  THEMES,
+  THEME_NAMES
+} from './hooks/index.js'
 
 // ============================================================================
 // Utilities
