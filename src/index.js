@@ -3,8 +3,8 @@
  *
  * Standard component library for Uniweb foundations.
  *
- * For Tailwind-styled components (Section, SidebarLayout, Disclaimer, etc.),
- * import from '@uniweb/kit/tailwind' and add the @source directive to your styles.css.
+ * For pre-styled components (Section, SidebarLayout, Disclaimer, etc.),
+ * import from '@uniweb/kit/styled'.
  *
  * @example
  * import { Link, Image, useWebsite } from '@uniweb/kit'

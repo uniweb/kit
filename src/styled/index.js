@@ -1,20 +1,13 @@
 /**
- * @uniweb/kit/tailwind
+ * @uniweb/kit/styled
  *
- * Tailwind CSS-styled components from the kit.
+ * Pre-styled components from the kit.
  *
- * IMPORTANT: These components use Tailwind classes. For Tailwind v4 projects,
- * add this path to your @source directive in styles.css:
- *
- * @example
- * // foundation/src/styles.css
- * @import "tailwindcss";
- * @source "./components/**\/*.jsx";
- * @source "../node_modules/@uniweb/kit/src/tailwind/**\/*.jsx";
+ * These components come with built-in styling (using Tailwind CSS).
+ * For unstyled primitives, use the main '@uniweb/kit' export.
  *
  * @example
- * // Usage
- * import { SidebarLayout, Section } from '@uniweb/kit/tailwind'
+ * import { SidebarLayout, Section, Media } from '@uniweb/kit/styled'
  */
 
 // ============================================================================
