@@ -5,15 +5,16 @@ import { useMobileMenu } from '../../hooks/useMobileMenu.js'
 /**
  * SidebarLayout Component
  *
- * A flexible layout with a single sidebar that works on both desktop and mobile.
- * On desktop, the sidebar is always visible. On mobile, it's hidden behind a
- * floating action button (FAB) that opens a slide-out drawer.
+ * A flexible layout with optional left and/or right sidebars.
+ * On desktop, sidebars appear inline at their configured breakpoints.
+ * On mobile, the left panel is accessible via a slide-out drawer with FAB toggle.
+ * The right panel is hidden on mobile (common pattern: nav essential, TOC optional).
  *
  * The layout is "sandwiched" - header and footer span the full width,
- * with the sidebar and content area between them.
+ * with the sidebars and content area between them.
  *
  * @example
- * // In foundation's src/exports.js
+ * // In foundation's src/exports.js - use as-is
  * import { SidebarLayout } from '@uniweb/kit'
  *
  * export default {
@@ -28,9 +29,9 @@ import { useMobileMenu } from '../../hooks/useMobileMenu.js'
  *   return (
  *     <SidebarLayout
  *       {...props}
- *       side="right"
- *       sidebarWidth="w-72"
- *       stickyHeader={false}
+ *       leftBreakpoint="lg"
+ *       rightBreakpoint="xl"
+ *       leftWidth="w-72"
  *     />
  *   )
  * }
@@ -61,9 +62,9 @@ function CloseIcon({ className }) {
 }
 
 /**
- * Mobile drawer component
+ * Mobile drawer component (always slides from left)
  */
-function MobileDrawer({ isOpen, onClose, side, width, stickyHeader, children }) {
+function MobileDrawer({ isOpen, onClose, width, stickyHeader, children }) {
   // Prevent body scroll when drawer is open
   useEffect(() => {
     if (isOpen) {
@@ -73,8 +74,6 @@ function MobileDrawer({ isOpen, onClose, side, width, stickyHeader, children }) 
       }
     }
   }, [isOpen])
-
-  const isLeft = side === 'left'
 
   // Position below header if sticky, otherwise from top
   const topOffset = stickyHeader ? 'top-16' : 'top-0'
@@ -92,20 +91,15 @@ function MobileDrawer({ isOpen, onClose, side, width, stickyHeader, children }) 
         aria-hidden="true"
       />
 
-      {/* Drawer */}
+      {/* Drawer (always from left) */}
       <div
         className={cn(
-          'fixed bg-white z-50 shadow-xl',
+          'fixed left-0 bg-white z-50 shadow-xl',
           topOffset,
           height,
           width,
-          isLeft ? 'left-0' : 'right-0',
           'transform transition-transform duration-300 ease-in-out',
-          isOpen
-            ? 'translate-x-0'
-            : isLeft
-              ? '-translate-x-full'
-              : 'translate-x-full'
+          isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
         role="dialog"
         aria-modal="true"
@@ -114,10 +108,7 @@ function MobileDrawer({ isOpen, onClose, side, width, stickyHeader, children }) 
         {/* Close button */}
         <button
           onClick={onClose}
-          className={cn(
-            'absolute top-4 p-1.5 rounded-md hover:bg-gray-100 transition-colors',
-            isLeft ? 'right-4' : 'left-4'
-          )}
+          className="absolute top-4 right-4 p-1.5 rounded-md hover:bg-gray-100 transition-colors"
           aria-label="Close sidebar"
         >
           <CloseIcon className="w-5 h-5 text-gray-500" />
@@ -133,26 +124,44 @@ function MobileDrawer({ isOpen, onClose, side, width, stickyHeader, children }) 
 }
 
 /**
- * Floating action button for mobile menu
+ * Floating action button for mobile menu (always bottom-left)
  */
-function FloatingMenuButton({ onClick, side }) {
-  const isLeft = side === 'left'
-
+function FloatingMenuButton({ onClick }) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        'fixed bottom-4 z-30',
+        'fixed bottom-4 left-4 z-30',
         'p-3 bg-primary text-white rounded-full shadow-lg',
         'hover:bg-primary/90 active:scale-95 transition-all',
-        'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
-        isLeft ? 'left-4' : 'right-4'
+        'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
       )}
       aria-label="Open navigation menu"
     >
       <MenuIcon className="w-6 h-6" />
     </button>
   )
+}
+
+/**
+ * Get responsive classes for showing/hiding at breakpoint
+ */
+function getBreakpointClasses(breakpoint) {
+  const showClass = {
+    sm: 'sm:block',
+    md: 'md:block',
+    lg: 'lg:block',
+    xl: 'xl:block',
+  }[breakpoint] || 'md:block'
+
+  const hideClass = {
+    sm: 'sm:hidden',
+    md: 'md:hidden',
+    lg: 'lg:hidden',
+    xl: 'xl:hidden',
+  }[breakpoint] || 'md:hidden'
+
+  return { showClass, hideClass }
 }
 
 /**
@@ -166,12 +175,13 @@ function FloatingMenuButton({ onClick, side }) {
  * @param {React.ReactNode} props.right - Right panel content (from @right sections)
  * @param {React.ReactNode} props.leftPanel - Alias for left (backwards compatibility)
  * @param {React.ReactNode} props.rightPanel - Alias for right (backwards compatibility)
- * @param {'left'|'right'} [props.side='left'] - Which side the sidebar appears on
- * @param {string} [props.sidebarWidth='w-64'] - Tailwind width class for sidebar
+ * @param {string} [props.leftWidth='w-64'] - Tailwind width class for left sidebar
+ * @param {string} [props.rightWidth='w-64'] - Tailwind width class for right sidebar
  * @param {string} [props.drawerWidth='w-72'] - Tailwind width class for mobile drawer
- * @param {string} [props.breakpoint='md'] - Breakpoint for showing sidebar inline
+ * @param {string} [props.leftBreakpoint='md'] - Breakpoint for showing left sidebar inline
+ * @param {string} [props.rightBreakpoint='xl'] - Breakpoint for showing right sidebar inline
  * @param {boolean} [props.stickyHeader=true] - Whether header sticks to top
- * @param {boolean} [props.stickySidebar=true] - Whether sidebar sticks below header
+ * @param {boolean} [props.stickySidebar=true] - Whether sidebars stick below header
  * @param {string} [props.maxWidth='max-w-7xl'] - Max width of content area
  * @param {string} [props.contentPadding='px-4 py-8 sm:px-6 lg:px-8'] - Padding for main content
  * @param {string} [props.className] - Additional classes for the root element
@@ -186,10 +196,11 @@ export function SidebarLayout({
   leftPanel,
   rightPanel,
   // Configuration
-  side = 'left',
-  sidebarWidth = 'w-64',
+  leftWidth = 'w-64',
+  rightWidth = 'w-64',
   drawerWidth = 'w-72',
-  breakpoint = 'md',
+  leftBreakpoint = 'md',
+  rightBreakpoint = 'xl',
   stickyHeader = true,
   stickySidebar = true,
   maxWidth = 'max-w-7xl',
@@ -198,27 +209,13 @@ export function SidebarLayout({
 }) {
   const { isOpen, open, close } = useMobileMenu()
 
-  // Determine sidebar content based on configured side
-  const sidebarContent = side === 'left'
-    ? (left || leftPanel)
-    : (right || rightPanel)
+  // Resolve panel content (support both naming conventions)
+  const leftContent = left || leftPanel
+  const rightContent = right || rightPanel
 
-  // Breakpoint classes for showing/hiding sidebar
-  const showSidebarClass = {
-    sm: 'sm:block',
-    md: 'md:block',
-    lg: 'lg:block',
-    xl: 'xl:block',
-  }[breakpoint] || 'md:block'
-
-  const hideFabClass = {
-    sm: 'sm:hidden',
-    md: 'md:hidden',
-    lg: 'lg:hidden',
-    xl: 'xl:hidden',
-  }[breakpoint] || 'md:hidden'
-
-  const hideDrawerClass = hideFabClass
+  // Get breakpoint classes for each panel
+  const leftClasses = getBreakpointClasses(leftBreakpoint)
+  const rightClasses = getBreakpointClasses(rightBreakpoint)
 
   // Sticky positioning
   const headerClasses = stickyHeader
@@ -243,17 +240,16 @@ export function SidebarLayout({
         </header>
       )}
 
-      {/* Mobile Drawer */}
-      {sidebarContent && (
-        <div className={hideDrawerClass}>
+      {/* Mobile Drawer (left panel only) */}
+      {leftContent && (
+        <div className={leftClasses.hideClass}>
           <MobileDrawer
             isOpen={isOpen}
             onClose={close}
-            side={side}
             width={drawerWidth}
             stickyHeader={stickyHeader}
           >
-            {sidebarContent}
+            {leftContent}
           </MobileDrawer>
         </div>
       )}
@@ -262,14 +258,14 @@ export function SidebarLayout({
       <div className={cn('flex-1 w-full mx-auto', maxWidth)}>
         <div className="flex">
           {/* Left Sidebar (desktop) */}
-          {side === 'left' && sidebarContent && (
+          {leftContent && (
             <aside className={cn(
               'hidden flex-shrink-0 overflow-y-auto border-r border-gray-200',
-              showSidebarClass,
-              sidebarWidth,
+              leftClasses.showClass,
+              leftWidth,
               sidebarClasses
             )}>
-              {sidebarContent}
+              {leftContent}
             </aside>
           )}
 
@@ -280,15 +276,15 @@ export function SidebarLayout({
             </div>
           </main>
 
-          {/* Right Sidebar (desktop) */}
-          {side === 'right' && sidebarContent && (
+          {/* Right Sidebar (desktop only, hidden on mobile) */}
+          {rightContent && (
             <aside className={cn(
               'hidden flex-shrink-0 overflow-y-auto border-l border-gray-200',
-              showSidebarClass,
-              sidebarWidth,
+              rightClasses.showClass,
+              rightWidth,
               sidebarClasses
             )}>
-              {sidebarContent}
+              {rightContent}
             </aside>
           )}
         </div>
@@ -301,10 +297,10 @@ export function SidebarLayout({
         </footer>
       )}
 
-      {/* Mobile FAB */}
-      {sidebarContent && (
-        <div className={hideFabClass}>
-          <FloatingMenuButton onClick={open} side={side} />
+      {/* Mobile FAB (only if left panel exists) */}
+      {leftContent && (
+        <div className={leftClasses.hideClass}>
+          <FloatingMenuButton onClick={open} />
         </div>
       )}
     </div>
