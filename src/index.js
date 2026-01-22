@@ -52,7 +52,7 @@ export { Disclaimer } from './components/Disclaimer/index.js'
 // Hooks
 // ============================================================================
 
-export { useWebsite, useRouting } from './hooks/index.js'
+export { useWebsite, useRouting, useActiveRoute } from './hooks/index.js'
 
 // ============================================================================
 // Utilities
