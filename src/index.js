@@ -48,6 +48,9 @@ export { Code, Alert, Warning, Table, Details, Divider } from './components/Sect
 export { Asset } from './components/Asset/index.js'
 export { Disclaimer } from './components/Disclaimer/index.js'
 
+// Layout
+export { SidebarLayout } from './components/SidebarLayout/index.js'
+
 // Social
 export {
   SocialIcon,
