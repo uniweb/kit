@@ -1,5 +1,5 @@
 /**
- * Section Renderers
+ * Section Renderers (Tailwind-styled)
  *
  * Individual content type renderers for the Section component.
  */

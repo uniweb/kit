@@ -9,7 +9,7 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import { cn } from '../../utils/index.js'
 import { useWebsite } from '../../hooks/useWebsite.js'
-import { SafeHtml } from '../SafeHtml/index.js'
+import { SafeHtml } from '../../components/SafeHtml/index.js'
 
 /**
  * Disclaimer Modal

@@ -8,7 +8,7 @@
 
 import React from 'react'
 import { cn } from '../../../utils/index.js'
-import { SafeHtml } from '../../SafeHtml/index.js'
+import { SafeHtml } from '../../../components/SafeHtml/index.js'
 
 /**
  * Alert type configurations

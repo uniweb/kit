@@ -14,12 +14,34 @@
  *
  * @example
  * // Usage
- * import { SidebarLayout } from '@uniweb/kit/tailwind'
- *
- * export default {
- *   Layout: SidebarLayout,
- * }
+ * import { SidebarLayout, Section } from '@uniweb/kit/tailwind'
  */
 
-// Layout components
-export { SidebarLayout } from '../components/SidebarLayout/index.js'
+// ============================================================================
+// Layout
+// ============================================================================
+
+export { SidebarLayout } from './SidebarLayout/index.js'
+
+// ============================================================================
+// Content Rendering
+// ============================================================================
+
+// Section - Rich content section renderer
+export { Section, Render } from './Section/index.js'
+
+// Renderers - Individual content type renderers
+export { Code, Alert, Warning, Table, Details, Divider } from './Section/renderers/index.js'
+
+// ============================================================================
+// UI Components
+// ============================================================================
+
+// Disclaimer - Modal dialog for legal disclaimers
+export { Disclaimer } from './Disclaimer/index.js'
+
+// Media - Video player with styled play button facade
+export { Media } from './Media/index.js'
+
+// Asset - File download card with preview and hover overlay
+export { Asset } from './Asset/index.js'

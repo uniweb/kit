@@ -1,55 +1,47 @@
 /**
- * Asset Component
+ * Asset Component (Plain)
  *
- * File asset preview with download functionality.
+ * File download link with basic functionality.
+ * This is the unstyled version - for styled card with preview,
+ * use @uniweb/kit/tailwind.
  *
  * @module @uniweb/kit/Asset
  */
 
-import React, { useState, useCallback, forwardRef, useImperativeHandle } from 'react'
+import React, { useCallback, forwardRef, useImperativeHandle } from 'react'
 import { cn } from '../../utils/index.js'
 import { FileLogo } from '../FileLogo/index.js'
-import { Image } from '../Image/index.js'
 import { useWebsite } from '../../hooks/useWebsite.js'
 
 /**
- * Check if file is an image
- * @param {string} filename
- * @returns {boolean}
- */
-function isImageFile(filename) {
-  if (!filename) return false
-  const ext = filename.toLowerCase().split('.').pop()
-  return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)
-}
-
-/**
- * Asset - File preview with download
+ * Asset - File download component (plain/unstyled)
  *
  * @param {Object} props
  * @param {string|Object} props.value - Asset identifier or object
  * @param {Object} [props.profile] - Profile object for asset resolution
- * @param {boolean} [props.withDownload=true] - Show download button
- * @param {string} [props.className] - Additional CSS classes
+ * @param {boolean} [props.showIcon=true] - Show file type icon
+ * @param {string} [props.iconSize='24'] - Icon size
+ * @param {string} [props.className] - CSS classes for the link
+ * @param {string} [props.iconClassName] - CSS classes for the icon
+ * @param {React.ReactNode} [props.children] - Custom content (overrides default filename display)
  *
  * @example
- * <Asset value="document.pdf" profile={profile} />
+ * <Asset value="document.pdf" className="text-blue-600 hover:underline" />
  *
  * @example
- * <Asset value={{ src: "/files/report.pdf", filename: "report.pdf" }} />
+ * <Asset value={{ src: "/files/report.pdf", filename: "report.pdf" }}>
+ *   Download Report
+ * </Asset>
  */
 export const Asset = forwardRef(function Asset(
-  { value, profile, withDownload = true, className, ...props },
+  { value, profile, showIcon = true, iconSize = '24', className, iconClassName, children, ...props },
   ref
 ) {
   const { localize } = useWebsite()
-  const [imageError, setImageError] = useState(false)
-  const [isHovered, setIsHovered] = useState(false)
 
   // Resolve asset info
   let src = ''
   let filename = ''
-  let alt = ''
 
   if (typeof value === 'string') {
     src = value
@@ -57,7 +49,6 @@ export const Asset = forwardRef(function Asset(
   } else if (value && typeof value === 'object') {
     src = value.src || value.url || ''
     filename = value.filename || value.name || src.split('/').pop() || ''
-    alt = value.alt || filename
   }
 
   // Use profile to resolve asset if available
@@ -65,17 +56,15 @@ export const Asset = forwardRef(function Asset(
     const assetInfo = profile.getAssetInfo(value, true, filename)
     src = assetInfo?.src || src
     filename = assetInfo?.filename || filename
-    alt = assetInfo?.alt || alt
   }
 
-  const isImage = isImageFile(filename)
-
   // Handle download
-  const handleDownload = useCallback(async () => {
+  const handleDownload = useCallback(async (e) => {
     if (!src) return
 
+    e.preventDefault()
+
     try {
-      // Try to trigger download
       const downloadUrl = src.includes('?') ? `${src}&download=true` : `${src}?download=true`
       const response = await fetch(downloadUrl)
       const blob = await response.blob()
@@ -98,63 +87,24 @@ export const Asset = forwardRef(function Asset(
     triggerDownload: handleDownload
   }), [handleDownload])
 
-  // Handle image error
-  const handleImageError = useCallback(() => {
-    setImageError(true)
-  }, [])
-
   if (!src) return null
 
   return (
-    <div
-      className={cn(
-        'relative inline-block rounded-lg overflow-hidden border border-gray-200',
-        'transition-shadow hover:shadow-md',
-        className
-      )}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+    <a
+      href={src}
+      onClick={handleDownload}
+      className={cn('inline-flex items-center gap-2', className)}
+      title={localize({
+        en: `Download ${filename}`,
+        fr: `Télécharger ${filename}`
+      })}
       {...props}
     >
-      {/* Preview */}
-      <div className="w-32 h-32 flex items-center justify-center bg-gray-50">
-        {isImage && !imageError ? (
-          <Image
-            src={src}
-            alt={alt}
-            className="w-full h-full object-cover"
-            onError={handleImageError}
-          />
-        ) : (
-          <FileLogo filename={filename} size="48" className="text-gray-400" />
-        )}
-      </div>
-
-      {/* Filename */}
-      <div className="px-2 py-1 text-xs text-gray-600 truncate max-w-[128px]" title={filename}>
-        {filename}
-      </div>
-
-      {/* Download overlay */}
-      {withDownload && (
-        <button
-          onClick={handleDownload}
-          className={cn(
-            'absolute inset-0 flex items-center justify-center',
-            'bg-black/50 text-white transition-opacity',
-            isHovered ? 'opacity-100' : 'opacity-0'
-          )}
-          aria-label={localize({
-            en: 'Download file',
-            fr: 'Télécharger le fichier'
-          })}
-        >
-          <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-        </button>
+      {showIcon && (
+        <FileLogo filename={filename} size={iconSize} className={iconClassName} />
       )}
-    </div>
+      {children || filename}
+    </a>
   )
 })
 

@@ -3,6 +3,9 @@
  *
  * Standard component library for Uniweb foundations.
  *
+ * For Tailwind-styled components (Section, SidebarLayout, Disclaimer, etc.),
+ * import from '@uniweb/kit/tailwind' and add the @source directive to your styles.css.
+ *
  * @example
  * import { Link, Image, useWebsite } from '@uniweb/kit'
  *
@@ -18,10 +21,10 @@
  */
 
 // ============================================================================
-// Components
+// Components (Primitives - no Tailwind dependency)
 // ============================================================================
 
-// Primitives
+// Navigation
 export { Link } from './components/Link/index.js'
 export { Image } from './components/Image/index.js'
 export { SafeHtml } from './components/SafeHtml/index.js'
@@ -35,24 +38,13 @@ export {
   PlainText
 } from './components/Text/index.js'
 
-// Media
+// Media (plain version - for styled facade, use @uniweb/kit/tailwind)
 export { Media } from './components/Media/index.js'
 export { FileLogo } from './components/FileLogo/index.js'
 export { MediaIcon } from './components/MediaIcon/index.js'
 
-// Content
-export { Section, Render } from './components/Section/index.js'
-export { Code, Alert, Warning, Table, Details, Divider } from './components/Section/renderers/index.js'
-
-// Utilities
+// Files (plain version - for styled card, use @uniweb/kit/tailwind)
 export { Asset } from './components/Asset/index.js'
-export { Disclaimer } from './components/Disclaimer/index.js'
-
-// Layout
-// Note: SidebarLayout uses Tailwind classes. For Tailwind v4 projects,
-// import from '@uniweb/kit/tailwind' and add the path to your @source directive.
-// See: https://github.com/uniweb/kit#tailwind-components
-export { SidebarLayout } from './components/SidebarLayout/index.js'
 
 // Social
 export {
