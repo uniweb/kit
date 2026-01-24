@@ -8,8 +8,8 @@
 
 import React, { useState, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { cn } from '../../utils/index.js'
-import { FileLogo } from '../FileLogo/index.js'
-import { Image } from '../Image/index.js'
+import { FileLogo } from '../../components/FileLogo/index.js'
+import { Image } from '../../components/Image/index.js'
 import { useWebsite } from '../../hooks/useWebsite.js'
 
 /**
