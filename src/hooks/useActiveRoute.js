@@ -88,7 +88,7 @@ export function useActiveRoute() {
       // Fallback for page info objects from getPageHierarchy
       const pageRoute = normalizeRoute(page.route)
       if (pageRoute === route) return true
-      if (pageRoute === '') return true // Root is ancestor of all
+      // if (pageRoute === '') return true // Root is ancestor of all
       return route.startsWith(pageRoute + '/')
     },
   }
