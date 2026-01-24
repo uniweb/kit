@@ -20,8 +20,14 @@ export { SidebarLayout } from './SidebarLayout/index.js'
 // Content Rendering
 // ============================================================================
 
-// Section - Rich content section renderer
+// Section - Rich content section layout container
 export { Section, Render } from './Section/index.js'
+
+// Prose - Typography wrapper for long-form content
+export { Prose } from './Prose/index.jsx'
+
+// Article - Semantic article with prose typography
+export { Article } from './Article/index.jsx'
 
 // Renderers - Individual content type renderers
 export { Code, Alert, Warning, Table, Details, Divider } from './Section/renderers/index.js'
