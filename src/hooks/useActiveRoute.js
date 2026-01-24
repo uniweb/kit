@@ -1,11 +1,9 @@
 /**
  * useActiveRoute Hook
  *
- * SSG-safe hook for active route detection in navigation components.
- * Provides utilities for checking if pages are active or ancestors of the current route.
- *
- * All route comparison logic is delegated to Website class methods to ensure
- * a single source of truth for route normalization and matching.
+ * Hook for active route detection in navigation components.
+ * All route comparison logic is delegated to Website class methods
+ * to ensure a single source of truth for route normalization and matching.
  *
  * @example
  * function NavItem({ page }) {
@@ -13,10 +11,10 @@
  *
  *   return (
  *     <Link
- *       href={page.navigableRoute || page.route}
+ *       href={page.getNavigableRoute()}
  *       className={isActiveOrAncestor(page) ? 'active' : ''}
  *     >
- *       {page.label}
+ *       {page.getLabel()}
  *     </Link>
  *   )
  * }
@@ -26,7 +24,7 @@ import { useRouting } from './useRouting.js'
 import { useWebsite } from './useWebsite.js'
 
 /**
- * Hook for active route detection with SSG-safe fallbacks.
+ * Hook for active route detection.
  * Delegates all logic to Website class for consistency.
  *
  * @returns {Object} Route utilities
@@ -37,11 +35,10 @@ import { useWebsite } from './useWebsite.js'
  */
 export function useActiveRoute() {
   const { useLocation } = useRouting()
-  const website = useWebsite()
+  const { website } = useWebsite()
   const location = useLocation()
 
-  // Delegate normalization to Website
-  const currentRoute = website?.normalizeRoute(location?.pathname) || ''
+  const currentRoute = website.normalizeRoute(location?.pathname)
   const rootSegment = currentRoute.split('/')[0]
 
   return {
@@ -69,7 +66,7 @@ export function useActiveRoute() {
       const targetRoute = typeof pageOrRoute === 'string'
         ? pageOrRoute
         : pageOrRoute.route
-      return website?.isRouteActive(targetRoute, currentRoute) || false
+      return website.isRouteActive(targetRoute, currentRoute)
     },
 
     /**
@@ -84,7 +81,7 @@ export function useActiveRoute() {
       const targetRoute = typeof pageOrRoute === 'string'
         ? pageOrRoute
         : pageOrRoute.route
-      return website?.isRouteActiveOrAncestor(targetRoute, currentRoute) || false
+      return website.isRouteActiveOrAncestor(targetRoute, currentRoute)
     },
   }
 }

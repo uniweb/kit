@@ -14,24 +14,22 @@
 import { getUniweb } from '@uniweb/core'
 
 /**
- * Get the current website instance and utilities
+ * Get the current website instance and utilities.
+ * This hook assumes the runtime is properly initialized.
+ *
  * @returns {Object} Website utilities
+ * @throws {Error} If called before runtime initialization
  */
 export function useWebsite() {
   const uniweb = getUniweb()
+  const website = uniweb?.activeWebsite
 
-  if (!uniweb) {
-    console.warn('[Kit] Runtime not initialized. Components require @uniweb/runtime.')
-    return {
-      website: null,
-      localize: (val, defaultVal = '') => defaultVal,
-      makeHref: (href) => href,
-      getLanguage: () => 'en',
-      getLanguages: () => []
-    }
+  if (!website) {
+    throw new Error(
+      '[Kit] useWebsite() called before runtime initialization. ' +
+      'Components must be rendered within a properly initialized Uniweb runtime.'
+    )
   }
-
-  const website = uniweb.activeWebsite
 
   return {
     /**
