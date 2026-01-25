@@ -43,8 +43,9 @@ export function useVersion(options = {}) {
   const { website } = useWebsite()
   const location = useLocation()
 
-  const currentRoute = location?.pathname || '/'
   const page = options.page || website.activePage
+  // Prefer page route for SSG accuracy, fallback to location pathname
+  const currentRoute = page?.route || location?.pathname || '/'
 
   // Check if the current page/route is within a versioned section
   const isVersioned = page?.isVersioned() || website.isVersionedRoute(currentRoute)
