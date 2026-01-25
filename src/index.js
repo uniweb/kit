@@ -94,5 +94,8 @@ export {
   stripTags,
   isExternalUrl,
   isFileUrl,
-  detectMediaType
+  detectMediaType,
+  // Locale utilities
+  LOCALE_DISPLAY_NAMES,
+  getLocaleLabel
 } from './utils/index.js'
