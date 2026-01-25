@@ -71,6 +71,9 @@ export {
   getThemeClasses,
   THEMES,
   THEME_NAMES,
+  // Viewport detection
+  useInView,
+  useIsInView,
   // Theme data hooks (runtime theme access)
   useThemeData,
   useColorContext,

@@ -6,6 +6,7 @@ export { useMobileMenu } from './useMobileMenu.js'
 export { useAccordion } from './useAccordion.js'
 export { useGridLayout, getGridClasses } from './useGridLayout.js'
 export { useTheme, getThemeClasses, THEMES, THEME_NAMES } from './useTheme.js'
+export { useInView, useIsInView } from './useInView.js'
 
 // Theme data hooks (runtime theme access)
 export {
