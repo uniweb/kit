@@ -1,6 +1,7 @@
 export { useWebsite, default } from './useWebsite.js'
 export { useRouting } from './useRouting.js'
 export { useActiveRoute } from './useActiveRoute.js'
+export { useVersion } from './useVersion.js'
 export { useScrolled } from './useScrolled.js'
 export { useMobileMenu } from './useMobileMenu.js'
 export { useAccordion } from './useAccordion.js'

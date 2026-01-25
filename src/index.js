@@ -62,6 +62,7 @@ export {
   useWebsite,
   useRouting,
   useActiveRoute,
+  useVersion,
   useScrolled,
   useMobileMenu,
   useAccordion,
