@@ -23,4 +23,4 @@
 
 export { createSearchClient, loadSearchIndex, clearSearchCache } from './client.js'
 export { buildSnippet, highlightMatches, escapeHtml } from './snippets.js'
-export { useSearch, useSearchIndex } from './hooks.js'
+export { useSearch, useSearchIndex, useSearchShortcut, useSearchWithIntent } from './hooks.js'

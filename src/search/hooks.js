@@ -236,4 +236,88 @@ export function useSearchIndex(website, options = {}) {
   }
 }
 
+/**
+ * Hook for Cmd/Ctrl+K keyboard shortcut to open search
+ *
+ * @param {Function|Object} callbacks - Either onOpen function, or { onOpen, onPreload }
+ *
+ * @example
+ * // Simple usage
+ * useSearchShortcut(() => setSearchOpen(true))
+ *
+ * // With preload
+ * useSearchShortcut({
+ *   onOpen: () => setSearchOpen(true),
+ *   onPreload: () => search.preload()
+ * })
+ */
+export function useSearchShortcut(callbacks) {
+  const { onOpen, onPreload } = typeof callbacks === 'function'
+    ? { onOpen: callbacks, onPreload: null }
+    : callbacks
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        onPreload?.()
+        onOpen()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onOpen, onPreload])
+}
+
+/**
+ * Hook that wraps useSearch with intent-based preloading
+ *
+ * Provides handlers to trigger preload on user intent (hover, focus, touch)
+ * rather than on component mount. This saves bandwidth for users who never search.
+ *
+ * @param {Object} website - Website instance from @uniweb/core
+ * @param {Object} options - Options passed to useSearch
+ * @returns {Object} Search state, methods, and intent handlers
+ *
+ * @example
+ * function SearchButton({ onClick }) {
+ *   const { intentProps, triggerPreload } = useSearchWithIntent(website)
+ *
+ *   useSearchShortcut({
+ *     onOpen: onClick,
+ *     onPreload: triggerPreload,
+ *   })
+ *
+ *   return (
+ *     <button onClick={onClick} {...intentProps}>
+ *       Search
+ *     </button>
+ *   )
+ * }
+ */
+export function useSearchWithIntent(website, options = {}) {
+  const search = useSearch(website, options)
+  const hasPreloaded = useRef(false)
+
+  const triggerPreload = useCallback(() => {
+    if (hasPreloaded.current) return
+    hasPreloaded.current = true
+    search.preload()
+  }, [search])
+
+  // Intent handlers - spread onto interactive elements
+  const intentProps = useMemo(() => ({
+    onMouseEnter: triggerPreload,
+    onFocus: triggerPreload,
+    onTouchStart: triggerPreload,
+  }), [triggerPreload])
+
+  return {
+    ...search,
+    triggerPreload,
+    intentProps,
+  }
+}
+
 export default useSearch
