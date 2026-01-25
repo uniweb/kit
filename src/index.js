@@ -70,7 +70,13 @@ export {
   useTheme,
   getThemeClasses,
   THEMES,
-  THEME_NAMES
+  THEME_NAMES,
+  // Theme data hooks (runtime theme access)
+  useThemeData,
+  useColorContext,
+  useAppearance,
+  useThemeColor,
+  useThemeColorVar
 } from './hooks/index.js'
 
 // ============================================================================
