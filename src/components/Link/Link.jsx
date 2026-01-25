@@ -170,8 +170,10 @@ export function Link({
   // Normalize href
   let linkHref = href || to || ''
 
-  // Handle topic: protocol (internal reference)
-  if (linkHref.startsWith('topic:')) {
+  // Handle internal reference protocols
+  // - topic: legacy internal reference
+  // - page: stable page reference (page:pageId#sectionId)
+  if (linkHref.startsWith('topic:') || linkHref.startsWith('page:')) {
     linkHref = makeHref(linkHref)
   }
 
