@@ -180,7 +180,6 @@ async function highlightCode(code, language, highlighter) {
  */
 export function Code({ content, language = 'plaintext', className, ...props }) {
   const [highlightedHtml, setHighlightedHtml] = useState(null)
-  const [isLoading, setIsLoading] = useState(true)
 
   // Get theme from website context (getUniweb is a regular function, not a hook)
   const codeTheme = useMemo(() => {
@@ -219,8 +218,6 @@ export function Code({ content, language = 'plaintext', className, ...props }) {
     let cancelled = false
 
     async function highlight() {
-      setIsLoading(true)
-
       const highlighter = await loadShiki()
       if (cancelled) return
 
@@ -229,10 +226,6 @@ export function Code({ content, language = 'plaintext', className, ...props }) {
         if (!cancelled) {
           setHighlightedHtml(html)
         }
-      }
-
-      if (!cancelled) {
-        setIsLoading(false)
       }
     }
 
@@ -254,12 +247,13 @@ export function Code({ content, language = 'plaintext', className, ...props }) {
     )
   }
 
-  // Fallback: plain code block (shown while loading or if Shiki fails)
+  // Fallback: plain code block (shown before Shiki loads or if it fails)
+  // No loading indicator - the code content is already visible and readable.
+  // When Shiki loads, syntax colors will appear smoothly.
   return (
     <pre
       className={cn(
         'overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm',
-        isLoading && 'animate-pulse',
         className
       )}
       {...props}
