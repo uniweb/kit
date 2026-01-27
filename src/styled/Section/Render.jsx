@@ -12,6 +12,7 @@ import { cn } from '../../utils/index.js'
 import { SafeHtml } from '../../components/SafeHtml/index.js'
 import { Image } from '../../components/Image/index.js'
 import { Media } from '../../components/Media/index.js'
+import { Icon } from '../../components/Icon/index.js'
 import { Link } from '../../components/Link/index.js'
 import { Code } from './renderers/Code.jsx'
 import { Alert } from './renderers/Alert.jsx'
@@ -94,7 +95,80 @@ function RenderNode({ node, ...props }) {
       const src = attrs?.src || ''
       const alt = attrs?.alt || ''
       const caption = attrs?.caption || ''
+      const role = attrs?.role
 
+      // Dispatch based on role attribute
+      if (role === 'video') {
+        // Video content - use Media component
+        return (
+          <Media
+            src={src}
+            autoplay={attrs?.autoplay}
+            muted={attrs?.muted}
+            loop={attrs?.loop}
+            controls={attrs?.controls}
+            className="my-4 rounded-lg overflow-hidden"
+          />
+        )
+      }
+
+      if (role === 'document') {
+        // Document/file link with optional preview
+        const poster = attrs?.poster
+        const preview = attrs?.preview
+        const filename = alt || src.split('/').pop() || 'Document'
+
+        return (
+          <figure className="my-4">
+            <Link
+              to={src}
+              className="block group border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
+              target="_blank"
+            >
+              {(poster || preview) ? (
+                <Image
+                  src={poster || preview}
+                  alt={filename}
+                  className="w-full"
+                />
+              ) : (
+                <div className="flex items-center gap-3 p-4 bg-gray-50">
+                  <Icon name="download" size="24" className="text-gray-500" />
+                  <span className="text-blue-600 group-hover:underline">
+                    {filename}
+                  </span>
+                </div>
+              )}
+            </Link>
+            {caption && (
+              <figcaption className="mt-2 text-sm text-gray-500 text-center">
+                {caption}
+              </figcaption>
+            )}
+          </figure>
+        )
+      }
+
+      if (role === 'icon') {
+        // Icon - use Icon component
+        // Supports: ![alt](lucide:icon-name){size=24 color=blue}
+        //           ![alt](icon:/path/to/icon.svg){size=32}
+        const size = attrs?.size || '24'
+        const iconName = attrs?.name || alt
+        const iconColor = attrs?.color
+
+        return (
+          <Icon
+            url={src}
+            name={iconName}
+            size={size}
+            color={iconColor}
+            className="inline-block"
+          />
+        )
+      }
+
+      // Default: image or banner - use Image component
       return (
         <figure className="my-4">
           <Image src={src} alt={alt} className="rounded-lg" />
