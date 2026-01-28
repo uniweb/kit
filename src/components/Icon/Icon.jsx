@@ -5,11 +5,13 @@
  * - Direct SVG content
  * - URL to SVG file
  * - Built-in icons
+ * - Library-based icons via resolver (lucide, heroicons, etc.)
  *
  * @module @uniweb/kit/Icon
  */
 
 import React, { useState, useEffect, useMemo } from 'react'
+import { getUniweb } from '@uniweb/core'
 import { cn } from '../../utils/index.js'
 
 /**
@@ -63,8 +65,17 @@ function parseSvg(svgContent) {
 /**
  * Icon - SVG icon component
  *
+ * Resolution order:
+ * 1. Direct SVG (svg prop)
+ * 2. URL-based (url prop)
+ * 3. Built-in icons (name prop, no library)
+ * 4. Library-based via resolver (library + name props)
+ *
+ * SSR: Renders sized placeholder, hydrates with SVG client-side
+ *
  * @param {Object} props
- * @param {string} [props.name] - Built-in icon name or custom name
+ * @param {string} [props.library] - Icon family: lucide, heroicons, etc.
+ * @param {string} [props.name] - Built-in icon name or library icon name
  * @param {string} [props.svg] - Direct SVG content
  * @param {string} [props.url] - URL to fetch SVG from
  * @param {string} [props.size='24'] - Icon size in pixels
@@ -79,6 +90,10 @@ function parseSvg(svgContent) {
  * <Icon name="check" size="20" color="green" />
  *
  * @example
+ * // Library icon (lucide)
+ * <Icon library="lucide" name="home" size="24" />
+ *
+ * @example
  * // From URL
  * <Icon url="/icons/custom.svg" size="32" />
  *
@@ -87,6 +102,7 @@ function parseSvg(svgContent) {
  * <Icon svg="<svg>...</svg>" />
  */
 export function Icon({
+  library,
   name,
   svg,
   url,
@@ -103,33 +119,66 @@ export function Icon({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
 
-  // Handle legacy icon prop
+  // Normalize props (handle legacy icon object)
+  const iconLibrary = library || (typeof icon === 'object' ? icon.library : null)
   const iconUrl = url || (typeof icon === 'string' ? icon : icon?.url)
   const iconSvg = svg || (typeof icon === 'object' ? icon.svg : null)
   const iconName = name || (typeof icon === 'object' ? icon.name : null)
 
-  // Fetch SVG from URL
+  // Fetch SVG from URL or resolve from library
   useEffect(() => {
-    if (!iconUrl) return
-
-    setLoading(true)
+    // Reset state when source changes
+    setFetchedSvg(null)
     setError(false)
 
-    fetch(iconUrl)
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch icon')
-        return res.text()
-      })
-      .then((svgText) => {
-        setFetchedSvg(svgText)
-        setLoading(false)
-      })
-      .catch((err) => {
-        console.warn('[Icon] Error fetching:', err)
-        setError(true)
-        setLoading(false)
-      })
-  }, [iconUrl])
+    // Direct SVG - no fetch needed
+    if (iconSvg) return
+
+    // URL-based fetch
+    if (iconUrl) {
+      setLoading(true)
+      fetch(iconUrl)
+        .then((res) => {
+          if (!res.ok) throw new Error('Failed to fetch icon')
+          return res.text()
+        })
+        .then((svgText) => {
+          setFetchedSvg(svgText)
+          setLoading(false)
+        })
+        .catch((err) => {
+          console.warn('[Icon] Error fetching:', err)
+          setError(true)
+          setLoading(false)
+        })
+      return
+    }
+
+    // Built-in icon - no fetch needed
+    if (iconName && !iconLibrary && BUILT_IN_ICONS[iconName]) return
+
+    // Library-based resolution via Uniweb resolver
+    if (iconLibrary && iconName) {
+      const uniweb = getUniweb()
+      if (uniweb?.resolveIcon) {
+        setLoading(true)
+        uniweb
+          .resolveIcon(iconLibrary, iconName)
+          .then((svgContent) => {
+            if (svgContent) {
+              setFetchedSvg(svgContent)
+            } else {
+              setError(true)
+            }
+            setLoading(false)
+          })
+          .catch(() => {
+            setError(true)
+            setLoading(false)
+          })
+      }
+    }
+  }, [iconUrl, iconSvg, iconLibrary, iconName])
 
   // Determine the SVG content to render
   const svgData = useMemo(() => {
@@ -142,9 +191,9 @@ export function Icon({
       return parseSvg(fetchedSvg)
     }
 
-    // Built-in icons
+    // Built-in icons (only if no library specified)
     const builtInName = iconName || name
-    if (builtInName && BUILT_IN_ICONS[builtInName]) {
+    if (builtInName && !iconLibrary && BUILT_IN_ICONS[builtInName]) {
       return {
         viewBox: '0 0 24 24',
         content: BUILT_IN_ICONS[builtInName],
@@ -153,15 +202,19 @@ export function Icon({
     }
 
     return null
-  }, [iconSvg, fetchedSvg, iconName, name])
+  }, [iconSvg, fetchedSvg, iconName, name, iconLibrary])
 
-  // Loading state
+  // Loading state - SSR-safe placeholder
   if (loading) {
-    return loadingComponent || (
-      <span
-        className={cn('inline-block animate-pulse bg-gray-200 rounded', className)}
-        style={{ width: size, height: size }}
-      />
+    return (
+      loadingComponent || (
+        <span
+          className={cn('inline-flex items-center justify-center', className)}
+          style={{ width: size, height: size }}
+          role="img"
+          aria-hidden="true"
+        />
+      )
     )
   }
 
@@ -186,6 +239,17 @@ export function Icon({
         />
       )
     }
+    // Library icon pending resolution - render placeholder
+    if (iconLibrary && iconName) {
+      return (
+        <span
+          className={cn('inline-flex items-center justify-center', className)}
+          style={{ width: size, height: size }}
+          role="img"
+          aria-hidden="true"
+        />
+      )
+    }
     return null
   }
 
@@ -199,7 +263,7 @@ export function Icon({
   return (
     <svg
       viewBox={svgData.viewBox}
-      fill={svgData.isBuiltIn ? 'none' : (preserveColors ? undefined : 'currentColor')}
+      fill={svgData.isBuiltIn ? 'none' : preserveColors ? undefined : 'currentColor'}
       stroke={svgData.isBuiltIn ? 'currentColor' : undefined}
       className={cn('inline-block', className)}
       style={style}
