@@ -52,10 +52,23 @@ function parseSvg(svgContent) {
     const width = svg.getAttribute('width')
     const height = svg.getAttribute('height')
 
+    // Preserve SVG presentation attributes from the source
+    // Different icon families use different rendering styles:
+    // - Lucide, Feather, Heroicons: stroke-based (fill="none", stroke="currentColor")
+    // - Font Awesome, Bootstrap: fill-based (fill="currentColor")
+    const fill = svg.getAttribute('fill')
+    const stroke = svg.getAttribute('stroke')
+    const strokeWidth = svg.getAttribute('stroke-width')
+    const strokeLinecap = svg.getAttribute('stroke-linecap')
+    const strokeLinejoin = svg.getAttribute('stroke-linejoin')
+
     // Get inner content
     const content = svg.innerHTML
 
-    return { viewBox, content, width, height }
+    return {
+      viewBox, content, width, height,
+      fill, stroke, strokeWidth, strokeLinecap, strokeLinejoin
+    }
   } catch (error) {
     console.warn('[Icon] Error parsing SVG:', error)
     return null
@@ -260,11 +273,26 @@ export function Icon({
     ...(color && !preserveColors ? { color } : {})
   }
 
+  // Determine fill/stroke from source SVG, built-in defaults, or fallback
+  const svgFill = svgData.isBuiltIn
+    ? 'none'
+    : preserveColors
+      ? undefined
+      : svgData.fill ?? 'currentColor'
+  const svgStroke = svgData.isBuiltIn
+    ? 'currentColor'
+    : preserveColors
+      ? undefined
+      : svgData.stroke ?? undefined
+
   return (
     <svg
       viewBox={svgData.viewBox}
-      fill={svgData.isBuiltIn ? 'none' : preserveColors ? undefined : 'currentColor'}
-      stroke={svgData.isBuiltIn ? 'currentColor' : undefined}
+      fill={svgFill}
+      stroke={svgStroke}
+      strokeWidth={svgData.strokeWidth ?? undefined}
+      strokeLinecap={svgData.strokeLinecap ?? undefined}
+      strokeLinejoin={svgData.strokeLinejoin ?? undefined}
       className={cn('inline-block', className)}
       style={style}
       role="img"
