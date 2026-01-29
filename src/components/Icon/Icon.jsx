@@ -38,32 +38,42 @@ const BUILT_IN_ICONS = {
  * @param {string} svgContent - Raw SVG string
  * @returns {Object} { viewBox, content, width, height }
  */
+/**
+ * Extract an attribute value from an SVG opening tag string
+ */
+function getAttr(svgTag, name) {
+  const match = svgTag.match(new RegExp(`${name}="([^"]*)"`, 'i'))
+  return match ? match[1] : null
+}
+
 function parseSvg(svgContent) {
   if (!svgContent) return null
 
   try {
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(svgContent, 'image/svg+xml')
-    const svg = doc.querySelector('svg')
+    // Extract the <svg ...> opening tag and inner content
+    // Works in both browser and Node.js (no DOMParser needed)
+    const svgTagMatch = svgContent.match(/<svg\s[^>]*>/i)
+    if (!svgTagMatch) return null
 
-    if (!svg) return null
+    const svgTag = svgTagMatch[0]
 
-    const viewBox = svg.getAttribute('viewBox') || '0 0 24 24'
-    const width = svg.getAttribute('width')
-    const height = svg.getAttribute('height')
+    const viewBox = getAttr(svgTag, 'viewBox') || '0 0 24 24'
+    const width = getAttr(svgTag, 'width')
+    const height = getAttr(svgTag, 'height')
 
     // Preserve SVG presentation attributes from the source
     // Different icon families use different rendering styles:
     // - Lucide, Feather, Heroicons: stroke-based (fill="none", stroke="currentColor")
     // - Font Awesome, Bootstrap: fill-based (fill="currentColor")
-    const fill = svg.getAttribute('fill')
-    const stroke = svg.getAttribute('stroke')
-    const strokeWidth = svg.getAttribute('stroke-width')
-    const strokeLinecap = svg.getAttribute('stroke-linecap')
-    const strokeLinejoin = svg.getAttribute('stroke-linejoin')
+    const fill = getAttr(svgTag, 'fill')
+    const stroke = getAttr(svgTag, 'stroke')
+    const strokeWidth = getAttr(svgTag, 'stroke-width')
+    const strokeLinecap = getAttr(svgTag, 'stroke-linecap')
+    const strokeLinejoin = getAttr(svgTag, 'stroke-linejoin')
 
-    // Get inner content
-    const content = svg.innerHTML
+    // Get inner content (everything between <svg> and </svg>)
+    const innerMatch = svgContent.match(/<svg\s[^>]*>([\s\S]*)<\/svg>/i)
+    const content = innerMatch ? innerMatch[1] : ''
 
     return {
       viewBox, content, width, height,
@@ -128,24 +138,36 @@ export function Icon({
   errorComponent,
   ...props
 }) {
-  const [fetchedSvg, setFetchedSvg] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(false)
-
   // Normalize props (handle legacy icon object)
   const iconLibrary = library || (typeof icon === 'object' ? icon.library : null)
   const iconUrl = url || (typeof icon === 'string' ? icon : icon?.url)
   const iconSvg = svg || (typeof icon === 'object' ? icon.svg : null)
   const iconName = name || (typeof icon === 'object' ? icon.name : null)
 
-  // Fetch SVG from URL or resolve from library
+  // Check sync cache for SSR (pre-populated by prerender)
+  const cachedSvg = useMemo(() => {
+    if (iconLibrary && iconName) {
+      const uniweb = getUniweb()
+      return uniweb?.getIconSync?.(iconLibrary, iconName) || null
+    }
+    return null
+  }, [iconLibrary, iconName])
+
+  const [fetchedSvg, setFetchedSvg] = useState(cachedSvg)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(false)
+
+  // Fetch SVG from URL or resolve from library (client-side only)
   useEffect(() => {
+    // Already have SVG from cache or direct prop
+    if (cachedSvg || iconSvg) {
+      setFetchedSvg(cachedSvg)
+      return
+    }
+
     // Reset state when source changes
     setFetchedSvg(null)
     setError(false)
-
-    // Direct SVG - no fetch needed
-    if (iconSvg) return
 
     // URL-based fetch
     if (iconUrl) {
@@ -191,7 +213,7 @@ export function Icon({
           })
       }
     }
-  }, [iconUrl, iconSvg, iconLibrary, iconName])
+  }, [iconUrl, iconSvg, iconLibrary, iconName, cachedSvg])
 
   // Determine the SVG content to render
   const svgData = useMemo(() => {
