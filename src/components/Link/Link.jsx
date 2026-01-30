@@ -180,7 +180,9 @@ export function Link({
   }
 
   // Add locale prefix for internal links in non-default locales
-  if (linkHref.startsWith('/') && !isExternalUrl(linkHref)) {
+  // Skip when reload is true — the caller provides a fully-resolved URL
+  // (e.g., getLocaleUrl() already includes the target locale prefix)
+  if (!reload && linkHref.startsWith('/') && !isExternalUrl(linkHref)) {
     if (website?.hasMultipleLocales?.()) {
       const activeLocale = website.getActiveLocale()
       const defaultLocale = website.getDefaultLocale()
