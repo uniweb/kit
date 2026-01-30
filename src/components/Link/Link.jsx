@@ -140,6 +140,7 @@ function generateTitle(href, localize) {
  * @param {string} [props.target] - Link target (_blank, _self, etc.)
  * @param {string} [props.className] - CSS classes
  * @param {boolean} [props.download] - Force download behavior
+ * @param {boolean} [props.reload] - Force full page reload (renders <a> with basePath prefix)
  * @param {React.ReactNode} props.children - Link content
  *
  * @example
@@ -162,6 +163,7 @@ export function Link({
   download,
   className,
   children,
+  reload,
   ...props
 }) {
   const { website, localize, makeHref, getRoutingComponents } = useWebsite()
@@ -195,14 +197,30 @@ export function Link({
     }
   }
 
-  // Auto-generate title if not provided
-  const linkTitle = title || generateTitle(linkHref, localize)
-
   // Determine if this should be a download
   const isDownload = download || isFileUrl(linkHref)
 
   // Determine if external
   const isExternal = isExternalUrl(linkHref)
+
+  // Auto-generate title if not provided
+  const linkTitle = title || generateTitle(linkHref, localize)
+
+  // Internal links with reload: render <a> with basePath prefix
+  // Used for locale switches that need a full page reload
+  if (reload && !isExternal && !isDownload) {
+    const basePath = website?.basePath || ''
+    return (
+      <a
+        href={basePath + linkHref}
+        title={linkTitle}
+        className={className}
+        {...props}
+      >
+        {children}
+      </a>
+    )
+  }
 
   // File downloads
   if (isDownload) {
