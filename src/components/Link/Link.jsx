@@ -164,7 +164,7 @@ export function Link({
   children,
   ...props
 }) {
-  const { localize, makeHref, getRoutingComponents } = useWebsite()
+  const { website, localize, makeHref, getRoutingComponents } = useWebsite()
   const RouterLink = getRoutingComponents()?.Link
 
   // Normalize href
@@ -175,6 +175,24 @@ export function Link({
   // - page: stable page reference (page:pageId#sectionId)
   if (linkHref.startsWith('topic:') || linkHref.startsWith('page:')) {
     linkHref = makeHref(linkHref)
+  }
+
+  // Add locale prefix for internal links in non-default locales
+  if (linkHref.startsWith('/') && !isExternalUrl(linkHref)) {
+    if (website?.hasMultipleLocales?.()) {
+      const activeLocale = website.getActiveLocale()
+      const defaultLocale = website.getDefaultLocale()
+      if (activeLocale && activeLocale !== defaultLocale) {
+        // Translate route slug for current locale (e.g., /about → /acerca-de)
+        if (website.translateRoute) {
+          linkHref = website.translateRoute(linkHref, activeLocale)
+        }
+        const prefix = `/${activeLocale}`
+        if (!linkHref.startsWith(`${prefix}/`) && linkHref !== prefix) {
+          linkHref = linkHref === '/' ? `${prefix}/` : `${prefix}${linkHref}`
+        }
+      }
+    }
   }
 
   // Auto-generate title if not provided
