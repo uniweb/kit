@@ -285,10 +285,11 @@ export function Link({
     )
   }
 
-  // Fallback to regular anchor
+  // Fallback to regular anchor (SSG prerender — no React Router)
+  const basePath = website?.basePath || ''
   return (
     <a
-      href={linkHref}
+      href={basePath + linkHref}
       title={linkTitle}
       className={className}
       {...props}
