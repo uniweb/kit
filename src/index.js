@@ -75,8 +75,6 @@ export {
   getThemeClasses,
   THEMES,
   THEME_NAMES,
-  // Data loading
-  useDataLoading,
   // Viewport detection
   useInView,
   useIsInView,

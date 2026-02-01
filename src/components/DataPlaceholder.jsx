@@ -5,11 +5,10 @@
  * Renders an animated pulse placeholder.
  *
  * @example
- * import { DataPlaceholder, useDataLoading } from '@uniweb/kit'
+ * import { DataPlaceholder } from '@uniweb/kit'
  *
  * function ArticleList({ content, block }) {
- *   const { loading } = useDataLoading(block)
- *   if (loading) return <DataPlaceholder />
+ *   if (block.dataLoading) return <DataPlaceholder />
  *   return <ArticleGrid articles={content.data.articles} />
  * }
  */
