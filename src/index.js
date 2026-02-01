@@ -46,6 +46,9 @@ export { MediaIcon } from './components/MediaIcon/index.js'
 // Files (plain version - for styled card, use @uniweb/kit/tailwind)
 export { Asset } from './components/Asset/index.js'
 
+// Data loading
+export { DataPlaceholder } from './components/DataPlaceholder.jsx'
+
 // Social
 export {
   SocialIcon,
@@ -72,6 +75,8 @@ export {
   getThemeClasses,
   THEMES,
   THEME_NAMES,
+  // Data loading
+  useDataLoading,
   // Viewport detection
   useInView,
   useIsInView,
