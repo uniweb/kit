@@ -249,8 +249,8 @@ export function useThemeColor(name, shade = 500) {
  *
  * @example
  * const style = { color: useThemeColorVar('primary', 600) }
- * // Returns: 'var(--color-primary-600)'
+ * // Returns: 'var(--primary-600)'
  */
 export function useThemeColorVar(name, shade = 500) {
-  return `var(--color-${name}-${shade})`
+  return `var(--${name}-${shade})`
 }

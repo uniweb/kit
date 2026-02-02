@@ -9,9 +9,8 @@
  *   @import "@uniweb/kit/theme-tokens.css";
  *
  * The actual values come from the build system's theme CSS (injected at runtime).
- * Palette entries use self-referencing vars with hex fallbacks — CSS resolves
- * self-references as invalid, so the fallback is used at Tailwind build time.
- * At runtime, the theme CSS sets the real value, which wins in the cascade.
+ * The build generates short names (--primary-600, --heading) and this file bridges
+ * them to the --color-* namespace that Tailwind v4 expects for utility classes.
  *
  * Foundations that want custom Tailwind names can skip this import and declare
  * their own @theme inline block.
@@ -40,59 +39,59 @@
   --color-btn-secondary-hover: var(--btn-secondary-hover);
 
   /* ── Primary palette ── */
-  --color-primary-50: var(--color-primary-50, #eff6ff);
-  --color-primary-100: var(--color-primary-100, #dbeafe);
-  --color-primary-200: var(--color-primary-200, #bfdbfe);
-  --color-primary-300: var(--color-primary-300, #93c5fd);
-  --color-primary-400: var(--color-primary-400, #60a5fa);
-  --color-primary-500: var(--color-primary-500, #3b82f6);
-  --color-primary-600: var(--color-primary-600, #2563eb);
-  --color-primary-700: var(--color-primary-700, #1d4ed8);
-  --color-primary-800: var(--color-primary-800, #1e40af);
-  --color-primary-900: var(--color-primary-900, #1e3a8a);
-  --color-primary-950: var(--color-primary-950, #172554);
+  --color-primary-50: var(--primary-50, #eff6ff);
+  --color-primary-100: var(--primary-100, #dbeafe);
+  --color-primary-200: var(--primary-200, #bfdbfe);
+  --color-primary-300: var(--primary-300, #93c5fd);
+  --color-primary-400: var(--primary-400, #60a5fa);
+  --color-primary-500: var(--primary-500, #3b82f6);
+  --color-primary-600: var(--primary-600, #2563eb);
+  --color-primary-700: var(--primary-700, #1d4ed8);
+  --color-primary-800: var(--primary-800, #1e40af);
+  --color-primary-900: var(--primary-900, #1e3a8a);
+  --color-primary-950: var(--primary-950, #172554);
 
   /* ── Secondary palette ── */
-  --color-secondary-50: var(--color-secondary-50, #f8fafc);
-  --color-secondary-100: var(--color-secondary-100, #f1f5f9);
-  --color-secondary-200: var(--color-secondary-200, #e2e8f0);
-  --color-secondary-300: var(--color-secondary-300, #cbd5e1);
-  --color-secondary-400: var(--color-secondary-400, #94a3b8);
-  --color-secondary-500: var(--color-secondary-500, #64748b);
-  --color-secondary-600: var(--color-secondary-600, #475569);
-  --color-secondary-700: var(--color-secondary-700, #334155);
-  --color-secondary-800: var(--color-secondary-800, #1e293b);
-  --color-secondary-900: var(--color-secondary-900, #0f172a);
-  --color-secondary-950: var(--color-secondary-950, #020617);
+  --color-secondary-50: var(--secondary-50, #f8fafc);
+  --color-secondary-100: var(--secondary-100, #f1f5f9);
+  --color-secondary-200: var(--secondary-200, #e2e8f0);
+  --color-secondary-300: var(--secondary-300, #cbd5e1);
+  --color-secondary-400: var(--secondary-400, #94a3b8);
+  --color-secondary-500: var(--secondary-500, #64748b);
+  --color-secondary-600: var(--secondary-600, #475569);
+  --color-secondary-700: var(--secondary-700, #334155);
+  --color-secondary-800: var(--secondary-800, #1e293b);
+  --color-secondary-900: var(--secondary-900, #0f172a);
+  --color-secondary-950: var(--secondary-950, #020617);
 
   /* ── Accent palette ── */
-  --color-accent-50: var(--color-accent-50, #f5f3ff);
-  --color-accent-100: var(--color-accent-100, #ede9fe);
-  --color-accent-200: var(--color-accent-200, #ddd6fe);
-  --color-accent-300: var(--color-accent-300, #c4b5fd);
-  --color-accent-400: var(--color-accent-400, #a78bfa);
-  --color-accent-500: var(--color-accent-500, #8b5cf6);
-  --color-accent-600: var(--color-accent-600, #7c3aed);
-  --color-accent-700: var(--color-accent-700, #6d28d9);
-  --color-accent-800: var(--color-accent-800, #5b21b6);
-  --color-accent-900: var(--color-accent-900, #4c1d95);
-  --color-accent-950: var(--color-accent-950, #2e1065);
+  --color-accent-50: var(--accent-50, #f5f3ff);
+  --color-accent-100: var(--accent-100, #ede9fe);
+  --color-accent-200: var(--accent-200, #ddd6fe);
+  --color-accent-300: var(--accent-300, #c4b5fd);
+  --color-accent-400: var(--accent-400, #a78bfa);
+  --color-accent-500: var(--accent-500, #8b5cf6);
+  --color-accent-600: var(--accent-600, #7c3aed);
+  --color-accent-700: var(--accent-700, #6d28d9);
+  --color-accent-800: var(--accent-800, #5b21b6);
+  --color-accent-900: var(--accent-900, #4c1d95);
+  --color-accent-950: var(--accent-950, #2e1065);
 
   /* ── Neutral palette ── */
-  --color-neutral-50: var(--color-neutral-50, #fafafa);
-  --color-neutral-100: var(--color-neutral-100, #f4f4f5);
-  --color-neutral-200: var(--color-neutral-200, #e4e4e7);
-  --color-neutral-300: var(--color-neutral-300, #d4d4d8);
-  --color-neutral-400: var(--color-neutral-400, #a1a1aa);
-  --color-neutral-500: var(--color-neutral-500, #71717a);
-  --color-neutral-600: var(--color-neutral-600, #52525b);
-  --color-neutral-700: var(--color-neutral-700, #3f3f46);
-  --color-neutral-800: var(--color-neutral-800, #27272a);
-  --color-neutral-900: var(--color-neutral-900, #18181b);
-  --color-neutral-950: var(--color-neutral-950, #09090b);
+  --color-neutral-50: var(--neutral-50, #fafafa);
+  --color-neutral-100: var(--neutral-100, #f4f4f5);
+  --color-neutral-200: var(--neutral-200, #e4e4e7);
+  --color-neutral-300: var(--neutral-300, #d4d4d8);
+  --color-neutral-400: var(--neutral-400, #a1a1aa);
+  --color-neutral-500: var(--neutral-500, #71717a);
+  --color-neutral-600: var(--neutral-600, #52525b);
+  --color-neutral-700: var(--neutral-700, #3f3f46);
+  --color-neutral-800: var(--neutral-800, #27272a);
+  --color-neutral-900: var(--neutral-900, #18181b);
+  --color-neutral-950: var(--neutral-950, #09090b);
 
   /* ── Brand shorthands ── */
-  --color-primary: var(--color-primary-500, #3b82f6);
-  --color-secondary: var(--color-secondary-500, #64748b);
-  --color-accent: var(--color-accent-500, #8b5cf6);
+  --color-primary: var(--primary-500, #3b82f6);
+  --color-secondary: var(--secondary-500, #64748b);
+  --color-accent: var(--accent-500, #8b5cf6);
 }
