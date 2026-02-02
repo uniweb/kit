@@ -12,7 +12,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react'
 import { getUniweb } from '@uniweb/core'
-import { cn } from '../../utils/index.js'
+import { cn, parseIconRef } from '../../utils/index.js'
 
 /**
  * Built-in demo icons (simple SVG paths)
@@ -138,11 +138,13 @@ export function Icon({
   errorComponent,
   ...props
 }) {
-  // Normalize props (handle legacy icon object)
-  const iconLibrary = library || (typeof icon === 'object' ? icon.library : null)
-  const iconUrl = url || (typeof icon === 'string' ? icon : icon?.url)
+  // Normalize props — handle icon as string ref ("lu-house", "lu:house"),
+  // object ({ library, name }), or URL
+  const parsedRef = typeof icon === 'string' ? parseIconRef(icon) : null
+  const iconLibrary = library || parsedRef?.library || (typeof icon === 'object' ? icon.library : null)
+  const iconName = name || parsedRef?.name || (typeof icon === 'object' ? icon.name : null)
+  const iconUrl = url || (!parsedRef && typeof icon === 'string' ? icon : icon?.url)
   const iconSvg = svg || (typeof icon === 'object' ? icon.svg : null)
-  const iconName = name || (typeof icon === 'object' ? icon.name : null)
 
   // Check sync cache for SSR (pre-populated by prerender)
   const cachedSvg = useMemo(() => {

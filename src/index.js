@@ -98,6 +98,7 @@ export {
   isExternalUrl,
   isFileUrl,
   detectMediaType,
+  parseIconRef,
   // Locale utilities
   LOCALE_DISPLAY_NAMES,
   getLocaleLabel

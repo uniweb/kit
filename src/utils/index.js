@@ -78,6 +78,65 @@ export function getLocaleLabel(locale) {
   return locale.label || LOCALE_DISPLAY_NAMES[locale.code] || locale.code.toUpperCase()
 }
 
+// ─────────────────────────────────────────────────────────────────
+// Icon Utilities
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Short icon family codes (2-3 chars) used for dash-format parsing.
+ * Matches the content-reader's ICON_FAMILIES_SHORT list.
+ */
+const ICON_SHORT_CODES = [
+  'lu', 'hi', 'hi2', 'pi', 'tb', 'fi', 'bs', 'md', 'ai',
+  'ri', 'si', 'io5', 'bi', 'vsc', 'wi', 'gi', 'fa', 'fa6'
+]
+
+const ICON_SHORT_CODE_SET = new Set(ICON_SHORT_CODES)
+
+/**
+ * Parse an icon reference string into { library, name }.
+ *
+ * Accepts all standard icon formats:
+ * - Dash format:  "lu-house", "hi2-arrow-right"
+ * - Colon format: "lu:house", "lucide:house"
+ *
+ * Returns null if the string doesn't match any known format.
+ *
+ * @param {string} ref - Icon reference string
+ * @returns {{ library: string, name: string } | null}
+ *
+ * @example
+ * parseIconRef('lu-house')       // { library: 'lu', name: 'house' }
+ * parseIconRef('lu:house')       // { library: 'lu', name: 'house' }
+ * parseIconRef('lucide:house')   // { library: 'lucide', name: 'house' }
+ * parseIconRef('not-an-icon')    // null
+ */
+export function parseIconRef(ref) {
+  if (!ref || typeof ref !== 'string') return null
+
+  // Colon format: "lu:house", "lucide:house"
+  const colonIdx = ref.indexOf(':')
+  if (colonIdx > 0) {
+    return { library: ref.slice(0, colonIdx), name: ref.slice(colonIdx + 1) }
+  }
+
+  // Dash format: "lu-house" — only short codes (2-3 chars) to avoid
+  // ambiguity with regular hyphenated strings
+  const dashIdx = ref.indexOf('-')
+  if (dashIdx > 0) {
+    const prefix = ref.slice(0, dashIdx)
+    if (ICON_SHORT_CODE_SET.has(prefix)) {
+      return { library: prefix, name: ref.slice(dashIdx + 1) }
+    }
+  }
+
+  return null
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Class / String Utilities
+// ─────────────────────────────────────────────────────────────────
+
 /**
  * Merge class names with Tailwind CSS conflict resolution
  * @param {...string} classes - Class names to merge
