@@ -104,16 +104,13 @@ async function loadShiki() {
 
   shikiLoadPromise = (async () => {
     try {
-      // Import Shiki and the css-variables theme (not bundled by default in Shiki 3.x)
-      const [{ createHighlighter }, cssVariablesTheme] = await Promise.all([
-        import('shiki'),
-        import('shiki/themes/css-variables.mjs').then(m => m.default)
-      ])
+      // Use shiki/bundle/full for access to all themes
+      const { createHighlighter } = await import('shiki/bundle/full')
 
-      // Create highlighter with CSS variables theme
+      // Create highlighter with github-dark theme (bundled, looks good for code)
       // Only load common languages initially, others load on-demand
       shikiInstance = await createHighlighter({
-        themes: [cssVariablesTheme],
+        themes: ['github-dark'],
         langs: [
           'javascript',
           'typescript',
@@ -159,14 +156,14 @@ async function highlightCode(code, language, highlighter) {
         // Language not available, fall back to plaintext
         return highlighter.codeToHtml(code, {
           lang: 'plaintext',
-          theme: 'css-variables',
+          theme: 'github-dark',
         })
       }
     }
 
     return highlighter.codeToHtml(code, {
       lang: lang === 'plaintext' ? 'text' : lang,
-      theme: 'css-variables',
+      theme: 'github-dark',
     })
   } catch (error) {
     console.warn('[Code] Highlighting failed:', error)
