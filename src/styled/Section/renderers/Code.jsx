@@ -104,12 +104,16 @@ async function loadShiki() {
 
   shikiLoadPromise = (async () => {
     try {
-      const { createHighlighter } = await import('shiki')
+      // Import Shiki and the css-variables theme (not bundled by default in Shiki 3.x)
+      const [{ createHighlighter }, cssVariablesTheme] = await Promise.all([
+        import('shiki'),
+        import('shiki/themes/css-variables.mjs').then(m => m.default)
+      ])
 
       // Create highlighter with CSS variables theme
       // Only load common languages initially, others load on-demand
       shikiInstance = await createHighlighter({
-        themes: ['css-variables'],
+        themes: [cssVariablesTheme],
         langs: [
           'javascript',
           'typescript',
