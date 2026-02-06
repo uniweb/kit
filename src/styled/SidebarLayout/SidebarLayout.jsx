@@ -168,11 +168,11 @@ function getBreakpointClasses(breakpoint) {
  * SidebarLayout main component
  *
  * @param {Object} props
- * @param {React.ReactNode} props.header - Header content (from @header sections)
+ * @param {React.ReactNode} props.header - Header content (from layout/header.md)
  * @param {React.ReactNode} props.body - Main body content (page sections)
- * @param {React.ReactNode} props.footer - Footer content (from @footer sections)
- * @param {React.ReactNode} props.left - Left panel content (from @left sections)
- * @param {React.ReactNode} props.right - Right panel content (from @right sections)
+ * @param {React.ReactNode} props.footer - Footer content (from layout/footer.md)
+ * @param {React.ReactNode} props.left - Left panel content (from layout/left.md)
+ * @param {React.ReactNode} props.right - Right panel content (from layout/right.md)
  * @param {React.ReactNode} props.leftPanel - Alias for left (backwards compatibility)
  * @param {React.ReactNode} props.rightPanel - Alias for right (backwards compatibility)
  * @param {string} [props.leftWidth='w-64'] - Tailwind width class for left sidebar
