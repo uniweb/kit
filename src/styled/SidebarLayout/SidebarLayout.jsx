@@ -14,7 +14,7 @@ import { useMobileMenu } from '../../hooks/useMobileMenu.js'
  * with the sidebars and content area between them.
  *
  * @example
- * // In foundation's src/exports.js - use as-is
+ * // In foundation's src/foundation.js
  * import { SidebarLayout } from '@uniweb/kit'
  *
  * export default {
