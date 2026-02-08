@@ -66,7 +66,7 @@ function renderList(items, ordered = false) {
 /**
  * Render a single content node
  */
-function RenderNode({ node, ...props }) {
+function RenderNode({ node, block, ...props }) {
   if (!node) return null
 
   const { type, attrs, content } = node
@@ -203,7 +203,7 @@ function RenderNode({ node, ...props }) {
       return (
         <blockquote className="border-l-4 border-gray-300 pl-4 italic text-gray-600 my-4">
           {content?.map((child, i) => (
-            <RenderNode key={i} node={child} />
+            <RenderNode key={i} node={child} block={block} />
           ))}
         </blockquote>
       )
@@ -237,6 +237,19 @@ function RenderNode({ node, ...props }) {
     case 'horizontalRule':
     case 'divider': {
       return <Divider type={attrs?.type} className="my-6" />
+    }
+
+    case 'inline_child_placeholder': {
+      const refId = attrs?.refId
+      if (!block || !refId) return null
+
+      const childBlock = block.getInlineChild(refId)
+      if (!childBlock) return null
+
+      const ChildBlocks = childBlock.getChildBlockRenderer()
+      if (!ChildBlocks) return null
+
+      return <ChildBlocks blocks={[childBlock]} as="div" />
     }
 
     case 'button': {
@@ -286,7 +299,7 @@ function RenderNode({ node, ...props }) {
         return (
           <>
             {content.map((child, i) => (
-              <RenderNode key={i} node={child} />
+              <RenderNode key={i} node={child} block={block} />
             ))}
           </>
         )
@@ -302,7 +315,7 @@ function RenderNode({ node, ...props }) {
  * @param {Array|Object} props.content - Content to render (array of nodes or single node)
  * @param {string} [props.className] - Additional CSS classes
  */
-export function Render({ content, className, ...props }) {
+export function Render({ content, block, className, ...props }) {
   if (!content) return null
 
   const nodes = Array.isArray(content) ? content : [content]
@@ -310,7 +323,7 @@ export function Render({ content, className, ...props }) {
   return (
     <div className={cn('space-y-4', className)} {...props}>
       {nodes.map((node, i) => (
-        <RenderNode key={i} node={node} />
+        <RenderNode key={i} node={node} block={block} />
       ))}
     </div>
   )
