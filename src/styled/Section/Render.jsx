@@ -239,17 +239,18 @@ function RenderNode({ node, block, ...props }) {
       return <Divider type={attrs?.type} className="my-6" />
     }
 
-    case 'inline_child_placeholder': {
+    case 'inset_placeholder':
+    case 'inline_child_placeholder': {  // backward compat
       const refId = attrs?.refId
       if (!block || !refId) return null
 
-      const childBlock = block.getInlineChild(refId)
-      if (!childBlock) return null
+      const insetBlock = block.getInset(refId)
+      if (!insetBlock) return null
 
-      const ChildBlocks = childBlock.getChildBlockRenderer()
-      if (!ChildBlocks) return null
+      const InsetRenderer = insetBlock.getChildBlockRenderer()
+      if (!InsetRenderer) return null
 
-      return <ChildBlocks blocks={[childBlock]} as="div" />
+      return <InsetRenderer blocks={[insetBlock]} as="div" />
     }
 
     case 'button': {

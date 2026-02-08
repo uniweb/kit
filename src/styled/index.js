@@ -39,6 +39,9 @@ export { Code, Alert, Warning, Table, Details, Divider } from './Section/rendere
 // Disclaimer - Modal dialog for legal disclaimers
 export { Disclaimer } from './Disclaimer/index.js'
 
+// Visual - Unified visual renderer (inset > video > image)
+export { Visual } from './Visual/index.jsx'
+
 // Media - Video player with styled play button facade
 export { Media } from './Media/index.js'
 
