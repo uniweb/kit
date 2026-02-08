@@ -239,8 +239,7 @@ function RenderNode({ node, block, ...props }) {
       return <Divider type={attrs?.type} className="my-6" />
     }
 
-    case 'inset_placeholder':
-    case 'inline_child_placeholder': {  // backward compat
+    case 'inset_placeholder': {
       const refId = attrs?.refId
       if (!block || !refId) return null
 
