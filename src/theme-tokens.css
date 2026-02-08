@@ -2,7 +2,7 @@
  * Standard Theme Tokens for Tailwind v4
  *
  * Import this in your foundation's styles.css to register theme CSS variables
- * with Tailwind, enabling utility classes like `text-heading`, `bg-surface`, etc.
+ * with Tailwind, enabling utility classes like `text-heading`, `bg-section`, etc.
  *
  * Usage:
  *   @import "tailwindcss";
@@ -21,24 +21,34 @@
 @theme inline {
   /* ── Semantic tokens ── */
   /* Values come from theme CSS context classes (light/medium/dark) */
+  --color-section: var(--section);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-body: var(--body);
   --color-heading: var(--heading);
-  --color-surface: var(--bg);
-  --color-surface-subtle: var(--bg-subtle);
-  --color-surface-muted: var(--bg-muted);
-  --color-body: var(--text);
-  --color-muted: var(--text-muted);
-  --color-subtle: var(--text-subtle);
+  --color-subtle: var(--subtle);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
   --color-link: var(--link);
   --color-link-hover: var(--link-hover);
-  --color-edge: var(--border);
-  --color-edge-muted: var(--border-muted);
-  --color-ring: var(--ring);
-  --color-btn-primary: var(--btn-primary-bg);
-  --color-btn-primary-text: var(--btn-primary-text);
-  --color-btn-primary-hover: var(--btn-primary-hover);
-  --color-btn-secondary: var(--btn-secondary-bg);
-  --color-btn-secondary-text: var(--btn-secondary-text);
-  --color-btn-secondary-hover: var(--btn-secondary-hover);
+
+  /* ── Action tokens ── */
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary-hover: var(--secondary-hover);
+
+  /* ── Status tokens ── */
+  --color-success: var(--success);
+  --color-success-subtle: var(--success-subtle);
+  --color-warning: var(--warning);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-error: var(--error);
+  --color-error-subtle: var(--error-subtle);
+  --color-info: var(--info);
+  --color-info-subtle: var(--info-subtle);
 
   /* ── Primary palette ── */
   --color-primary-50: var(--primary-50);
@@ -93,7 +103,6 @@
   --color-neutral-950: var(--neutral-950);
 
   /* ── Brand shorthands ── */
-  --color-primary: var(--primary-500);
-  --color-secondary: var(--secondary-500);
+  /* accent has no semantic token — shorthand to 500 shade */
   --color-accent: var(--accent-500);
 }
