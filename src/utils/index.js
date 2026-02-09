@@ -4,6 +4,7 @@
  * Common utility functions for kit components.
  */
 
+import { clsx } from 'clsx'
 import { twMerge, twJoin } from 'tailwind-merge'
 
 // Re-export tailwind-merge utilities
@@ -172,8 +173,8 @@ export function ChildBlocks(props) {
  * @param {...string} classes - Class names to merge
  * @returns {string}
  */
-export function cn(...classes) {
-  return twMerge(twJoin(classes.filter(Boolean)))
+export function cn(...inputs) {
+  return twMerge(clsx(inputs))
 }
 
 /**
