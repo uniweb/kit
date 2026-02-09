@@ -1,5 +1,5 @@
 /**
- * @uniweb/kit/styled
+ * @uniweb/kit (styled)
  *
  * Pre-styled components from the kit.
  *
@@ -7,7 +7,7 @@
  * For unstyled primitives, use the main '@uniweb/kit' export.
  *
  * @example
- * import { SidebarLayout, Section, Media } from '@uniweb/kit/styled'
+ * import { SidebarLayout, Section, Media } from '@uniweb/kit (styled)'
  */
 
 // ============================================================================

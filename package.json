@@ -5,12 +5,6 @@
   "type": "module",
   "exports": {
     ".": "./src/index.js",
-    "./styled": "./src/styled/index.js",
-    "./styles": {
-      "style": "./src/styles/index.css",
-      "default": "./src/styles/index.css"
-    },
-    "./search": "./src/search/index.js",
     "./theme-tokens.css": {
       "style": "./src/theme-tokens.css",
       "default": "./src/theme-tokens.css"

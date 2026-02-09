@@ -47,14 +47,6 @@ function Hero({ content }) {
 }
 ```
 
-## Exports Overview
-
-| Import Path | Purpose |
-|-------------|---------|
-| `@uniweb/kit` | Core components, hooks, and utilities |
-| `@uniweb/kit/styled` | Pre-styled components (Section, SidebarLayout, etc.) |
-| `@uniweb/kit/search` | Search client and hooks (requires Fuse.js) |
-
 ---
 
 ## Components
@@ -395,7 +387,7 @@ function ThemedComponent({ block }) {
 
 ---
 
-## Search (`@uniweb/kit/search`)
+## Search
 
 Full-text search powered by Fuse.js. Requires `fuse.js` as a peer dependency in your foundation.
 
@@ -408,7 +400,7 @@ npm install fuse.js
 Main search hook with debouncing and state management.
 
 ```jsx
-import { useSearch } from '@uniweb/kit/search'
+import { useSearch, useWebsite } from '@uniweb/kit'
 
 function SearchComponent() {
   const { website } = useWebsite()
@@ -433,7 +425,7 @@ function SearchComponent() {
 Intent-based preloading — loads search index on hover/focus instead of page load.
 
 ```jsx
-import { useSearchWithIntent, useSearchShortcut } from '@uniweb/kit/search'
+import { useSearchWithIntent, useSearchShortcut } from '@uniweb/kit'
 
 function SearchButton({ onClick }) {
   const { website } = useWebsite()
@@ -460,7 +452,7 @@ This saves bandwidth — the search index only loads when users show intent to s
 Keyboard shortcut for opening search.
 
 ```jsx
-import { useSearchShortcut } from '@uniweb/kit/search'
+import { useSearchShortcut } from '@uniweb/kit'
 
 // Simple
 useSearchShortcut(() => setSearchOpen(true))
@@ -477,7 +469,7 @@ useSearchShortcut({
 Low-level search client for advanced use.
 
 ```jsx
-import { createSearchClient } from '@uniweb/kit/search'
+import { createSearchClient } from '@uniweb/kit'
 
 const client = createSearchClient(website, {
   fuseOptions: { threshold: 0.3 },
@@ -497,12 +489,12 @@ client.getIndexUrl()
 
 ---
 
-## Styled Components (`@uniweb/kit/styled`)
+## Styled Components
 
-Pre-styled components with Tailwind CSS. Import separately to keep core kit dependency-free.
+Pre-styled components with Tailwind CSS.
 
 ```jsx
-import { Section, SidebarLayout, Disclaimer } from '@uniweb/kit/styled'
+import { Section, SidebarLayout, Disclaimer } from '@uniweb/kit'
 
 <Section width="lg" padding="md" className="bg-gray-50">
   <h1>Welcome</h1>

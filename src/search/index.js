@@ -4,10 +4,10 @@
  * Provides helpers for implementing search functionality in foundations.
  * Uses Fuse.js for fuzzy search (peer dependency - must be installed by foundation).
  *
- * @module @uniweb/kit/search
+ * @module @uniweb/kit (search)
  *
  * @example
- * import { createSearchClient, buildSnippet } from '@uniweb/kit/search'
+ * import { createSearchClient, buildSnippet } from '@uniweb/kit (search)'
  *
  * // Create a search client for your site
  * const search = createSearchClient(website)

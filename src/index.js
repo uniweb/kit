@@ -2,26 +2,14 @@
  * @uniweb/kit
  *
  * Standard component library for Uniweb foundations.
- *
- * For pre-styled components (Section, SidebarLayout, Disclaimer, etc.),
- * import from '@uniweb/kit/styled'.
+ * All components, hooks, and utilities are exported from this single entry point.
  *
  * @example
- * import { Link, Image, useWebsite } from '@uniweb/kit'
- *
- * function MyComponent() {
- *   const { localize } = useWebsite()
- *   return (
- *     <Link to="/about">
- *       <Image src="/logo.png" alt="Logo" />
- *       {localize({ en: 'About', fr: 'À propos' })}
- *     </Link>
- *   )
- * }
+ * import { Link, Image, Section, Render, useWebsite, cn } from '@uniweb/kit'
  */
 
 // ============================================================================
-// Components (Primitives - no Tailwind dependency)
+// Components (Primitives)
 // ============================================================================
 
 // Navigation
@@ -38,12 +26,12 @@ export {
   PlainText
 } from './components/Text/index.js'
 
-// Media (plain version - for styled facade, use @uniweb/kit/tailwind)
+// Media
 export { Media } from './components/Media/index.js'
 export { FileLogo } from './components/FileLogo/index.js'
 export { MediaIcon } from './components/MediaIcon/index.js'
 
-// Files (plain version - for styled card, use @uniweb/kit/tailwind)
+// Files
 export { Asset } from './components/Asset/index.js'
 
 // Data loading
@@ -105,3 +93,23 @@ export {
   LOCALE_DISPLAY_NAMES,
   getLocaleLabel
 } from './utils/index.js'
+
+// ============================================================================
+// Styled Components (Tailwind-based)
+// ============================================================================
+
+export { SidebarLayout } from './styled/SidebarLayout/index.js'
+export { Section, Render } from './styled/Section/index.js'
+export { Prose } from './styled/Prose/index.jsx'
+export { Article } from './styled/Article/index.jsx'
+export { Code, Alert, Warning, Table, Details, Divider } from './styled/Section/renderers/index.js'
+export { Disclaimer } from './styled/Disclaimer/index.js'
+export { Visual } from './styled/Visual/index.jsx'
+
+// ============================================================================
+// Search
+// ============================================================================
+
+export { createSearchClient, loadSearchIndex, clearSearchCache } from './search/client.js'
+export { buildSnippet, highlightMatches, escapeHtml } from './search/snippets.js'
+export { useSearch, useSearchIndex, useSearchShortcut, useSearchWithIntent } from './search/hooks.js'
