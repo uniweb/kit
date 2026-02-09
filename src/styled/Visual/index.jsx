@@ -1,11 +1,8 @@
 /**
  * Visual Component
  *
- * Renders the first visual element from content: inset > video > image.
- * Used by section types with a visual slot (SplitContent, Showcase, etc.).
- *
- * Section types that declare `visuals: 1` (any type) should use this component.
- * Section types that declare `visuals: 'image'` (media only) should use Media/Image directly.
+ * Renders the first non-empty visual from the given candidates.
+ * Resolution order: inset > video > image. Only tries what's passed.
  *
  * @module @uniweb/kit/styled/Visual
  */
@@ -16,32 +13,39 @@ import { Image } from '../../components/Image/index.js'
 import { getChildBlockRenderer } from '../../utils/index.js'
 
 /**
- * Renders the first visual from content, checking insets first, then video, then image.
+ * Renders the first non-empty visual from the given candidates.
  *
  * @param {Object} props
- * @param {Object} props.content - Parsed content from prepare-props
- * @param {Object} props.block - Block instance (provides block.insets)
+ * @param {Object} [props.inset] - Inset Block instance (from block.insets or block.getInset())
+ * @param {Object} [props.video] - Video object with src property
+ * @param {Object} [props.image] - Image object with src and alt properties
  * @param {string} [props.className] - CSS classes for the visual container
  * @param {React.ReactNode} [props.fallback] - Fallback when no visual is found
+ *
+ * @example
+ * // Try inset first, fall back to video, then image
+ * <Visual inset={block.insets[0]} video={content.videos[0]} image={content.imgs[0]} />
+ *
+ * @example
+ * // Specific inset only
+ * <Visual inset={block.getInset('chart')} className="rounded-lg" />
+ *
+ * @example
+ * // Image only
+ * <Visual image={content.imgs[1]} className="aspect-video" />
  */
-export function Visual({ content, block, className, fallback = null }) {
-  // Priority 1: Inset component (from @ComponentName in markdown)
-  const inset = block?.insets?.[0]
+export function Visual({ inset, video, image, className, fallback = null }) {
   if (inset) {
     const Renderer = getChildBlockRenderer()
     return <Renderer blocks={[inset]} as="div" extra={{ className }} />
   }
 
-  // Priority 2: Video
-  const video = content?.videos?.[0]
   if (video) {
     return <Media src={video.src || video} className={className} />
   }
 
-  // Priority 3: Image
-  const img = content?.images?.[0] || content?.imgs?.[0]
-  if (img) {
-    return <Image src={img.src} alt={img.alt} className={className} />
+  if (image) {
+    return <Image src={image.src || image} alt={image.alt} className={className} />
   }
 
   return fallback

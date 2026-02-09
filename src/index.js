@@ -87,8 +87,9 @@ export {
   isFileUrl,
   detectMediaType,
   parseIconRef,
-  // Runtime utilities
+  // Runtime utilities (getChildBlockRenderer is internal — use ChildBlocks)
   getChildBlockRenderer,
+  ChildBlocks,
   // Locale utilities
   LOCALE_DISPLAY_NAMES,
   getLocaleLabel
