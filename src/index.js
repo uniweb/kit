@@ -99,6 +99,8 @@ export {
   isFileUrl,
   detectMediaType,
   parseIconRef,
+  // Runtime utilities
+  getChildBlockRenderer,
   // Locale utilities
   LOCALE_DISPLAY_NAMES,
   getLocaleLabel

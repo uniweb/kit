@@ -8,7 +8,7 @@
  */
 
 import React from 'react'
-import { cn } from '../../utils/index.js'
+import { cn, getChildBlockRenderer } from '../../utils/index.js'
 import { SafeHtml } from '../../components/SafeHtml/index.js'
 import { Image } from '../../components/Image/index.js'
 import { Media } from '../../components/Media/index.js'
@@ -246,9 +246,7 @@ function RenderNode({ node, block, ...props }) {
       const insetBlock = block.getInset(refId)
       if (!insetBlock) return null
 
-      const InsetRenderer = insetBlock.getChildBlockRenderer()
-      if (!InsetRenderer) return null
-
+      const InsetRenderer = getChildBlockRenderer()
       return <InsetRenderer blocks={[insetBlock]} as="div" />
     }
 

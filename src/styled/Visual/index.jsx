@@ -13,6 +13,7 @@
 import React from 'react'
 import { Media } from '../../components/Media/Media.jsx'
 import { Image } from '../../components/Image/index.js'
+import { getChildBlockRenderer } from '../../utils/index.js'
 
 /**
  * Renders the first visual from content, checking insets first, then video, then image.
@@ -27,10 +28,8 @@ export function Visual({ content, block, className, fallback = null }) {
   // Priority 1: Inset component (from @ComponentName in markdown)
   const inset = block?.insets?.[0]
   if (inset) {
-    const Renderer = inset.getChildBlockRenderer?.()
-    if (Renderer) {
-      return <Renderer blocks={[inset]} as="div" extra={{ className }} />
-    }
+    const Renderer = getChildBlockRenderer()
+    return <Renderer blocks={[inset]} as="div" extra={{ className }} />
   }
 
   // Priority 2: Video

@@ -134,6 +134,27 @@ export function parseIconRef(ref) {
 }
 
 // ─────────────────────────────────────────────────────────────────
+// Runtime Utilities
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Get the child block renderer component from the runtime.
+ * Use this to render child blocks or insets within a section.
+ *
+ * @returns {React.ComponentType} The ChildBlocks renderer component
+ *
+ * @example
+ * import { getChildBlockRenderer } from '@uniweb/kit'
+ *
+ * const ChildBlocks = getChildBlockRenderer()
+ * <ChildBlocks from={block} />
+ * <ChildBlocks blocks={block.insets} />
+ */
+export function getChildBlockRenderer() {
+  return globalThis.uniweb.childBlockRenderer
+}
+
+// ─────────────────────────────────────────────────────────────────
 // Class / String Utilities
 // ─────────────────────────────────────────────────────────────────
 
