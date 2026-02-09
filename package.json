@@ -1,6 +1,6 @@
 {
   "name": "@uniweb/kit",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "description": "Standard component library for Uniweb foundations",
   "type": "module",
   "exports": {
