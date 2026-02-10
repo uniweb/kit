@@ -39,7 +39,7 @@ function Hero({ content }) {
 
   return (
     <div>
-      <Image src={content.imgs[0]?.url} alt="Hero" />
+      <Image src={content.images[0]?.url} alt="Hero" />
       <h1>{localize({ en: 'Welcome', es: 'Bienvenido' })}</h1>
       <Link to="/about">Learn More</Link>
     </div>

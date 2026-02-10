@@ -24,7 +24,7 @@ import { getChildBlockRenderer } from '../../utils/index.js'
  *
  * @example
  * // Try inset first, fall back to video, then image
- * <Visual inset={block.insets[0]} video={content.videos[0]} image={content.imgs[0]} />
+ * <Visual inset={block.insets[0]} video={content.videos[0]} image={content.images[0]} />
  *
  * @example
  * // Specific inset only
@@ -32,7 +32,7 @@ import { getChildBlockRenderer } from '../../utils/index.js'
  *
  * @example
  * // Image only
- * <Visual image={content.imgs[1]} className="aspect-video" />
+ * <Visual image={content.images[1]} className="aspect-video" />
  */
 export function Visual({ inset, video, image, className, fallback = null }) {
   if (inset) {
