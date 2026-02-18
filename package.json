@@ -5,10 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.js",
-    "./theme-tokens.css": {
-      "style": "./src/theme-tokens.css",
-      "default": "./src/theme-tokens.css"
-    }
+    "./theme-tokens.css": "./src/theme-tokens.css"
   },
   "files": [
     "src",
