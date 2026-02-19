@@ -7,10 +7,10 @@
  * @module @uniweb/kit/styled/Visual
  */
 
-import React from 'react'
-import { Media } from '../../components/Media/Media.jsx'
-import { Image } from '../../components/Image/index.js'
-import { getChildBlockRenderer } from '../../utils/index.js'
+import React from "react";
+import { Media } from "../../components/Media/Media.jsx";
+import { Image } from "../../components/Image/index.js";
+import { getChildBlockRenderer } from "../../utils/index.js";
 
 /**
  * Renders the first non-empty visual from the given candidates.
@@ -35,18 +35,18 @@ import { getChildBlockRenderer } from '../../utils/index.js'
  * <Visual image={content.images[1]} className="aspect-video" />
  */
 export function Visual({ inset, video, image, className, fallback = null }) {
-  if (inset) {
-    const Renderer = getChildBlockRenderer()
-    return <Renderer blocks={[inset]} as="div" extra={{ className }} />
-  }
+    if (inset) {
+        const Renderer = getChildBlockRenderer();
+        return <Renderer blocks={[inset]} as="div" extra={{ className }} />;
+    }
 
-  if (video) {
-    return <Media src={video.src || video} className={className} />
-  }
+    if (video) {
+        return <Media {...video} className={className} />;
+    }
 
-  if (image) {
-    return <Image src={image.src || image} alt={image.alt} className={className} />
-  }
+    if (image) {
+        return <Image {...image} className={className} />;
+    }
 
-  return fallback
+    return fallback;
 }
