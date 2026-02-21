@@ -104,7 +104,7 @@
   --color-neutral-900: var(--neutral-900);
   --color-neutral-950: var(--neutral-950);
 
-  /* ── Brand shorthands ── */
-  /* accent has no semantic token — shorthand to 500 shade */
-  --color-accent: var(--accent-500);
+  /* ── Accent token ── */
+  /* Context-aware accent color (light: accent-600, dark: accent-400) */
+  --color-accent: var(--accent);
 }
