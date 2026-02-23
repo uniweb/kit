@@ -45,7 +45,8 @@ export function Visual({ inset, video, image, className, fallback = null }) {
     }
 
     if (image) {
-        return <Image {...image} className={className} />;
+        const { contentType, viewType, contentId, imgPos, ...imageProps } = image;
+        return <Image {...imageProps} className={className} />;
     }
 
     return fallback;
