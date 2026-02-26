@@ -34,7 +34,7 @@
         "node": ">=20.19"
     },
     "dependencies": {
-        "@uniweb/core": "latest",
+        "@uniweb/core": "workspace:*",
         "clsx": "^2.1.0",
         "fuse.js": "^7.0.0",
         "shiki": "^3.0.0",
