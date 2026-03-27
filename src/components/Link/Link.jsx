@@ -208,10 +208,10 @@ export function Link({
   // Auto-generate title if not provided
   const linkTitle = title || generateTitle(linkHref, localize)
 
-  // Internal links with reload: render <a> with basePath prefix
-  // Used for locale switches that need a full page reload
-  if (reload && !isExternal && !isDownload) {
-    const basePath = website?.basePath || ''
+  // Links with reload: render plain <a> for full page navigation
+  // Used for locale switches (same-domain or cross-domain)
+  if (reload && !isDownload) {
+    const basePath = !isExternal ? (website?.basePath || '') : ''
     return (
       <a
         href={basePath + linkHref}
