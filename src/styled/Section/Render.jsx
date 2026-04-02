@@ -314,9 +314,18 @@ function RenderNode({ node, block, ...props }) {
  * @param {string} [props.className] - Additional CSS classes
  */
 export function Render({ content, block, className, ...props }) {
-  if (!content) return null
+  // Get content from block if not provided directly
+  let resolvedContent = content
+  if (!resolvedContent && block) {
+    resolvedContent = block.rawContent
+    if (resolvedContent?.type === 'doc') {
+      resolvedContent = resolvedContent.content
+    }
+  }
 
-  const nodes = Array.isArray(content) ? content : [content]
+  if (!resolvedContent) return null
+
+  const nodes = Array.isArray(resolvedContent) ? resolvedContent : [resolvedContent]
 
   return (
     <div className={cn('space-y-4', className)} {...props}>

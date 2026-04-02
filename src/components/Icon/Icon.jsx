@@ -138,13 +138,19 @@ export function Icon({
   errorComponent,
   ...props
 }) {
-  // Normalize props — handle icon as string ref ("lu-house", "lu:house"),
+  // Normalize props — handle icon/name as string ref ("lu-house", "lu:house"),
   // object ({ library, name }), or URL
   const parsedRef = typeof icon === 'string' ? parseIconRef(icon) : null
-  const iconLibrary = library || parsedRef?.library || (typeof icon === 'object' ? icon.library : null)
-  const iconName = name || parsedRef?.name || (typeof icon === 'object' ? icon.name : null)
+  const parsedName = !library && typeof name === 'string' ? parseIconRef(name) : null
+  let iconLibrary = library || parsedRef?.library || parsedName?.library || (typeof icon === 'object' ? icon.library : null)
+  const iconName = (parsedName ? parsedName.name : name) || parsedRef?.name || (typeof icon === 'object' ? icon.name : null)
   const iconUrl = url || (!parsedRef && typeof icon === 'string' ? icon : icon?.url)
   const iconSvg = svg || (typeof icon === 'object' ? icon.svg : null)
+
+  // Default to Lucide when name is given without a library and it's not a built-in
+  if (iconName && !iconLibrary && !BUILT_IN_ICONS[iconName]) {
+    iconLibrary = 'lu'
+  }
 
   // Check sync cache for SSR (pre-populated by prerender)
   const cachedSvg = useMemo(() => {

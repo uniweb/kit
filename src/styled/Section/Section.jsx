@@ -90,13 +90,12 @@ export function Section({
   let resolvedContent = content
 
   if (!resolvedContent && block) {
-    // Get parsed content from block
-    resolvedContent = block.parsedContent || block.content
+    resolvedContent = block.rawContent
+  }
 
-    // If it's a ProseMirror doc, get the content array
-    if (resolvedContent?.type === 'doc') {
-      resolvedContent = resolvedContent.content
-    }
+  // If it's a ProseMirror doc, get the content array
+  if (resolvedContent?.type === 'doc') {
+    resolvedContent = resolvedContent.content
   }
 
   // Build classes

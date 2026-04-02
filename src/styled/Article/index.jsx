@@ -53,6 +53,7 @@ const SIZE_CLASSES = {
  */
 export function Article({
   content,
+  block,
   size = 'lg',
   className,
   children,
@@ -60,8 +61,13 @@ export function Article({
 }) {
   const sizeClass = SIZE_CLASSES[size] || SIZE_CLASSES.lg
 
-  // Resolve content - if it's a ProseMirror doc, get the content array
+  // Get content from block if not provided directly
   let resolvedContent = content
+  if (!resolvedContent && block) {
+    resolvedContent = block.rawContent
+  }
+
+  // If it's a ProseMirror doc, get the content array
   if (resolvedContent?.type === 'doc') {
     resolvedContent = resolvedContent.content
   }
