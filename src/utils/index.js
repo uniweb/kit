@@ -149,15 +149,19 @@ export function getChildBlockRenderer() {
 /**
  * Renders child blocks or insets. Wrapper that defers runtime lookup to render time.
  *
+ * By default renders each child as a bare component (no wrapper, no section chrome).
+ * Pass `wrapAs` to opt into full section treatment.
+ *
  * @param {Object} props
  * @param {Object} props.from - Parent block (renders block.childBlocks)
  * @param {Array} props.blocks - Explicit array of blocks to render
+ * @param {string} [props.wrapAs] - Wrapper element tag for section treatment ('div', 'article', etc.)
  *
  * @example
  * import { ChildBlocks } from '@uniweb/kit'
  *
  * <ChildBlocks from={block} />
- * <ChildBlocks blocks={block.insets} />
+ * <ChildBlocks from={block} wrapAs="div" />
  */
 export function ChildBlocks(props) {
   const Renderer = globalThis.uniweb.childBlockRenderer

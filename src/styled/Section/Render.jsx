@@ -247,7 +247,7 @@ function RenderNode({ node, block, ...props }) {
       if (!insetBlock) return null
 
       const InsetRenderer = getChildBlockRenderer()
-      return <InsetRenderer blocks={[insetBlock]} as="div" />
+      return <InsetRenderer blocks={[insetBlock]} />
     }
 
     case 'button': {

@@ -37,7 +37,8 @@ import { getChildBlockRenderer } from "../../utils/index.js";
 export function Visual({ inset, video, image, className, fallback = null }) {
     if (inset) {
         const Renderer = getChildBlockRenderer();
-        return <Renderer blocks={[inset]} as="div" extra={{ className }} />;
+        const rendered = <Renderer blocks={[inset]} />;
+        return className ? <div className={className}>{rendered}</div> : rendered;
     }
 
     if (video) {
