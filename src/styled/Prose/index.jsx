@@ -75,10 +75,7 @@ function SequenceElement({ element, block }) {
     }
 
     case 'codeBlock': {
-      // Tagged code blocks are data, not prose — skip
-      if (element.attrs?.tag) return null
-      const code = typeof element.text === 'string' ? element.text : ''
-      return <Code content={code} language={element.attrs?.language || ''} />
+      return <Code content={element.text || ''} language={element.attrs?.language || ''} />
     }
 
     case 'dataBlock':
