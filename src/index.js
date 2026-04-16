@@ -87,6 +87,8 @@ export {
   isFileUrl,
   detectMediaType,
   parseIconRef,
+  // Content utilities
+  splitContent,
   // Runtime utilities (getChildBlockRenderer is internal — use ChildBlocks)
   getChildBlockRenderer,
   ChildBlocks,

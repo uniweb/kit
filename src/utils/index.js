@@ -237,6 +237,12 @@ export function isFileUrl(url) {
   return fileExtensions.some(ext => lowerUrl.includes(ext))
 }
 
+// ─────────────────────────────────────────────────────────────────
+// Content Utilities
+// ─────────────────────────────────────────────────────────────────
+
+export { splitContent } from './splitContent.js'
+
 /**
  * Detect media type from URL
  * @param {string} url
