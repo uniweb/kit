@@ -10,7 +10,6 @@ export { useTheme, getThemeClasses, THEMES, THEME_NAMES } from './useTheme.js'
 export { useInView, useIsInView } from './useInView.js'
 export { usePageState } from './usePageState.js'
 export { useWebsiteState } from './useWebsiteState.js'
-export { useBlockFetchMeta } from './useBlockFetchMeta.js'
 
 // Theme data hooks (runtime theme access)
 export {

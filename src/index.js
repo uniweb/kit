@@ -72,10 +72,9 @@ export {
   useAppearance,
   useThemeColor,
   useThemeColorVar,
-  // Observable state bridges (page.state / website.state, block fetchMeta)
+  // Observable state bridges (page.state / website.state)
   usePageState,
-  useWebsiteState,
-  useBlockFetchMeta
+  useWebsiteState
 } from './hooks/index.js'
 
 // ============================================================================
