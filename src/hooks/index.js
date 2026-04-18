@@ -1,4 +1,6 @@
 export { useWebsite, default } from './useWebsite.js'
+export { useFetched } from './useFetched.js'
+export { useCacheEntry } from './useCacheEntry.js'
 export { useRouting } from './useRouting.js'
 export { useActiveRoute } from './useActiveRoute.js'
 export { useVersion } from './useVersion.js'

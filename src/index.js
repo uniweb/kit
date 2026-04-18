@@ -51,6 +51,9 @@ export {
 
 export {
   useWebsite,
+  // Layer-3 data hooks — share the DataStore keyspace with Layer 1.
+  useFetched,
+  useCacheEntry,
   useRouting,
   useActiveRoute,
   useVersion,
