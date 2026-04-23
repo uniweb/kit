@@ -81,6 +81,20 @@ function SequenceElement({ element, block }) {
     case 'dataBlock':
       return null
 
+    case 'math_display': {
+      // Block math from $$...$$ on its own line or ```math fence.
+      // The mathml string is pre-compiled at parse time; the browser
+      // renders real MathML natively. Foundations that want to style
+      // errors can target .temml-error inside this wrapper.
+      if (!element.mathml) return null
+      return (
+        <div
+          className="math-display"
+          dangerouslySetInnerHTML={{ __html: element.mathml }}
+        />
+      )
+    }
+
     case 'list': {
       const Tag = element.style === 'ordered' ? 'ol' : 'ul'
       return (
