@@ -92,6 +92,9 @@ export function Image({
     src,
     url,
     alt = "",
+    caption,
+    figureClassName,
+    captionClassName,
     href,
     rounded,
     filter,
@@ -184,16 +187,27 @@ export function Image({
         />
     );
 
-    // Wrap in link if href provided
-    if (href) {
+    // Wrap in link if href provided. The link wraps the bare <img>; if a
+    // caption is also set, the figure wraps the link below.
+    const linked = href
+        ? <Link to={href} className="inline-block">{imageElement}</Link>
+        : imageElement;
+
+    // Caption present → wrap in <figure>/<figcaption> for HTML/EPUB output.
+    // Foundations that prefer their own figure styling can pass a richer
+    // wrapper component instead; this is the kit-level default.
+    if (caption) {
         return (
-            <Link to={href} className="inline-block">
-                {imageElement}
-            </Link>
+            <figure className={cn("uniweb-figure my-4", figureClassName)}>
+                {linked}
+                <figcaption className={cn("uniweb-figcaption text-sm text-subtle mt-2", captionClassName)}>
+                    {caption}
+                </figcaption>
+            </figure>
         );
     }
 
-    return imageElement;
+    return linked;
 }
 
 export default Image;
