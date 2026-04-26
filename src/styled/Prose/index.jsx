@@ -38,6 +38,50 @@ function generateId(text) {
     .replace(/^-|-$/g, '')
 }
 
+const INLINE_INSET_RE = /<uniweb-inset data-ref-id="([^"]+)"><\/uniweb-inset>/g
+
+/**
+ * Render an HTML paragraph fragment that contains inline-inset markers
+ * (`<uniweb-inset data-ref-id="…">`). The fragment is split at marker
+ * boundaries; HTML chunks render via SafeHtml, marker positions render
+ * via the framework's child-block renderer (the same path block-level
+ * insets use, scoped to a single inset block).
+ *
+ * Components rendered through this path return an inline element
+ * (typically a `<span>`) so the paragraph stays a single line of prose.
+ */
+function renderParagraphWithInsets(html, block) {
+  if (!block) return <SafeHtml value={html} as="span" />
+  const InsetRenderer = getChildBlockRenderer()
+  const parts = []
+  let lastIdx = 0
+  INLINE_INSET_RE.lastIndex = 0
+  let match
+  while ((match = INLINE_INSET_RE.exec(html)) !== null) {
+    if (match.index > lastIdx) {
+      parts.push(
+        <SafeHtml
+          key={`t${lastIdx}`}
+          value={html.slice(lastIdx, match.index)}
+          as="span"
+        />
+      )
+    }
+    const refId = match[1]
+    const insetBlock = block.getInset?.(refId)
+    if (insetBlock && InsetRenderer) {
+      parts.push(<InsetRenderer key={`i${refId}`} blocks={[insetBlock]} />)
+    }
+    lastIdx = match.index + match[0].length
+  }
+  if (lastIdx < html.length) {
+    parts.push(
+      <SafeHtml key={`t${lastIdx}`} value={html.slice(lastIdx)} as="span" />
+    )
+  }
+  return parts
+}
+
 /**
  * Render a single sequence element to React
  */
@@ -54,6 +98,14 @@ function SequenceElement({ element, block }) {
 
     case 'paragraph': {
       if (!element.text) return null
+      // Inline insets ride through the paragraph text as
+      // `<uniweb-inset data-ref-id="…"></uniweb-inset>` markers (see
+      // semantic-parser's getTextContent). When any are present, walk
+      // the text once and intersperse React-rendered insets at the
+      // marker positions; otherwise stick to the fast SafeHtml path.
+      if (/<uniweb-inset/.test(element.text)) {
+        return <p>{renderParagraphWithInsets(element.text, block)}</p>
+      }
       return <p><SafeHtml value={element.text} as="span" /></p>
     }
 
