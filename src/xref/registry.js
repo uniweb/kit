@@ -115,22 +115,16 @@ export function buildXrefRegistry(website, options = {}) {
         return sectionStack.slice().join('.')
     }
 
-    function collectTextContent(node) {
-        if (!node || typeof node !== 'object') return ''
-        if (node.type === 'text' && typeof node.text === 'string') return node.text
-        if (Array.isArray(node.content)) {
-            return node.content.map(collectTextContent).join('')
-        }
-        return ''
-    }
-
-    function inferKind(node) {
-        const builtin = KIND_BY_TYPE[node.type]
+    function inferKind(el) {
+        // Built-in: element type matches a registered kind.
+        const builtin = KIND_BY_TYPE[el.type]
         if (builtin) return builtin
-        if (node.attrs?.kind && (KIND_BY_TYPE[node.attrs.kind] || foundationKinds[node.attrs.kind])) {
-            return node.attrs.kind
+        // Explicit kind attribute on the element.
+        if (el.attrs?.kind && (KIND_BY_TYPE[el.attrs.kind] || foundationKinds[el.attrs.kind])) {
+            return el.attrs.kind
         }
-        const id = node.attrs?.id
+        // Foundation-declared prefix on the id.
+        const id = readId(el)
         if (id && id.includes('-')) {
             const prefix = id.slice(0, id.indexOf('-'))
             if (prefixToKind[prefix]) return prefixToKind[prefix]
@@ -138,69 +132,72 @@ export function buildXrefRegistry(website, options = {}) {
         return null
     }
 
-    function visit(node, sourcePath) {
-        if (!node || typeof node !== 'object') return
+    // Sequence elements expose `id` differently per element type. Most
+    // (heading, image, table) carry it under `attrs`; math_display
+    // promotes it to a top-level field (per @uniweb/semantic-parser's
+    // sequence builder). Read both.
+    function readId(el) {
+        return el.attrs?.id ?? el.id ?? null
+    }
 
+    function visit(el, sourcePath) {
         let counter = null
         let counterText = null
-        if (node.type === 'heading') {
-            const level = Math.max(1, Math.min(6, node.attrs?.level || 1))
+        if (el.type === 'heading') {
+            const level = Math.max(1, Math.min(6, el.level || el.attrs?.level || 1))
             counterText = nextHierarchical(level)
             counter = counterText
         }
 
-        const id = node.attrs?.id
-        if (id) {
-            const kind = inferKind(node)
-            if (!kind) {
-                onWarn(`[xref] {#${id}} on unrecognized element type "${node.type}" — ignored`)
-            } else if (entries[id]) {
-                onWarn(`[xref] duplicate id "${id}" — keeping first registration`)
-            } else {
-                if (counter == null) {
-                    counter = nextFlat(kind)
-                    counterText = String(counter)
-                }
-                const entry = { id, kind, counter, counterText, sourcePath: sourcePath || '' }
-                const captionAttr = node.attrs?.caption
-                if (kind === 'figure' || kind === 'table') {
-                    if (captionAttr) entry.caption = String(captionAttr)
-                }
-                if (node.type === 'heading') {
-                    const text = collectTextContent(node)
-                    if (text) entry.text = text
-                }
-                if (node.type === 'math_display') {
-                    const latex = node.attrs?.latex
-                    if (latex) entry.latex = String(latex)
-                }
-                entries[id] = entry
-            }
-        }
-        // Heading without an id still advances the hierarchical counter
-        // — counter computed above; just no entry registered.
+        const id = readId(el)
+        if (!id) return
 
-        if (Array.isArray(node.content)) {
-            for (const child of node.content) visit(child, sourcePath)
+        const kind = inferKind(el)
+        if (!kind) {
+            onWarn(`[xref] {#${id}} on unrecognized element type "${el.type}" — ignored`)
+            return
         }
+        if (entries[id]) {
+            onWarn(`[xref] duplicate id "${id}" — keeping first registration`)
+            return
+        }
+        if (counter == null) {
+            counter = nextFlat(kind)
+            counterText = String(counter)
+        }
+        const entry = { id, kind, counter, counterText, sourcePath: sourcePath || '' }
+        const caption = el.attrs?.caption
+        if ((kind === 'figure' || kind === 'table') && caption) {
+            entry.caption = String(caption)
+        }
+        if (el.type === 'heading' && el.text) {
+            entry.text = String(el.text)
+        }
+        if (el.type === 'math_display' && el.latex) {
+            entry.latex = String(el.latex)
+        }
+        entries[id] = entry
     }
 
-    // Iterate the Website object graph: pages → bodyBlocks → rawContent.
-    // Each Block's rawContent is a ProseMirror doc; the registry walker
-    // visits its block-level children to find {#id} attributes.
-    for (const page of website?.pages || []) {
-        for (const block of page.bodyBlocks || []) {
-            const content = block.rawContent
-            if (content?.type === 'doc' && Array.isArray(content.content)) {
-                for (const child of content.content) visit(child, page.route)
+    // Walk the Website's object graph: pages → bodyBlocks. Each Block's
+    // `parsedContent.sequence` is a flat document-order array of
+    // semantic elements (heading, paragraph, image, list, blockquote,
+    // codeBlock, table, math_display, divider, …). Iterating the
+    // sequence is enough — the registry's id-bearing kinds (heading,
+    // image, math_display, table) all live at sequence level.
+    //
+    // Website.pages, Page.bodyBlocks, and Block.parsedContent.sequence
+    // are framework invariants — always arrays. No defensive guards.
+    for (const page of website.pages) {
+        for (const block of page.bodyBlocks) {
+            for (const el of block.parsedContent.sequence) {
+                visit(el, page.route)
             }
         }
     }
 
     const registry = { entries }
-    if (website && typeof website === 'object') {
-        REGISTRIES.set(website, registry)
-    }
+    REGISTRIES.set(website, registry)
     return registry
 }
 
