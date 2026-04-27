@@ -16,7 +16,7 @@
  * Built-in kinds:
  *   - heading      → 'section'   (hierarchical: 1, 1.1, 1.1.1, 2, …)
  *   - image        → 'figure'    (flat arabic counter)
- *   - math_display → 'equation'  (flat arabic counter)
+ *   - math         → 'equation'  (flat arabic counter; display:true only)
  *   - table        → 'table'     (flat arabic counter)
  *
  * Foundation extensions: foundations that need additional kinds (e.g.
@@ -57,7 +57,7 @@
 const KIND_BY_TYPE = {
     heading: 'section',
     image: 'figure',
-    math_display: 'equation',
+    math: 'equation',
     table: 'table',
 }
 
@@ -133,9 +133,9 @@ export function buildXrefRegistry(website, options = {}) {
     }
 
     // Sequence elements expose `id` differently per element type. Most
-    // (heading, image, table) carry it under `attrs`; math_display
-    // promotes it to a top-level field (per @uniweb/semantic-parser's
-    // sequence builder). Read both.
+    // (heading, image, table) carry it under `attrs`; math promotes it
+    // to a top-level field (per @uniweb/semantic-parser's sequence
+    // builder). Read both.
     function readId(el) {
         return el.attrs?.id ?? el.id ?? null
     }
@@ -173,7 +173,7 @@ export function buildXrefRegistry(website, options = {}) {
         if (el.type === 'heading' && el.text) {
             entry.text = String(el.text)
         }
-        if (el.type === 'math_display' && el.latex) {
+        if (el.type === 'math' && el.latex) {
             entry.latex = String(el.latex)
         }
         entries[id] = entry
@@ -182,9 +182,9 @@ export function buildXrefRegistry(website, options = {}) {
     // Walk the Website's object graph: pages → bodyBlocks. Each Block's
     // `parsedContent.sequence` is a flat document-order array of
     // semantic elements (heading, paragraph, image, list, blockquote,
-    // codeBlock, table, math_display, divider, …). Iterating the
-    // sequence is enough — the registry's id-bearing kinds (heading,
-    // image, math_display, table) all live at sequence level.
+    // codeBlock, table, math, divider, …). Iterating the sequence is
+    // enough — the registry's id-bearing kinds (heading, image,
+    // math (display:true), table) all live at sequence level.
     //
     // Website.pages, Page.bodyBlocks, and Block.parsedContent.sequence
     // are framework invariants — always arrays. No defensive guards.

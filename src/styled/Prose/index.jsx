@@ -133,15 +133,20 @@ function SequenceElement({ element, block }) {
     case 'dataBlock':
       return null
 
-    case 'math_display': {
-      // Block math from $$...$$ on its own line or ```math fence.
-      // The mathml string is pre-compiled at parse time; the browser
-      // renders real MathML natively. Foundations that want to style
-      // errors can target .temml-error inside this wrapper.
+    case 'math': {
+      // Math from $$...$$ on its own line, ```math fence, or inline
+      // $...$ (the inline form doesn't reach the sequence walker — it
+      // rides inside paragraph HTML — but render the same way for
+      // safety in case a future caller surfaces it here). Mathml is
+      // pre-compiled at parse time; the browser renders real MathML
+      // natively. Foundations that want to style errors can target
+      // .temml-error inside this wrapper.
       if (!element.mathml) return null
+      const display = element.display !== false
+      const Tag = display ? 'div' : 'span'
       return (
-        <div
-          className="math-display"
+        <Tag
+          className={display ? 'math-display' : 'math-inline'}
           dangerouslySetInnerHTML={{ __html: element.mathml }}
         />
       )
