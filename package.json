@@ -5,6 +5,7 @@
     "type": "module",
     "exports": {
         ".": "./src/index.js",
+        "./xref": "./src/xref/index.js",
         "./theme-tokens.css": "./src/theme-tokens.css"
     },
     "files": [
