@@ -84,7 +84,9 @@ function buildDetailRequest(record, collection) {
   }
 
   // Static-file default — the build emitted per-record JSON files.
-  return { path: `/data/${collection}/${slug}.json`, schema: collection }
+  // Phase 5 of the CDN migration moved storage from /data/ to /_data/;
+  // the site router accepts both URL shapes during the transition.
+  return { path: `/_data/${collection}/${slug}.json`, schema: collection }
 }
 
 export default useEntityDetail
