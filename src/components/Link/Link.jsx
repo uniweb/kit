@@ -217,6 +217,7 @@ export function Link({
         href={basePath + linkHref}
         title={linkTitle}
         className={className}
+        data-reload="true"
         {...props}
       >
         {children}
