@@ -79,7 +79,9 @@ export {
   useThemeColorVar,
   // Observable state bridges (page.state / website.state)
   usePageState,
-  useWebsiteState
+  useWebsiteState,
+  // Form submission lifecycle for foundation Form components
+  useFormSubmit
 } from './hooks/index.js'
 
 // ============================================================================
@@ -102,7 +104,10 @@ export {
   ChildBlocks,
   // Locale utilities
   LOCALE_DISPLAY_NAMES,
-  getLocaleLabel
+  getLocaleLabel,
+  // Form submission utilities (low-level companion of useFormSubmit hook)
+  submitForm,
+  derivePreviewFromFormData
 } from './utils/index.js'
 
 // ============================================================================

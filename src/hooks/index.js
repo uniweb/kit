@@ -23,3 +23,6 @@ export {
   useThemeColor,
   useThemeColorVar
 } from './useThemeData.js'
+
+// Form submission lifecycle for foundation Form components
+export { useFormSubmit } from './useFormSubmit.js'
