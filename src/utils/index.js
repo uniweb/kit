@@ -271,3 +271,9 @@ export function detectMediaType(url) {
 
   return 'unknown'
 }
+
+// ─────────────────────────────────────────────────────────────────
+// Form Submission
+// ─────────────────────────────────────────────────────────────────
+
+export { submitForm, derivePreviewFromFormData } from './submitForm.js'
