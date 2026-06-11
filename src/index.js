@@ -121,6 +121,7 @@ export { Article } from './styled/Article/index.jsx'
 export { Code, Alert, Warning, Table, Details, Divider } from './styled/Section/renderers/index.js'
 export { Disclaimer } from './styled/Disclaimer/index.js'
 export { Visual } from './styled/Visual/index.jsx'
+export { Scene } from './styled/Scene/index.jsx'
 
 // ============================================================================
 // Search
