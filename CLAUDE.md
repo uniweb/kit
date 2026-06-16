@@ -35,7 +35,7 @@ src/components/Image/
 - `clsx` + `tailwind-merge` — Class name merging (`cn()` utility)
 - `fuse.js` — Client-side search
 - `shiki` — Syntax highlighting
-- React 18/19 as peer dependency
+- React 19 as peer dependency
 
 ## Publishing
 
