@@ -88,7 +88,7 @@ function injectCodeThemeCSS(codeTheme) {
 /* Code element inside shiki */
 .shiki code {
   display: block;
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-code, ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace);
 }
 `
   document.head.appendChild(style)
