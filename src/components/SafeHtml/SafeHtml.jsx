@@ -1,18 +1,27 @@
 /**
  * SafeHtml Component
  *
- * Safely renders HTML content with authored-href resolution: the `page:`
- * (stable page reference) and `topic:` (legacy) protocols, and the deployment
- * base path — the same resolution kit's <Link> applies to a structured link,
- * so inline link marks inside rich-text bodies resolve identically.
+ * Renders an HTML string with authored-href resolution: the `page:` (stable
+ * page reference) and `topic:` (legacy) protocols, and the deployment base
+ * path — the same resolution kit's <Link> applies to a structured link, so
+ * inline link marks inside rich-text bodies resolve identically.
  *
- * The resolution itself lives in utils/href.js, shared with <Text>, so
- * both prose renderers agree on what an authored href means.
+ * The resolution itself lives in utils/href.js, shared with <Text>, so both
+ * prose renderers agree on what an authored href means.
+ *
+ * WHAT "SAFE" DOES NOT MEAN
+ * This component does NOT sanitize. Nothing in the framework does. The value
+ * is rendered as-is, so it must come from a source you trust — which the
+ * framework's own content is: the author of a site's markdown also writes its
+ * foundation, so there is no privilege boundary to defend. A foundation that
+ * renders genuinely untrusted HTML (say a user-submitted string arriving
+ * through a fetcher) is responsible for that decision, and should not read
+ * this component's name as a guarantee.
  *
  * @module @uniweb/kit/SafeHtml
  */
 
-import React, { Suspense, useMemo } from 'react'
+import React, { useMemo } from 'react'
 import { useWebsite } from '../../hooks/useWebsite.js'
 import { resolveProseHrefs } from '../../utils/href.js'
 
@@ -32,10 +41,7 @@ import { resolveProseHrefs } from '../../utils/href.js'
  * <SafeHtml value='<a href="page:93dc5359">About</a>' />
  */
 export function SafeHtml({ value, className, as: Component = 'div', ...props }) {
-  const { website, getRoutingComponents } = useWebsite()
-
-  // Get the runtime's SafeHtml if available (handles sanitization)
-  const RuntimeSafeHtml = getRoutingComponents()?.SafeHtml
+  const { website } = useWebsite()
 
   // Process the value
   const processedValue = useMemo(() => {
@@ -48,16 +54,6 @@ export function SafeHtml({ value, className, as: Component = 'div', ...props }) 
     return resolveProseHrefs(html, website)
   }, [value, website])
 
-  // Use runtime SafeHtml if available (recommended for proper sanitization)
-  if (RuntimeSafeHtml) {
-    return (
-      <Suspense fallback={null}>
-        <RuntimeSafeHtml value={processedValue} className={className} {...props} />
-      </Suspense>
-    )
-  }
-
-  // Fallback: render directly (less safe, but works without runtime)
   return (
     <Component
       className={className}
