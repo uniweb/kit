@@ -13,6 +13,7 @@
 import React from 'react'
 import { useWebsite } from '../../hooks/useWebsite.js'
 import { isExternalUrl, isFileUrl } from '../../utils/index.js'
+import { applyBasePath } from '../../utils/prose-html.js'
 
 /**
  * Social media platforms for auto-generating link titles
@@ -214,7 +215,7 @@ export function Link({
     const basePath = !isExternal ? (website?.basePath || '') : ''
     return (
       <a
-        href={basePath + linkHref}
+        href={applyBasePath(linkHref, basePath)}
         title={linkTitle}
         className={className}
         data-reload="true"
@@ -290,7 +291,7 @@ export function Link({
   const basePath = website?.basePath || ''
   return (
     <a
-      href={basePath + linkHref}
+      href={applyBasePath(linkHref, basePath)}
       title={linkTitle}
       className={className}
       {...props}

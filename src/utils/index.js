@@ -206,14 +206,36 @@ export function stripTags(html) {
  */
 export function isExternalUrl(url) {
   if (!url || typeof url !== 'string') return false
+
+  // Protocol-relative (//host/path) targets another authority by construction.
+  // Checked before the '/' test, which it would otherwise satisfy.
+  if (url.startsWith('//')) return true
+
+  // Site-root-relative paths and bare fragments are always internal
   if (url.startsWith('/') || url.startsWith('#')) return false
 
-  try {
-    const urlObj = new URL(url, window.location.origin)
-    return urlObj.origin !== window.location.origin
-  } catch {
-    return false
+  // Anything carrying a scheme (https:, mailto:, tel:, ...) is absolute.
+  if (/^[a-z][a-z0-9+.-]*:/i.test(url)) {
+    // In a browser we can compare origins, so a same-origin absolute URL is
+    // internal. Under SSR/prerender there is no origin to compare against —
+    // report external, which is both true in practice and the safe answer.
+    //
+    // This used to read window.location.origin unguarded. The ReferenceError
+    // was swallowed by the catch below, so during prerender EVERY url —
+    // including https://… — was reported internal, and callers that treat
+    // "internal" as "site-relative" then mangled it.
+    const origin = typeof window !== 'undefined' ? window.location?.origin : null
+    if (!origin) return true
+
+    try {
+      return new URL(url, origin).origin !== origin
+    } catch {
+      return true
+    }
   }
+
+  // Document-relative path (./x, x/y) — internal
+  return false
 }
 
 /**

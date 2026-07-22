@@ -40,9 +40,21 @@ const NON_ROUTE_HREF_RE = /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i
  * Mirrors what <Link> ends up doing for a structured link: React Router's
  * basename supplies it during SPA navigation, and Link's SSG fallback and
  * `reload` path prepend `website.basePath` explicitly.
+ *
+ * The invariant this encodes — a base is only ever joined to a path that
+ * starts at the site root — is the whole point of routing every caller
+ * through here. A bare `basePath + href` concatenation produces garbage the
+ * moment href turns out to be absolute (`/basehttps://example.com/x`), and
+ * whether it is absolute depends on a classification that has been wrong
+ * before. Guarding at the join makes the failure impossible rather than
+ * unlikely.
+ *
+ * @param {string} href - Href to prefix
+ * @param {string} basePath - Deployment base (no trailing slash), '' for root
+ * @returns {string} Href with the base applied, or unchanged if not applicable
  */
-function applyBasePath(href, basePath) {
-  if (!basePath) return href
+export function applyBasePath(href, basePath) {
+  if (!href || typeof href !== 'string' || !basePath) return href
   if (!href.startsWith('/') || href.startsWith('//')) return href
   if (href === basePath || href.startsWith(basePath + '/')) return href // already based
   return basePath + href
