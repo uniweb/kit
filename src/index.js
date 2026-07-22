@@ -99,8 +99,10 @@ export {
   parseIconRef,
   // Content utilities
   splitContent,
-  // Prose href resolution (for foundations that render prose HTML themselves)
-  resolveProseHref,
+  // Href resolution (for foundations rendering their own links or prose HTML)
+  applyBasePath,
+  resolveRoute,
+  resolveHref,
   resolveProseHrefs,
   // Runtime utilities (getChildBlockRenderer is internal — use ChildBlocks)
   getChildBlockRenderer,

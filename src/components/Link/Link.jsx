@@ -13,7 +13,7 @@
 import React from 'react'
 import { useWebsite } from '../../hooks/useWebsite.js'
 import { isExternalUrl, isFileUrl } from '../../utils/index.js'
-import { applyBasePath } from '../../utils/prose-html.js'
+import { applyBasePath, resolveRoute } from '../../utils/href.js'
 
 /**
  * Social media platforms for auto-generating link titles
@@ -167,38 +167,24 @@ export function Link({
   reload,
   ...props
 }) {
-  const { website, localize, makeHref, getRoutingComponents } = useWebsite()
+  const { website, localize, getRoutingComponents } = useWebsite()
   const RouterLink = getRoutingComponents()?.Link
 
   // Normalize href
-  let linkHref = href || to || ''
+  const authoredHref = href || to || ''
 
-  // Handle internal reference protocols
-  // - topic: legacy internal reference
-  // - page: stable page reference (page:pageId#sectionId)
-  if (linkHref.startsWith('topic:') || linkHref.startsWith('page:')) {
-    linkHref = makeHref(linkHref)
-  }
-
-  // Add locale prefix for internal links in non-default locales
-  // Skip when reload is true — the caller provides a fully-resolved URL
-  // (e.g., getLocaleUrl() already includes the target locale prefix)
-  if (!reload && linkHref.startsWith('/') && !isExternalUrl(linkHref)) {
-    if (website?.hasMultipleLocales?.()) {
-      const activeLocale = website.getActiveLocale()
-      const defaultLocale = website.getDefaultLocale()
-      if (activeLocale && activeLocale !== defaultLocale) {
-        // Translate route slug for current locale (e.g., /about → /acerca-de)
-        if (website.translateRoute) {
-          linkHref = website.translateRoute(linkHref, activeLocale)
-        }
-        const prefix = `/${activeLocale}`
-        if (!linkHref.startsWith(`${prefix}/`) && linkHref !== prefix) {
-          linkHref = linkHref === '/' ? `${prefix}/` : `${prefix}${linkHref}`
-        }
-      }
-    }
-  }
+  // Resolve the authored href to a route: page:/topic: internal references,
+  // then slug translation and the locale prefix. Shared with prose rendering
+  // (utils/href.js) so a link written in markdown and a link passed to <Link>
+  // mean the same thing.
+  //
+  // `reload` opts out of the locale step only — its href comes from
+  // getLocaleUrl() and already carries the TARGET locale, which re-resolving
+  // against the ACTIVE one would clobber. Internal references still resolve.
+  //
+  // The base path is applied per-branch below, not here, because a
+  // Router-rendered link gets it from the router's basename instead.
+  const linkHref = resolveRoute(authoredHref, website, { locale: !reload })
 
   // Determine if this should be a download
   const isDownload = download || isFileUrl(linkHref)
@@ -226,11 +212,14 @@ export function Link({
     )
   }
 
-  // File downloads
+  // File downloads. A site-relative file lives under the deployment base like
+  // everything else, so the base applies here too — it used to be omitted,
+  // which broke every download link on a subdirectory deploy. applyBasePath
+  // leaves an absolute URL alone, so an off-site download is unaffected.
   if (isDownload) {
     return (
       <a
-        href={linkHref}
+        href={applyBasePath(linkHref, website?.basePath || '')}
         download
         target="_blank"
         rel="noopener noreferrer"

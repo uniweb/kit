@@ -199,65 +199,9 @@ export function stripTags(html) {
   return html.replace(/<[^>]*>/g, '')
 }
 
-/**
- * Check if a URL is external (different origin)
- * @param {string} url
- * @returns {boolean}
- */
-export function isExternalUrl(url) {
-  if (!url || typeof url !== 'string') return false
-
-  // Protocol-relative (//host/path) targets another authority by construction.
-  // Checked before the '/' test, which it would otherwise satisfy.
-  if (url.startsWith('//')) return true
-
-  // Site-root-relative paths and bare fragments are always internal
-  if (url.startsWith('/') || url.startsWith('#')) return false
-
-  // Anything carrying a scheme (https:, mailto:, tel:, ...) is absolute.
-  if (/^[a-z][a-z0-9+.-]*:/i.test(url)) {
-    // In a browser we can compare origins, so a same-origin absolute URL is
-    // internal. Under SSR/prerender there is no origin to compare against —
-    // report external, which is both true in practice and the safe answer.
-    //
-    // This used to read window.location.origin unguarded. The ReferenceError
-    // was swallowed by the catch below, so during prerender EVERY url —
-    // including https://… — was reported internal, and callers that treat
-    // "internal" as "site-relative" then mangled it.
-    const origin = typeof window !== 'undefined' ? window.location?.origin : null
-    if (!origin) return true
-
-    try {
-      return new URL(url, origin).origin !== origin
-    } catch {
-      return true
-    }
-  }
-
-  // Document-relative path (./x, x/y) — internal
-  return false
-}
-
-/**
- * Check if a URL points to a downloadable file
- * @param {string} url
- * @returns {boolean}
- */
-export function isFileUrl(url) {
-  if (!url || typeof url !== 'string') return false
-
-  const fileExtensions = [
-    '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
-    '.zip', '.rar', '.7z', '.tar', '.gz',
-    '.mp3', '.wav', '.ogg', '.flac',
-    '.mp4', '.avi', '.mov', '.wmv', '.webm',
-    '.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp',
-    '.txt', '.csv', '.json', '.xml'
-  ]
-
-  const lowerUrl = url.toLowerCase()
-  return fileExtensions.some(ext => lowerUrl.includes(ext))
-}
+// URL predicates live in url.js so href.js can use them without importing
+// this barrel, which re-exports href.js in turn.
+export { isExternalUrl, isFileUrl } from './url.js'
 
 // ─────────────────────────────────────────────────────────────────
 // Content Utilities
@@ -268,7 +212,7 @@ export { splitContent } from './splitContent.js'
 // Prose href resolution — exported so a foundation rendering its own prose
 // HTML resolves authored hrefs the same way kit's <Text> and <SafeHtml> do,
 // rather than reinventing (and diverging from) it.
-export { resolveProseHref, resolveProseHrefs } from './prose-html.js'
+export { applyBasePath, resolveRoute, resolveHref, resolveProseHrefs } from './href.js'
 
 /**
  * Detect media type from URL

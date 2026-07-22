@@ -6,7 +6,7 @@
  * base path — the same resolution kit's <Link> applies to a structured link,
  * so inline link marks inside rich-text bodies resolve identically.
  *
- * The resolution itself lives in utils/prose-html.js, shared with <Text>, so
+ * The resolution itself lives in utils/href.js, shared with <Text>, so
  * both prose renderers agree on what an authored href means.
  *
  * @module @uniweb/kit/SafeHtml
@@ -14,7 +14,7 @@
 
 import React, { Suspense, useMemo } from 'react'
 import { useWebsite } from '../../hooks/useWebsite.js'
-import { resolveProseHrefs } from '../../utils/prose-html.js'
+import { resolveProseHrefs } from '../../utils/href.js'
 
 /**
  * SafeHtml - Safely render HTML content

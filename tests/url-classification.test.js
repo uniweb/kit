@@ -17,7 +17,7 @@
  */
 
 import { isExternalUrl, isFileUrl } from '../src/utils/index.js'
-import { applyBasePath } from '../src/utils/prose-html.js'
+import { applyBasePath } from '../src/utils/href.js'
 
 describe('isExternalUrl (SSR — no window)', () => {
   it('reports absolute URLs external, so no caller treats them as site paths', () => {

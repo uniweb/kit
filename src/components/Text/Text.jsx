@@ -15,7 +15,7 @@
 
 import React, { memo } from 'react'
 import { cn } from '../../utils/index.js'
-import { resolveProseHrefs } from '../../utils/prose-html.js'
+import { resolveProseHrefs } from '../../utils/href.js'
 
 /**
  * Resolve authored hrefs in a prose string before it reaches the DOM.
