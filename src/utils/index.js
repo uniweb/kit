@@ -243,6 +243,11 @@ export function isFileUrl(url) {
 
 export { splitContent } from './splitContent.js'
 
+// Prose href resolution — exported so a foundation rendering its own prose
+// HTML resolves authored hrefs the same way kit's <Text> and <SafeHtml> do,
+// rather than reinventing (and diverging from) it.
+export { resolveProseHref, resolveProseHrefs } from './prose-html.js'
+
 /**
  * Detect media type from URL
  * @param {string} url

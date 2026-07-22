@@ -15,6 +15,22 @@
 
 import React, { memo } from 'react'
 import { cn } from '../../utils/index.js'
+import { resolveProseHrefs } from '../../utils/prose-html.js'
+
+/**
+ * Resolve authored hrefs in a prose string before it reaches the DOM.
+ *
+ * The website is read defensively rather than through useWebsite(), which
+ * throws when no runtime is initialized. Text is a presentation primitive and
+ * must stay usable without a runtime (press/unipress document builds, tests);
+ * making it context-required would be a regression. Same defensive read the
+ * runtime itself uses in Background, the SSR renderer and the link
+ * interceptor.
+ */
+function resolve(text) {
+  if (typeof text !== 'string') return text
+  return resolveProseHrefs(text, globalThis.uniweb?.activeWebsite)
+}
 
 /**
  * Text - Smart typography component
@@ -72,7 +88,7 @@ export const Text = memo(function Text({
       return (
         <Tag
           className={className}
-          dangerouslySetInnerHTML={{ __html: text }}
+          dangerouslySetInnerHTML={{ __html: resolve(text) }}
           {...props}
         />
       )
@@ -106,7 +122,7 @@ export const Text = memo(function Text({
             return (
               <LineTag
                 key={i}
-                dangerouslySetInnerHTML={{ __html: line }}
+                dangerouslySetInnerHTML={{ __html: resolve(line) }}
               />
             )
           }
@@ -125,7 +141,7 @@ export const Text = memo(function Text({
             <LineTag
               key={i}
               className={className}
-              dangerouslySetInnerHTML={{ __html: line }}
+              dangerouslySetInnerHTML={{ __html: resolve(line) }}
               {...props}
             />
           )
