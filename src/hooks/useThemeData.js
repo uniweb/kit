@@ -27,35 +27,26 @@ import { getUniweb, Theme } from '@uniweb/core'
 // Storage key for appearance preference
 const APPEARANCE_STORAGE_KEY = 'uniweb-appearance'
 
-// CSS class for dark scheme
+// CSS classes for the two schemes
 const DARK_SCHEME_CLASS = 'scheme-dark'
+const LIGHT_SCHEME_CLASS = 'scheme-light'
 
 /**
- * Get the initial scheme from storage or system preference
+ * Read the scheme currently applied to the document.
  *
- * @param {Object} appearance - Theme appearance configuration
+ * The runtime resolves and applies the boot scheme before React renders (see
+ * @uniweb/runtime's appearance.js), so this hook reads that result rather than
+ * re-deriving it from config + localStorage. One resolver, one boot-time writer.
+ *
+ * Deriving it independently here is what used to break: the runtime and this
+ * hook each applied their own answer, and the runtime's — which ignored the
+ * stored preference — won, because React runs child effects before parent ones.
+ *
  * @returns {string} 'light' or 'dark'
  */
-function getInitialScheme(appearance) {
-  // Check localStorage first
-  if (typeof localStorage !== 'undefined') {
-    const stored = localStorage.getItem(APPEARANCE_STORAGE_KEY)
-    if (stored === 'light' || stored === 'dark') {
-      return stored
-    }
-  }
-
-  // Check system preference if respectSystemPreference is enabled
-  if (appearance?.respectSystemPreference && typeof window !== 'undefined') {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    if (prefersDark && appearance.schemes?.includes('dark')) {
-      return 'dark'
-    }
-  }
-
-  // Fall back to default
-  const defaultScheme = appearance?.default || 'light'
-  return defaultScheme === 'system' ? 'light' : defaultScheme
+function readAppliedScheme() {
+  if (typeof document === 'undefined') return 'light'
+  return document.documentElement.classList.contains(DARK_SCHEME_CLASS) ? 'dark' : 'light'
 }
 
 /**
@@ -150,17 +141,25 @@ export function useAppearance() {
   const theme = useThemeData()
   const appearance = theme?.getAppearance() || { default: 'light', allowToggle: false }
 
-  const [scheme, setSchemeState] = useState(() => getInitialScheme(appearance))
+  const [scheme, setSchemeState] = useState(readAppliedScheme)
 
-  // Apply scheme to document
+  // Apply scheme to document.
+  //
+  // Sets an explicit class both ways rather than relying on the absence of one:
+  // `default: 'system'` themes generate a `@media (prefers-color-scheme: dark)`
+  // block scoped to `:root:not(.scheme-light)`, so forcing light on a dark OS
+  // needs `scheme-light` present — removing `scheme-dark` alone would leave the
+  // media query still applying dark tokens.
   const applyScheme = useCallback((newScheme) => {
-    if (typeof document !== 'undefined') {
-      const root = document.documentElement
-      if (newScheme === 'dark') {
-        root.classList.add(DARK_SCHEME_CLASS)
-      } else {
-        root.classList.remove(DARK_SCHEME_CLASS)
-      }
+    if (typeof document === 'undefined') return
+
+    const root = document.documentElement
+    if (newScheme === 'dark') {
+      root.classList.add(DARK_SCHEME_CLASS)
+      root.classList.remove(LIGHT_SCHEME_CLASS)
+    } else {
+      root.classList.add(LIGHT_SCHEME_CLASS)
+      root.classList.remove(DARK_SCHEME_CLASS)
     }
   }, [])
 
@@ -186,10 +185,9 @@ export function useAppearance() {
     setScheme(newScheme)
   }, [scheme, setScheme])
 
-  // Apply initial scheme on mount
-  useEffect(() => {
-    applyScheme(scheme)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  // No mount effect applying the initial scheme: the runtime already applied it
+  // before React rendered, and `scheme` was read back from that. Re-applying
+  // here is what made this hook a second writer.
 
   // Listen for system preference changes
   useEffect(() => {
@@ -200,19 +198,28 @@ export function useAppearance() {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
     const handleChange = (e) => {
-      // Only auto-switch if user hasn't manually set preference
-      const stored = localStorage.getItem(APPEARANCE_STORAGE_KEY)
-      if (!stored) {
-        const newScheme = e.matches ? 'dark' : 'light'
-        if (appearance.schemes?.includes(newScheme)) {
-          setScheme(newScheme)
-        }
+      // Only auto-switch if the visitor hasn't manually set a preference
+      let stored = null
+      try {
+        stored = localStorage.getItem(APPEARANCE_STORAGE_KEY)
+      } catch {
+        // Safari private mode throws on access — treat as "no preference"
       }
+      if (stored) return
+
+      const newScheme = e.matches ? 'dark' : 'light'
+      if (!appearance.schemes?.includes(newScheme)) return
+
+      // Track the OS without persisting. Going through setScheme() would write
+      // to localStorage, which reads back as a manual preference and stops this
+      // listener from ever following the OS again.
+      setSchemeState(newScheme)
+      applyScheme(newScheme)
     }
 
     mediaQuery.addEventListener('change', handleChange)
     return () => mediaQuery.removeEventListener('change', handleChange)
-  }, [appearance.respectSystemPreference, appearance.schemes, setScheme])
+  }, [appearance.respectSystemPreference, appearance.schemes, applyScheme])
 
   return {
     scheme,
