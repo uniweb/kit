@@ -22,7 +22,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { getUniweb, Theme } from '@uniweb/core'
+import { getUniweb, Theme, hasDarkScheme } from '@uniweb/core'
 
 // Storage key for appearance preference
 const APPEARANCE_STORAGE_KEY = 'uniweb-appearance'
@@ -208,7 +208,10 @@ export function useAppearance() {
       if (stored) return
 
       const newScheme = e.matches ? 'dark' : 'light'
-      if (!appearance.schemes?.includes(newScheme)) return
+      // Light is always reachable; only going dark needs the site to support it.
+      // Uses the same @uniweb/core predicate as the runtime's boot resolver, so
+      // this mid-session path and first-visit agree on when dark is allowed.
+      if (newScheme === 'dark' && !hasDarkScheme(appearance)) return
 
       // Track the OS without persisting. Going through setScheme() would write
       // to localStorage, which reads back as a manual preference and stops this
@@ -219,7 +222,13 @@ export function useAppearance() {
 
     mediaQuery.addEventListener('change', handleChange)
     return () => mediaQuery.removeEventListener('change', handleChange)
-  }, [appearance.respectSystemPreference, appearance.schemes, applyScheme])
+  }, [
+    appearance.respectSystemPreference,
+    appearance.allowToggle,
+    appearance.default,
+    appearance.schemes,
+    applyScheme,
+  ])
 
   return {
     scheme,
