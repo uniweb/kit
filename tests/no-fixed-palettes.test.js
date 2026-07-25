@@ -4,9 +4,11 @@
  * A foundation's whole job is to look like its site, and a site's theme.yml is
  * where that is decided. A fixed Tailwind palette in kit — `bg-white`,
  * `text-gray-500`, `border-gray-200` — quietly overrides that for every site
- * that touches the component. `SidebarLayout` is the case that proved it: the
+ * that touches the component. `SidebarLayout` was the case that proved it — the
  * one kit component built for documentation shells, unusable by any themed
- * site, so all three foundations that needed a docs shell wrote their own.
+ * site, so all three foundations that needed a docs shell wrote their own
+ * instead. It has since been removed: a layout is a foundation's design, and
+ * kit renders what the framework produces, not what a foundation designs.
  *
  * That rule was already written down (framework CLAUDE.md, gotcha #8) and it
  * decayed anyway, inside kit, where it reads as the sanctioned example. A
@@ -104,9 +106,5 @@ describe('kit ships no fixed palettes', () => {
     const stale = [...BASELINE.keys()].filter(rel => violationsIn(join(SRC, rel)).length === 0)
 
     expect(stale).toEqual([])
-  })
-
-  it('has converted SidebarLayout — the component the rule came from', () => {
-    expect(violationsIn(join(SRC, 'styled/SidebarLayout/SidebarLayout.jsx'))).toEqual([])
   })
 })

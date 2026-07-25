@@ -7,14 +7,13 @@
  * For unstyled primitives, use the main '@uniweb/kit' export.
  *
  * @example
- * import { SidebarLayout, Section, Media } from '@uniweb/kit (styled)'
+ * import { Section, Prose, Media } from '@uniweb/kit (styled)'
  */
 
 // ============================================================================
 // Layout
 // ============================================================================
 
-export { SidebarLayout } from './SidebarLayout/index.js'
 
 // ============================================================================
 // Content Rendering

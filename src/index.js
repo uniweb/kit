@@ -124,7 +124,6 @@ export {
 // Styled Components (Tailwind-based)
 // ============================================================================
 
-export { SidebarLayout } from './styled/SidebarLayout/index.js'
 export { Section, Render } from './styled/Section/index.js'
 export { Prose } from './styled/Prose/index.jsx'
 export { Article } from './styled/Article/index.jsx'
