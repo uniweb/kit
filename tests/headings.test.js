@@ -8,6 +8,7 @@
  */
 
 import { headingId, nodeText } from '../src/utils/index.js'
+import { headingsFromContent } from '../src/hooks/useHeadings.js'
 
 describe('headingId', () => {
   it('slugifies a plain heading', () => {
@@ -66,5 +67,81 @@ describe('nodeText', () => {
     expect(nodeText(null)).toBe('')
     expect(nodeText({})).toBe('')
     expect(nodeText({ type: 'heading', content: [] })).toBe('')
+  })
+})
+
+describe('headingsFromContent', () => {
+  const heading = (level, text) => ({
+    type: 'heading',
+    attrs: { level },
+    content: [{ type: 'text', text }],
+  })
+
+  const pageOf = (blocks) => ({ getBodyBlocks: () => blocks })
+
+  it('lists the body headings of a plain document', () => {
+    // An untyped section: the parser claims nothing, so every heading counts.
+    const page = pageOf([
+      {
+        rawContent: { content: [heading(2, 'Prerequisites'), heading(3, 'Node'), heading(2, 'Install')] },
+        parsedContent: {},
+      },
+    ])
+
+    expect(headingsFromContent(page).map((h) => h.text)).toEqual([
+      'Prerequisites', 'Node', 'Install',
+    ])
+  })
+
+  it('skips the headings the parser took as the section\'s own structure', () => {
+    // In this framework a leading `###` is a pretitle and the `##` after the
+    // title is a subtitle — structure, not sections of the article. Listing
+    // them opened every contents rail with two entries no reader recognised.
+    const page = pageOf([
+      {
+        rawContent: {
+          content: [
+            heading(3, 'Guide'),
+            heading(1, 'Overview'),
+            heading(2, 'Comprehensive guide to the platform'),
+            heading(2, 'Topics covered'),
+            heading(2, 'Who is this for?'),
+          ],
+        },
+        parsedContent: {
+          pretitle: 'Guide',
+          title: 'Overview',
+          subtitle: 'Comprehensive guide to the platform',
+        },
+      },
+    ])
+
+    expect(headingsFromContent(page).map((h) => h.text)).toEqual([
+      'Topics covered', 'Who is this for?',
+    ])
+  })
+
+  it('handles a multi-line title, which the parser gives as an array', () => {
+    const page = pageOf([
+      {
+        rawContent: { content: [heading(2, 'Build the site.'), heading(2, 'Real heading')] },
+        parsedContent: { title: ['Build the site.', 'Get the platform.'] },
+      },
+    ])
+
+    expect(headingsFromContent(page).map((h) => h.text)).toEqual(['Real heading'])
+  })
+
+  it('stamps ids that match what the renderers produce', () => {
+    const page = pageOf([
+      { rawContent: { content: [heading(2, 'Using site.yml')] }, parsedContent: {} },
+    ])
+
+    expect(headingsFromContent(page)[0].id).toBe(headingId('Using site.yml'))
+  })
+
+  it('survives a page with no blocks', () => {
+    expect(headingsFromContent(null)).toEqual([])
+    expect(headingsFromContent(pageOf([]))).toEqual([])
   })
 })

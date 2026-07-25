@@ -41,8 +41,15 @@ import { useActiveRoute } from './useActiveRoute.js'
 
 /**
  * Pull headings out of the page's own content — available during prerender.
+ *
+ * Skips the headings the semantic parser claimed as the section's own
+ * title/pretitle/subtitle. In this framework a leading `###` is a pretitle and
+ * the `##` after the title is a subtitle — structure, not body headings — so a
+ * typed section would otherwise open every contents rail with two entries no
+ * reader recognises as sections of the article. An untyped document has none of
+ * those fields set, and everything in it counts.
  */
-function headingsFromContent(page, levels) {
+export function headingsFromContent(page, levels = [2, 3]) {
   const blocks = page?.getBodyBlocks?.() ?? []
   const found = []
 
@@ -50,13 +57,23 @@ function headingsFromContent(page, levels) {
     const nodes = block?.rawContent?.content
     if (!Array.isArray(nodes)) continue
 
+    const parsed = block.parsedContent || {}
+    const claimed = new Set(
+      [parsed.title, parsed.pretitle, parsed.subtitle]
+        .flat()
+        .filter(Boolean)
+        .map(value => String(value).trim())
+    )
+
     for (const node of nodes) {
       if (node?.type !== 'heading') continue
       const level = node.attrs?.level ?? 1
       if (!levels.includes(level)) continue
 
       const text = nodeText(node).trim()
-      if (text) found.push({ id: headingId(text), text, level })
+      if (!text || claimed.has(text)) continue
+
+      found.push({ id: headingId(text), text, level })
     }
   }
 
