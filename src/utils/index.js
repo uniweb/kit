@@ -248,3 +248,37 @@ export function detectMediaType(url) {
 // ─────────────────────────────────────────────────────────────────
 
 export { submitForm, derivePreviewFromFormData } from './submitForm.js'
+
+/**
+ * The text of a ProseMirror node, flattened.
+ *
+ * @param {Object|string} node - A ProseMirror node
+ * @returns {string}
+ */
+export function nodeText(node) {
+  if (!node) return ''
+  if (typeof node === 'string') return node
+  if (node.text) return node.text
+  if (node.content) return node.content.map(nodeText).join('')
+  return ''
+}
+
+/**
+ * The anchor id for a heading.
+ *
+ * One generator, used by every renderer that stamps a heading and by anything
+ * that links to one. That agreement is the whole point: a table of contents
+ * scrolls to an id some other module produced, so a second implementation is a
+ * drift waiting to happen — and there were two, differing in whether they
+ * stripped markup first, which decided whether a heading containing a link got
+ * a usable anchor.
+ *
+ * @param {string} text - Heading text, plain or containing markup
+ * @returns {string}
+ */
+export function headingId(text) {
+  return stripTags(String(text ?? ''))
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+}

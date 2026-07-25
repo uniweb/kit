@@ -11,7 +11,7 @@
  */
 
 import React from 'react'
-import { cn, getChildBlockRenderer } from '../../utils/index.js'
+import { cn, getChildBlockRenderer, headingId } from '../../utils/index.js'
 import { SafeHtml } from '../../components/SafeHtml/index.js'
 import { Image } from '../../components/Image/index.js'
 import { Media } from '../../components/Media/index.js'
@@ -30,13 +30,6 @@ const SIZE_CLASSES = {
   '2xl': 'prose-2xl'
 }
 
-function generateId(text) {
-  return text
-    .replace(/<[^>]*>/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-}
 
 const INLINE_INSET_RE = /<uniweb-inset data-ref-id="([^"]+)"><\/uniweb-inset>/g
 
@@ -92,7 +85,7 @@ function SequenceElement({ element, block }) {
     case 'heading': {
       const level = Math.min(element.level || 1, 6)
       const Tag = `h${level}`
-      const id = generateId(element.text || '')
+      const id = headingId(element.text || '')
       return <Tag id={id}><SafeHtml value={element.text} as="span" /></Tag>
     }
 

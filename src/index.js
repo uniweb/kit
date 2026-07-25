@@ -62,6 +62,7 @@ export {
   useScrolled,
   useMobileMenu,
   useAccordion,
+  useHeadings,
   useGridLayout,
   getGridClasses,
   useTheme,
@@ -99,6 +100,10 @@ export {
   parseIconRef,
   // Content utilities
   splitContent,
+  // Heading anchors — one generator, shared by the renderers that stamp them
+  // and by anything that links to one (see useHeadings).
+  headingId,
+  nodeText,
   // Href resolution (for foundations rendering their own links or prose HTML)
   applyBasePath,
   resolveRoute,

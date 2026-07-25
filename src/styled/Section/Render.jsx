@@ -8,7 +8,7 @@
  */
 
 import React from 'react'
-import { cn, getChildBlockRenderer } from '../../utils/index.js'
+import { cn, getChildBlockRenderer, headingId } from '../../utils/index.js'
 import { SafeHtml } from '../../components/SafeHtml/index.js'
 import { Image } from '../../components/Image/index.js'
 import { Media } from '../../components/Media/index.js'
@@ -33,15 +33,6 @@ function extractText(node) {
   return ''
 }
 
-/**
- * Generate ID from heading text
- */
-function generateId(text) {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-}
 
 /**
  * Render a list (ordered or unordered)
@@ -81,7 +72,7 @@ function RenderNode({ node, block, ...props }) {
     case 'heading': {
       const level = attrs?.level || 1
       const text = extractText(node)
-      const id = generateId(text)
+      const id = headingId(text)
       const Tag = `h${Math.min(level, 6)}`
 
       return (
