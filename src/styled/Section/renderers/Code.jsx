@@ -17,7 +17,7 @@ import { getUniweb } from '@uniweb/core'
 let cssInjected = false
 let shikiInstance = null
 let shikiLoadPromise = null
-let siteThemeLoaded = false
+const loadedDerived = new Set()
 
 // What a site gets when it declares no `code:` block of its own, and the base
 // every declaration layers over.
@@ -121,6 +121,24 @@ function injectCodeLayoutCSS() {
   display: block;
   font-family: var(--font-code, ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace);
 }
+
+/* A site that named a light/dark pair gets CSS variables per token instead of
+   inline colour, and these are what read them. Scoped to .shiki-themes, the
+   class Shiki adds only in that mode, so a single-theme listing is untouched. */
+.shiki-themes {
+  background-color: var(--shiki-light-bg);
+}
+.shiki-themes,
+.shiki-themes span {
+  color: var(--shiki-light);
+}
+.scheme-dark .shiki-themes {
+  background-color: var(--shiki-dark-bg);
+}
+.scheme-dark .shiki-themes,
+.scheme-dark .shiki-themes span {
+  color: var(--shiki-dark);
+}
 `
   document.head.appendChild(style)
   cssInjected = true
@@ -170,20 +188,82 @@ async function loadShiki() {
 }
 
 /**
- * Register the site's `code:` declaration as a theme, once, and answer with the
- * theme name to highlight against. Sites that declare nothing get the default.
+ * Normalize `theme.yml`'s `code:` into the three forms a site can write.
+ *
+ *   code: dracula                     → one bundled theme
+ *   code: { light: …, dark: … }       → a pair, following the visitor's scheme
+ *   code: { theme?: …, <colour>: … }  → a base theme with colours overridden
+ *
+ * The third is the escape hatch. Naming a theme is what most sites want — 65
+ * ship inside Shiki — and hand-picking a dozen syntax colours is a job few
+ * people can do well. Overrides exist because "that theme, on my background"
+ * is a reasonable and common ask.
+ *
+ * @param {string|Object} [code] - the `code:` declaration
+ * @returns {{ light: Side, dark?: Side }} where Side is { base, overrides }
  */
-async function resolveThemeName(highlighter, codeTheme) {
-  if (!codeTheme || Object.keys(codeTheme).length === 0) return DEFAULT_THEME
-  if (siteThemeLoaded) return SITE_CODE_THEME
+export function parseCodeConfig(code) {
+  const side = (value) => {
+    if (typeof value === 'string') return { base: value, overrides: {} }
+    const { theme, ...overrides } = value || {}
+    return { base: theme || DEFAULT_THEME, overrides }
+  }
+
+  if (!code) return { light: { base: DEFAULT_THEME, overrides: {} } }
+  if (typeof code === 'string') return { light: side(code) }
+
+  if (code.light || code.dark) {
+    return {
+      light: side(code.light ?? code.dark),
+      dark: side(code.dark ?? code.light),
+    }
+  }
+
+  return { light: side(code) }
+}
+
+/**
+ * Make sure a side's theme is registered, and answer the name to highlight by.
+ * A side with no overrides is just the bundled theme; one with overrides gets a
+ * derived theme built from it.
+ */
+async function registerSide(highlighter, side, name) {
+  if (!highlighter.getLoadedThemes().includes(side.base)) {
+    await highlighter.loadTheme(side.base)
+  }
+  if (Object.keys(side.overrides).length === 0) return side.base
+
+  if (!loadedDerived.has(name)) {
+    await highlighter.loadTheme({
+      ...buildCodeTheme(highlighter.getTheme(side.base), side.overrides),
+      name,
+    })
+    loadedDerived.add(name)
+  }
+  return name
+}
+
+/**
+ * Resolve the `code:` declaration into codeToHtml options.
+ *
+ * One theme highlights the same in both schemes — right for a site whose code
+ * blocks are a terminal. A pair makes Shiki emit CSS variables per token
+ * (`defaultColor: false`) instead of inline colour, so one rendered block can
+ * follow the visitor's choice; injectCodeLayoutCSS supplies the rules that read
+ * them.
+ */
+async function resolveThemeOptions(highlighter, code) {
+  const config = parseCodeConfig(code)
 
   try {
-    await highlighter.loadTheme(buildCodeTheme(highlighter.getTheme(DEFAULT_THEME), codeTheme))
-    siteThemeLoaded = true
-    return SITE_CODE_THEME
+    const light = await registerSide(highlighter, config.light, `${SITE_CODE_THEME}-light`)
+    if (!config.dark) return { theme: light }
+
+    const dark = await registerSide(highlighter, config.dark, `${SITE_CODE_THEME}-dark`)
+    return { themes: { light, dark }, defaultColor: false }
   } catch (error) {
     console.warn('[Code] Could not apply theme.code, using the default:', error)
-    return DEFAULT_THEME
+    return { theme: DEFAULT_THEME }
   }
 }
 
@@ -194,7 +274,7 @@ async function highlightCode(code, language, highlighter, codeTheme) {
   if (!highlighter) return null
 
   try {
-    const theme = await resolveThemeName(highlighter, codeTheme)
+    const themeOptions = await resolveThemeOptions(highlighter, codeTheme)
 
     // Load language if not already loaded
     const loadedLangs = highlighter.getLoadedLanguages()
@@ -205,13 +285,13 @@ async function highlightCode(code, language, highlighter, codeTheme) {
         await highlighter.loadLanguage(lang)
       } catch {
         // Language not available, fall back to plaintext
-        return highlighter.codeToHtml(code, { lang: 'plaintext', theme })
+        return highlighter.codeToHtml(code, { lang: 'plaintext', ...themeOptions })
       }
     }
 
     return highlighter.codeToHtml(code, {
       lang: lang === 'plaintext' ? 'text' : lang,
-      theme,
+      ...themeOptions,
     })
   } catch (error) {
     console.warn('[Code] Highlighting failed:', error)
