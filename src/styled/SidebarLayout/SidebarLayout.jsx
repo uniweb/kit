@@ -76,14 +76,15 @@ function MobileDrawer({ isOpen, onClose, width, stickyHeader, children }) {
   }, [isOpen])
 
   // Position below header if sticky, otherwise from top
-  const topOffset = stickyHeader ? 'top-16' : 'top-0'
-  const height = stickyHeader ? 'h-[calc(100vh-4rem)]' : 'h-screen'
+  const topOffset = stickyHeader ? 'top-[var(--header-height,4rem)]' : 'top-0'
+  const height = stickyHeader ? 'h-[calc(100vh-var(--header-height,4rem))]' : 'h-screen'
 
   return (
     <>
       {/* Backdrop */}
       <div
         className={cn(
+          // kit-palette-ok: a modal scrim is the same black in either scheme
           'fixed inset-0 bg-black/50 z-40 transition-opacity duration-300',
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         )}
@@ -94,7 +95,7 @@ function MobileDrawer({ isOpen, onClose, width, stickyHeader, children }) {
       {/* Drawer (always from left) */}
       <div
         className={cn(
-          'fixed left-0 bg-white z-50 shadow-xl',
+          'fixed left-0 bg-section z-50 shadow-xl',
           topOffset,
           height,
           width,
@@ -108,10 +109,10 @@ function MobileDrawer({ isOpen, onClose, width, stickyHeader, children }) {
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-md hover:bg-gray-100 transition-colors"
+          className="absolute top-4 right-4 p-1.5 rounded-md hover:bg-muted transition-colors"
           aria-label="Close sidebar"
         >
-          <CloseIcon className="w-5 h-5 text-gray-500" />
+          <CloseIcon className="w-5 h-5 text-subtle" />
         </button>
 
         {/* Drawer content */}
@@ -132,7 +133,7 @@ function FloatingMenuButton({ onClick }) {
       onClick={onClick}
       className={cn(
         'fixed bottom-4 left-4 z-30',
-        'p-3 bg-primary text-white rounded-full shadow-lg',
+        'p-3 bg-primary text-primary-foreground rounded-full shadow-lg',
         'hover:bg-primary/90 active:scale-95 transition-all',
         'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
       )}
@@ -223,17 +224,17 @@ export function SidebarLayout({
     : ''
 
   const sidebarClasses = stickySidebar && stickyHeader
-    ? 'sticky top-16 h-[calc(100vh-4rem)]'
+    ? 'sticky top-[var(--header-height,4rem)] h-[calc(100vh-var(--header-height,4rem))]'
     : stickySidebar
       ? 'sticky top-0 h-screen'
       : ''
 
   return (
-    <div className={cn('min-h-screen flex flex-col bg-white', className)}>
+    <div className={cn('min-h-screen flex flex-col bg-section', className)}>
       {/* Header */}
       {header && (
         <header className={cn(
-          'w-full border-b border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80',
+          'w-full border-b border-border bg-section/95 backdrop-blur supports-[backdrop-filter]:bg-section/80',
           headerClasses
         )}>
           {header}
@@ -260,7 +261,7 @@ export function SidebarLayout({
           {/* Left Sidebar (desktop) */}
           {leftContent && (
             <aside className={cn(
-              'hidden flex-shrink-0 overflow-y-auto border-r border-gray-200',
+              'hidden flex-shrink-0 overflow-y-auto border-r border-border',
               leftClasses.showClass,
               leftWidth,
               sidebarClasses
@@ -279,7 +280,7 @@ export function SidebarLayout({
           {/* Right Sidebar (desktop only, hidden on mobile) */}
           {rightContent && (
             <aside className={cn(
-              'hidden flex-shrink-0 overflow-y-auto border-l border-gray-200',
+              'hidden flex-shrink-0 overflow-y-auto border-l border-border',
               rightClasses.showClass,
               rightWidth,
               sidebarClasses
@@ -292,7 +293,7 @@ export function SidebarLayout({
 
       {/* Footer */}
       {footer && (
-        <footer className="w-full border-t border-gray-200">
+        <footer className="w-full border-t border-border">
           {footer}
         </footer>
       )}
