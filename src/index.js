@@ -65,10 +65,6 @@ export {
   useHeadings,
   useGridLayout,
   getGridClasses,
-  useTheme,
-  getThemeClasses,
-  THEMES,
-  THEME_NAMES,
   // Viewport detection
   useInView,
   useIsInView,

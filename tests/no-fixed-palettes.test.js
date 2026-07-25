@@ -47,7 +47,6 @@ const FIXED_PALETTE = new RegExp(
  * the rule. Delete an entry when its file is converted — never add one.
  */
 const BASELINE = new Map([
-  ['hooks/useTheme.js', 'The pre-token theme-object helper itself. Retiring it is the conversion.'],
   ['hooks/useScrolled.js', 'Example classes in the docblock, not shipped markup.'],
   ['components/Asset/Asset.jsx', 'File-type chrome.'],
   ['components/FileLogo/FileLogo.jsx', 'Per-format brand colours — arguably correct, needs a decision.'],
