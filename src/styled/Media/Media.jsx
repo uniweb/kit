@@ -152,12 +152,15 @@ function PlayButton({ onClick, className }) {
       onClick={onClick}
       className={cn(
         'absolute inset-0 flex items-center justify-center',
+        // kit-palette-ok: a play-button scrim, the same in any theme
         'bg-black/30 hover:bg-black/40 transition-colors',
         'group cursor-pointer',
         className
       )}
       aria-label="Play video"
     >
+      {/* kit-palette-ok: a play control is a white disc with a dark glyph in
+          every player ever built — not a themed surface */}
       <div className="w-16 h-16 rounded-full bg-white/90 group-hover:bg-white flex items-center justify-center transition-colors">
         <svg className="w-8 h-8 text-gray-900 ml-1" fill="currentColor" viewBox="0 0 24 24">
           <path d="M8 5v14l11-7z" />
@@ -310,6 +313,7 @@ export function Media({
 
   return (
     <div
+      // kit-palette-ok: letterboxing behind a video is black, in any theme
       className={cn('relative overflow-hidden bg-black', className)}
       style={{ aspectRatio }}
       {...props}

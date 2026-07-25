@@ -31,7 +31,7 @@ export function Details({
   return (
     <div
       className={cn(
-        'border border-gray-200 rounded-lg overflow-hidden',
+        'border border-border rounded-lg overflow-hidden',
         className
       )}
       {...props}
@@ -40,8 +40,8 @@ export function Details({
       <button
         className={cn(
           'w-full flex items-center justify-between px-4 py-3',
-          'text-left font-medium text-gray-900 bg-gray-50',
-          'hover:bg-gray-100 transition-colors'
+          'text-left font-medium text-heading bg-muted',
+          'hover:bg-card transition-colors'
         )}
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
@@ -49,7 +49,7 @@ export function Details({
         <span>{summary}</span>
         <svg
           className={cn(
-            'w-5 h-5 text-gray-500 transition-transform',
+            'w-5 h-5 text-subtle transition-transform',
             isOpen && 'rotate-180'
           )}
           fill="none"
@@ -62,7 +62,7 @@ export function Details({
 
       {/* Content */}
       {isOpen && (
-        <div className="px-4 py-3 border-t border-gray-200">
+        <div className="px-4 py-3 border-t border-border">
           {typeof content === 'string' ? (
             <SafeHtml value={content} className="prose prose-sm" />
           ) : (

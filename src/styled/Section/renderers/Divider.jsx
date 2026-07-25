@@ -24,16 +24,16 @@ export function Divider({ type = 'hr', className, ...props }) {
         role="separator"
         {...props}
       >
-        <span className="w-2 h-2 bg-gray-300 rounded-full" />
-        <span className="w-2 h-2 bg-gray-300 rounded-full" />
-        <span className="w-2 h-2 bg-gray-300 rounded-full" />
+        <span className="w-2 h-2 bg-border rounded-full" />
+        <span className="w-2 h-2 bg-border rounded-full" />
+        <span className="w-2 h-2 bg-border rounded-full" />
       </div>
     )
   }
 
   return (
     <hr
-      className={cn('border-gray-200 my-6', className)}
+      className={cn('border-border my-6', className)}
       {...props}
     />
   )

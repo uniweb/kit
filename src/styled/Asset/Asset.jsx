@@ -108,7 +108,7 @@ export const Asset = forwardRef(function Asset(
   return (
     <div
       className={cn(
-        'relative inline-block rounded-lg overflow-hidden border border-gray-200',
+        'relative inline-block rounded-lg overflow-hidden border border-border',
         'transition-shadow hover:shadow-md',
         className
       )}
@@ -117,7 +117,7 @@ export const Asset = forwardRef(function Asset(
       {...props}
     >
       {/* Preview */}
-      <div className="w-32 h-32 flex items-center justify-center bg-gray-50">
+      <div className="w-32 h-32 flex items-center justify-center bg-muted">
         {isImage && !imageError ? (
           <Image
             src={src}
@@ -126,12 +126,12 @@ export const Asset = forwardRef(function Asset(
             onError={handleImageError}
           />
         ) : (
-          <FileLogo filename={filename} size="48" className="text-gray-400" />
+          <FileLogo filename={filename} size="48" className="text-subtle" />
         )}
       </div>
 
       {/* Filename */}
-      <div className="px-2 py-1 text-xs text-gray-600 truncate max-w-[128px]" title={filename}>
+      <div className="px-2 py-1 text-xs text-body truncate max-w-[128px]" title={filename}>
         {filename}
       </div>
 
@@ -141,6 +141,7 @@ export const Asset = forwardRef(function Asset(
           onClick={handleDownload}
           className={cn(
             'absolute inset-0 flex items-center justify-center',
+            // kit-palette-ok: a scrim over a thumbnail, not a themed surface
             'bg-black/50 text-white transition-opacity',
             isHovered ? 'opacity-100' : 'opacity-0'
           )}

@@ -16,13 +16,17 @@
  *
  * Two escapes, both deliberate and both requiring a stated reason:
  *
- *   `// kit-palette-ok: <why>`  on the line above, for a colour that genuinely
- *                              is not thematic — a modal scrim, a video
- *                              letterbox — where a token would be wrong.
+ *   `kit-palette-ok: <why>`    in a comment just above, for a colour that
+ *                              genuinely is not thematic — a modal scrim, a
+ *                              video letterbox, a play control — where a token
+ *                              would be wrong. The reason is the point: it is
+ *                              what a reviewer checks.
  *
- *   BASELINE below             for files that predate the rule. This is a
- *                              ratchet, not absolution: nothing new gets added,
- *                              and what is already owed is visible and counted.
+ * There was a second escape — a baseline of files that predated the rule, kept
+ * as a ratchet so nothing new could be added while the debt was worked off. It
+ * is gone, because the debt is paid: every fixed colour left in kit sits behind
+ * a stated reason. A migration device that outlives its migration just becomes
+ * a place to hide things.
  */
 
 import { readdirSync, readFileSync, statSync } from 'node:fs'
@@ -40,28 +44,6 @@ const FIXED_PALETTE = new RegExp(
   'g'
 )
 
-/**
- * Files that carried fixed palettes before this rule existed. Each is real debt
- * against the theming contract; converting them is a visual change to every
- * foundation, so it happens deliberately rather than in the commit that adds
- * the rule. Delete an entry when its file is converted — never add one.
- */
-const BASELINE = new Map([
-  ['hooks/useScrolled.js', 'Example classes in the docblock, not shipped markup.'],
-  ['components/Asset/Asset.jsx', 'File-type chrome.'],
-  ['components/FileLogo/FileLogo.jsx', 'Per-format brand colours — arguably correct, needs a decision.'],
-  ['components/MediaIcon/MediaIcon.jsx', 'Per-format brand colours — same decision as FileLogo.'],
-  ['styled/Asset/Asset.jsx', 'File-type chrome.'],
-  ['styled/Disclaimer/Disclaimer.jsx', 'Fixed blue notice styling.'],
-  ['styled/Media/Media.jsx', 'Letterboxing; black is probably right, the greys are not.'],
-  ['styled/Section/Render.jsx', 'Link and caption colours in the document renderer.'],
-  ['styled/Section/Section.jsx', 'Section surface fallbacks.'],
-  ['styled/Section/renderers/Alert.jsx', 'Status colours — should move to the status tokens.'],
-  ['styled/Section/renderers/Details.jsx', 'Border and summary chrome.'],
-  ['styled/Section/renderers/Divider.jsx', 'Rule colour.'],
-  ['styled/Section/renderers/Table.jsx', 'Header, stripe and divider colours.'],
-])
-
 function sourceFiles(dir) {
   return readdirSync(dir).flatMap(entry => {
     const full = join(dir, entry)
@@ -70,15 +52,28 @@ function sourceFiles(dir) {
   })
 }
 
+/**
+ * How far above a line the escape may sit.
+ *
+ * Not one line: a reason worth stating rarely fits on one, and a JSX element
+ * often puts two coloured lines next to each other. Both would force the
+ * comment to be repeated verbatim, which is how a reason turns into a
+ * rubber stamp. Three is enough for a sentence or a small adjacent group and
+ * short enough that the comment is still visibly about the code beneath it.
+ */
+const ESCAPE_WINDOW = 3
+
 function violationsIn(file) {
   const lines = readFileSync(file, 'utf8').split('\n')
   const found = []
 
+  const excused = i =>
+    lines.slice(Math.max(0, i - ESCAPE_WINDOW), i).some(l => /kit-palette-ok:\s*\S/.test(l))
+
   lines.forEach((line, i) => {
     const matches = line.match(FIXED_PALETTE)
     if (!matches) return
-    // An explicit, reasoned escape on the line above.
-    if (/kit-palette-ok:\s*\S/.test(lines[i - 1] ?? '')) return
+    if (excused(i)) return
     found.push(`${relative(SRC, file)}:${i + 1}  ${matches.join(' ')}`)
   })
 
@@ -92,18 +87,14 @@ describe('kit ships no fixed palettes', () => {
     expect(files.length).toBeGreaterThan(50)
   })
 
-  it('has no fixed palette outside the baseline', () => {
-    const offenders = files
-      .filter(file => !BASELINE.has(relative(SRC, file)))
-      .flatMap(violationsIn)
-
-    expect(offenders).toEqual([])
+  it('has no fixed palette anywhere', () => {
+    expect(files.flatMap(violationsIn)).toEqual([])
   })
 
-  it('keeps the baseline honest — an entry that is clean must be deleted', () => {
-    // The ratchet only tightens if a converted file cannot quietly stay listed.
-    const stale = [...BASELINE.keys()].filter(rel => violationsIn(join(SRC, rel)).length === 0)
-
-    expect(stale).toEqual([])
+  it('still catches one when it appears', () => {
+    // The rule is only worth having if it fails. Proving that here means a
+    // future refactor of the matcher cannot quietly stop matching.
+    const probe = ['const x = "bg-gray-200 text-white"'].join('\n')
+    expect(probe.match(FIXED_PALETTE)).toEqual(['bg-gray-200', 'text-white'])
   })
 })

@@ -124,6 +124,7 @@ function getExtension(filename) {
  * <FileLogo filename="report.pdf" size="32" />
  *
  * @example
+ * kit-palette-ok: a caller-supplied class in an example, not kit painting
  * <FileLogo filename="data.xlsx" className="text-green-600" />
  */
 export function FileLogo({ filename, size = '24', className, ...props }) {

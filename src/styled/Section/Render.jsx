@@ -123,16 +123,16 @@ function RenderNode({ node, block, ...props }) {
                   className="w-full"
                 />
               ) : (
-                <div className="flex items-center gap-3 p-4 bg-gray-50">
-                  <Icon name="download" size="24" className="text-gray-500" />
-                  <span className="text-blue-600 group-hover:underline">
+                <div className="flex items-center gap-3 p-4 bg-muted">
+                  <Icon name="download" size="24" className="text-subtle" />
+                  <span className="text-link group-hover:underline">
                     {filename}
                   </span>
                 </div>
               )}
             </Link>
             {caption && (
-              <figcaption className="mt-2 text-sm text-gray-500 text-center">
+              <figcaption className="mt-2 text-sm text-subtle text-center">
                 {caption}
               </figcaption>
             )}
@@ -164,7 +164,7 @@ function RenderNode({ node, block, ...props }) {
         <figure className="my-4">
           <Image src={src} alt={alt} className="rounded-lg" />
           {caption && (
-            <figcaption className="mt-2 text-sm text-gray-500 text-center">
+            <figcaption className="mt-2 text-sm text-subtle text-center">
               {caption}
             </figcaption>
           )}
@@ -192,7 +192,7 @@ function RenderNode({ node, block, ...props }) {
 
     case 'blockquote': {
       return (
-        <blockquote className="border-l-4 border-gray-300 pl-4 italic text-gray-600 my-4">
+        <blockquote className="border-l-4 border-border pl-4 italic text-subtle my-4">
           {content?.map((child, i) => (
             <RenderNode key={i} node={child} block={block} />
           ))}
@@ -247,7 +247,7 @@ function RenderNode({ node, block, ...props }) {
       return (
         <Link
           to={href}
-          className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors my-2"
+          className="inline-block px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary-hover transition-colors my-2"
         >
           {label}
         </Link>
@@ -270,10 +270,10 @@ function RenderNode({ node, block, ...props }) {
               text = `<em>${text}</em>`
               break
             case 'code':
-              text = `<code class="px-1 py-0.5 bg-gray-100 rounded text-sm">${text}</code>`
+              text = `<code class="px-1 py-0.5 bg-muted rounded text-sm">${text}</code>`
               break
             case 'link':
-              text = `<a href="${mark.attrs?.href || '#'}" class="text-blue-600 hover:underline">${text}</a>`
+              text = `<a href="${mark.attrs?.href || '#'}" class="text-link hover:underline">${text}</a>`
               break
           }
         })

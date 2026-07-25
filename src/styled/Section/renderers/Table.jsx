@@ -22,10 +22,10 @@ export function Table({ content, className, ...props }) {
 
   return (
     <div className={cn('overflow-x-auto', className)} {...props}>
-      <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg">
-        <tbody className="divide-y divide-gray-200 bg-white">
+      <table className="min-w-full divide-y divide-border border border-border rounded-lg">
+        <tbody className="divide-y divide-border bg-section">
           {content.map((row, rowIndex) => (
-            <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+            <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-section' : 'bg-muted'}>
               {row.content?.map((cell, cellIndex) => {
                 const CellTag = cell.type === 'tableHeader' ? 'th' : 'td'
                 const cellContent = cell.content?.[0]?.content?.[0]?.text || ''
@@ -36,8 +36,8 @@ export function Table({ content, className, ...props }) {
                     className={cn(
                       'px-4 py-2 text-sm',
                       cell.type === 'tableHeader'
-                        ? 'font-medium text-gray-900 bg-gray-100'
-                        : 'text-gray-600'
+                        ? 'font-medium text-heading bg-muted'
+                        : 'text-body'
                     )}
                   >
                     <SafeHtml value={cellContent} as="span" />

@@ -38,6 +38,7 @@ function DisclaimerModal({ isOpen, onClose, title, content, className }) {
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
       <div
+        // kit-palette-ok: a modal scrim is the same black in either scheme
         className="fixed inset-0 bg-black/50 transition-opacity"
         onClick={onClose}
         aria-hidden="true"
@@ -48,7 +49,7 @@ function DisclaimerModal({ isOpen, onClose, title, content, className }) {
         <div
           className={cn(
             'relative w-full max-w-lg transform overflow-hidden rounded-lg',
-            'bg-white shadow-xl transition-all',
+            'bg-card shadow-xl transition-all',
             className
           )}
           role="dialog"
@@ -56,13 +57,13 @@ function DisclaimerModal({ isOpen, onClose, title, content, className }) {
           aria-labelledby="disclaimer-title"
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-            <h3 id="disclaimer-title" className="text-lg font-medium text-gray-900">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <h3 id="disclaimer-title" className="text-lg font-medium text-heading">
               {title}
             </h3>
             <button
               onClick={onClose}
-              className="rounded-md p-1 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded-md p-1 text-subtle hover:text-heading focus:outline-none focus:ring-2 focus:ring-ring"
               aria-label="Close"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -81,10 +82,10 @@ function DisclaimerModal({ isOpen, onClose, title, content, className }) {
           </div>
 
           {/* Footer */}
-          <div className="border-t border-gray-200 px-4 py-3 flex justify-end">
+          <div className="border-t border-border px-4 py-3 flex justify-end">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-ring"
             >
               Close
             </button>
@@ -161,8 +162,8 @@ export function Disclaimer({
       onClick={handleOpen}
       className={cn(
         'inline-flex items-center px-3 py-1.5 text-sm font-medium',
-        'text-blue-600 hover:text-blue-700',
-        'border border-blue-600 rounded-md hover:bg-blue-50',
+        'text-primary hover:text-primary-hover',
+        'border border-primary rounded-md hover:bg-primary/10',
         className
       )}
       {...props}
@@ -173,7 +174,7 @@ export function Disclaimer({
     <button
       onClick={handleOpen}
       className={cn(
-        'text-blue-600 hover:text-blue-700 underline text-sm',
+        'text-primary hover:text-primary-hover underline text-sm',
         className
       )}
       {...props}

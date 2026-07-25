@@ -26,6 +26,7 @@ import { useWebsite } from '../../hooks/useWebsite.js'
  * @param {React.ReactNode} [props.children] - Custom content (overrides default filename display)
  *
  * @example
+ * kit-palette-ok: a caller-supplied class in an example, not kit painting
  * <Asset value="document.pdf" className="text-blue-600 hover:underline" />
  *
  * @example

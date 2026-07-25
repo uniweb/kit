@@ -8,7 +8,7 @@
  * function Header() {
  *   const scrolled = useScrolled()
  *   return (
- *     <header className={scrolled ? 'bg-white shadow' : 'bg-transparent'}>
+ *     <header className={scrolled ? 'bg-section shadow' : 'bg-transparent'}>
  *       ...
  *     </header>
  *   )

@@ -67,6 +67,7 @@ const SOCIAL_ICONS = {
  * @param {string} [props.className] - Additional CSS classes
  *
  * @example
+ * kit-palette-ok: a caller-supplied class in an example, not kit painting
  * <MediaIcon type="twitter" size="32" className="text-blue-400" />
  *
  * @example

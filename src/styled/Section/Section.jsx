@@ -62,7 +62,7 @@ const PADDING_CLASSES = {
  * <Section content={blockContent} width="lg" padding="md" />
  *
  * @example
- * <Section width="xl" columns="2" className="bg-gray-50">
+ * <Section width="xl" columns="2" className="bg-muted">
  *   <div>Column 1</div>
  *   <div>Column 2</div>
  * </Section>
