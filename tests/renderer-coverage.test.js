@@ -39,14 +39,17 @@ const RENDER_NODES = [
   'paragraph', 'heading', 'image', 'video', 'codeBlock',
   'blockquote', 'bulletList', 'orderedList', 'table', 'details',
   'alert', 'warning', 'divider', 'horizontalRule', 'button',
-  'inset_placeholder',
+  // `inset_placeholder` is the leaf inset's slot; `inset_block` is the
+  // block-bodied container (a ```@Component{params} fence). Both resolve a
+  // component reference — one has children, the other does not.
+  'inset_placeholder', 'inset_block',
 ]
 
 /** Sequence element types Prose is expected to handle. */
 const PROSE_ELEMENTS = [
   'paragraph', 'heading', 'image', 'video', 'codeBlock',
   'blockquote', 'list', 'divider', 'button', 'link',
-  'inset', 'icon', 'math', 'dataBlock',
+  'inset', 'icon', 'math', 'dataBlock', 'inset_block',
 ]
 
 describe('Render — the document renderer', () => {
@@ -80,6 +83,10 @@ describe('the difference between them is deliberate', () => {
       'bulletList', 'orderedList', 'table', 'details',
       'alert', 'warning', 'horizontalRule', 'inset_placeholder',
     ])
+    // `inset_block` is deliberately NOT in that list: a container carries
+    // authored prose, so both renderers must handle it or a page section
+    // rendered with Prose loses the body — the trap this file exists for.
+    expect(proseCases.has('inset_block')).toBe(true)
   })
 
   it('records what only the sequence renderer handles', () => {

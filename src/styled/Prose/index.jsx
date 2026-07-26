@@ -18,6 +18,8 @@ import { Media } from '../../components/Media/index.js'
 import { Icon } from '../../components/Icon/index.js'
 import { Link } from '../../components/Link/index.js'
 import { Code } from '../Section/renderers/Code.jsx'
+import { Alert } from '../Section/renderers/Alert.jsx'
+import { Details } from '../Section/renderers/Details.jsx'
 
 /**
  * Prose sizes
@@ -167,6 +169,36 @@ function SequenceElement({ element, block }) {
             <SequenceElement key={i} element={el} block={block} />
           ))}
         </blockquote>
+      )
+    }
+
+    case 'inset_block': {
+      // A component reference that carries block content — the block form of
+      // an inset. Children recurse; flattening them to text is what the
+      // sequence's default branch used to do, and it lost the body.
+      const body = element.children?.map((el, i) => (
+        <SequenceElement key={i} element={el} block={block} />
+      ))
+
+      if (element.component === 'Details') {
+        const [summary, ...rest] = body || []
+        return <Details summary={summary} content={rest} open={element.params?.open} className="my-4" />
+      }
+
+      if (element.component === 'Alert' || element.component === 'Warning') {
+        return <Alert type={element.params?.type || 'info'} content={body} className="my-4" />
+      }
+
+      // Visible generic container for a component this build does not know.
+      // Never a drop — an unmapped node taking its subtree with it is the
+      // failure the container exists to fix.
+      return (
+        <div
+          data-inset-block={element.component || 'unknown'}
+          className="border border-border rounded-md p-4 my-4"
+        >
+          {body}
+        </div>
       )
     }
 
