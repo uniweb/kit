@@ -1,157 +1,70 @@
 /**
  * Search Client
  *
- * Manages search index loading, caching, and querying using Fuse.js.
+ * Resolves which provider serves a site's search, then delegates to it. The
+ * site declares the provider; a component reads results the same way either
+ * way — the same contract `content.data` gives data fetching, applied to search.
+ *
+ * Providers are loaded dynamically, so a site using a server endpoint never
+ * bundles Fuse and a site using the local index never bundles anything else.
+ *
+ * Resolution order:
+ *   1. `site.yml  search.provider`  — the author's explicit choice
+ *   2. `'index'`                    — the free default, works on any host
+ *
+ * A future tier sits between them: a host that serves search declaring it in
+ * the payload it already sends, the way `config.base` already tells the runtime
+ * where the site is being served from. That wire key is the host's to specify,
+ * so it is deliberately not invented here.
+ *
+ * Provider contract (duck-typed, matching how the FetcherDispatcher treats
+ * transports):
+ *
+ *   { query(text, opts) → Promise<SearchResult[]>,
+ *     preload?() → Promise<void>,
+ *     clearCache?() → void }
+ *
+ * See ./providers/result.js for the result contract.
  */
 
-import { buildSnippet } from './snippets.js'
+import { emptyResult } from './providers/result.js'
 
-// Storage versioning for cache invalidation
-const STORAGE_VERSION = 'v1'
-const STORAGE_PREFIX = `uniweb:search:${STORAGE_VERSION}:`
-
-// In-memory caches
-const indexCache = new Map()
-const fuseCache = new Map()
+// Re-exported so existing importers of these keep working; they live with the
+// provider that owns them now.
+export { loadSearchIndex, clearSearchCache } from './providers/index-provider.js'
 
 /**
- * Default Fuse.js options optimized for site search
+ * Load a provider factory by name.
+ *
+ * Unknown names resolve to `null` rather than throwing, so a typo or a
+ * foundation transport that failed to register degrades to the default instead
+ * of taking down the site's search box — the same resilience the fetcher
+ * dispatcher applies to a malformed transport.
+ *
+ * @param {string} name
+ * @param {Object} transports - Foundation-supplied search transports
+ * @returns {Promise<Function|null>}
  */
-const DEFAULT_FUSE_OPTIONS = {
-  keys: [
-    { name: 'title', weight: 0.6 },
-    { name: 'content', weight: 0.4 },
-    { name: 'excerpt', weight: 0.3 },
-    { name: 'pageTitle', weight: 0.2 }
-  ],
-  threshold: 0.35,
-  includeMatches: true,
-  ignoreLocation: true,
-  minMatchCharLength: 2
-}
-
-/**
- * Get localStorage safely (handles SSR and access errors)
- * @returns {Storage|null}
- */
-function getStorage() {
-  if (typeof window === 'undefined') return null
-  try {
-    return window.localStorage
-  } catch {
-    return null
+async function loadProviderFactory(name, transports) {
+  if (name === 'index') {
+    const mod = await import('./providers/index-provider.js')
+    return mod.createIndexProvider
   }
-}
-
-/**
- * Load index from localStorage
- * @param {string} cacheKey - Cache key
- * @returns {Object|null}
- */
-function loadFromStorage(cacheKey) {
-  const storage = getStorage()
-  if (!storage) return null
-
-  const raw = storage.getItem(`${STORAGE_PREFIX}${cacheKey}`)
-  if (!raw) return null
-
-  try {
-    const parsed = JSON.parse(raw)
-    if (Array.isArray(parsed.entries)) {
-      return parsed
-    }
-    return null
-  } catch {
-    return null
-  }
-}
-
-/**
- * Save index to localStorage
- * @param {string} cacheKey - Cache key
- * @param {Object} payload - Index data
- */
-function saveToStorage(cacheKey, payload) {
-  const storage = getStorage()
-  if (!storage) return
-
-  try {
-    storage.setItem(`${STORAGE_PREFIX}${cacheKey}`, JSON.stringify(payload))
-  } catch {
-    // Ignore quota errors
-  }
-}
-
-/**
- * Load search index for a locale
- * @param {string} indexUrl - URL to fetch the index from
- * @param {Object} options - Options
- * @param {string} [options.cacheKey] - Cache key (defaults to indexUrl)
- * @param {boolean} [options.useStorage=true] - Use localStorage caching
- * @returns {Promise<Object>} Search index
- */
-export async function loadSearchIndex(indexUrl, options = {}) {
-  const { cacheKey = indexUrl, useStorage = true } = options
-
-  // Check memory cache first
-  if (indexCache.has(cacheKey)) {
-    return indexCache.get(cacheKey)
+  if (name === 'endpoint') {
+    const mod = await import('./providers/endpoint-provider.js')
+    return mod.createEndpointProvider
   }
 
-  // Check localStorage cache
-  if (useStorage) {
-    const cached = loadFromStorage(cacheKey)
-    if (cached) {
-      indexCache.set(cacheKey, cached)
-      return cached
-    }
+  const transport = transports?.[name]
+  if (transport && typeof transport.query === 'function') {
+    return () => transport
   }
-
-  // Fetch from server
-  const response = await fetch(indexUrl, { cache: 'force-cache' })
-  if (!response.ok) {
-    throw new Error(`Failed to load search index: ${response.status}`)
+  if (transport) {
+    console.warn(
+      `[uniweb] Search transport "${name}" has no query(); falling back to the index provider.`
+    )
   }
-
-  const payload = await response.json()
-
-  // Cache the result
-  indexCache.set(cacheKey, payload)
-  if (useStorage) {
-    saveToStorage(cacheKey, payload)
-  }
-
-  return payload
-}
-
-/**
- * Clear all search caches
- * @param {string} [cacheKey] - Specific cache key to clear, or all if omitted
- */
-export function clearSearchCache(cacheKey) {
-  if (cacheKey) {
-    indexCache.delete(cacheKey)
-    fuseCache.delete(cacheKey)
-    const storage = getStorage()
-    if (storage) {
-      storage.removeItem(`${STORAGE_PREFIX}${cacheKey}`)
-    }
-  } else {
-    indexCache.clear()
-    fuseCache.clear()
-    const storage = getStorage()
-    if (storage) {
-      // Clear all search-related storage
-      const keysToRemove = []
-      for (let i = 0; i < storage.length; i++) {
-        const key = storage.key(i)
-        if (key?.startsWith(STORAGE_PREFIX)) {
-          keysToRemove.push(key)
-        }
-      }
-      keysToRemove.forEach(key => storage.removeItem(key))
-    }
-  }
+  return null
 }
 
 /**
@@ -159,9 +72,11 @@ export function clearSearchCache(cacheKey) {
  *
  * @param {Object} website - Website instance from @uniweb/core
  * @param {Object} options - Configuration options
- * @param {Object} [options.fuseOptions] - Custom Fuse.js options
- * @param {boolean} [options.useStorage=true] - Use localStorage caching
+ * @param {Object} [options.fuseOptions] - Custom Fuse.js options (index provider)
+ * @param {boolean} [options.useStorage=true] - Use localStorage caching (index provider)
  * @param {number} [options.defaultLimit=10] - Default result limit
+ * @param {string} [options.provider] - Override the declared provider
+ * @param {Object} [options.transports] - Named search transports from a foundation
  * @returns {Object} Search client with query method
  *
  * @example
@@ -170,45 +85,66 @@ export function clearSearchCache(cacheKey) {
  */
 export function createSearchClient(website, options = {}) {
   const {
-    fuseOptions = {},
-    useStorage = true,
-    defaultLimit = 10
+    defaultLimit = 10,
+    provider: providerOverride,
+    transports,
+    ...providerOptions
   } = options
 
-  const mergedFuseOptions = { ...DEFAULT_FUSE_OPTIONS, ...fuseOptions }
+  const searchConfig = website.getSearchConfig?.() || {}
+  const declared = providerOverride || searchConfig.provider || 'index'
+
+  // One in-flight resolution shared by every caller.
+  let providerPromise = null
+  let activeName = declared
+
+  async function getProvider() {
+    if (providerPromise) return providerPromise
+
+    providerPromise = (async () => {
+      let factory = await loadProviderFactory(declared, transports)
+
+      if (!factory) {
+        if (declared !== 'index') {
+          console.warn(
+            `[uniweb] Unknown search provider "${declared}"; falling back to the index provider.`
+          )
+        }
+        const mod = await import('./providers/index-provider.js')
+        factory = mod.createIndexProvider
+        activeName = 'index'
+      }
+
+      return factory(website, { ...providerOptions, endpoint: searchConfig.endpoint })
+    })()
+
+    return providerPromise
+  }
 
   /**
-   * Get or create Fuse instance for the current locale
-   * @returns {Promise<Fuse>}
+   * Fall back to the local index when a non-index provider fails.
+   *
+   * A site that moves off a host serving search still has an index emitted at
+   * build, so this is usually a working answer rather than a consolation prize.
+   * Standalone-first means the degraded path is part of the design.
+   *
+   * @param {Error} err
+   * @returns {Promise<Object|null>}
    */
-  async function getFuse() {
-    const indexUrl = website.getSearchIndexUrl()
-    const cacheKey = indexUrl
-
-    // Check Fuse cache
-    if (fuseCache.has(cacheKey)) {
-      return fuseCache.get(cacheKey)
-    }
-
-    // Load index and create Fuse instance
-    const index = await loadSearchIndex(indexUrl, { cacheKey, useStorage })
-
-    // Dynamically import Fuse.js (peer dependency)
-    let Fuse
+  async function fallbackToIndex(err) {
+    if (activeName === 'index') return null
+    console.warn(
+      `[uniweb] Search provider "${activeName}" failed (${err?.message}); trying the local index.`
+    )
     try {
-      const fuseMod = await import('fuse.js')
-      Fuse = fuseMod.default || fuseMod
-    } catch (err) {
-      throw new Error(
-        'Fuse.js is required for search functionality. ' +
-        'Install it with: npm install fuse.js'
-      )
+      const mod = await import('./providers/index-provider.js')
+      const fallback = mod.createIndexProvider(website, providerOptions)
+      activeName = 'index'
+      providerPromise = Promise.resolve(fallback)
+      return fallback
+    } catch {
+      return null
     }
-
-    const fuse = new Fuse(index.entries || [], mergedFuseOptions)
-    fuseCache.set(cacheKey, fuse)
-
-    return fuse
   }
 
   return {
@@ -218,6 +154,15 @@ export function createSearchClient(website, options = {}) {
      */
     isEnabled() {
       return website.isSearchEnabled()
+    },
+
+    /**
+     * Name of the provider serving results. Reflects the active provider, so
+     * after a fallback it reports `index` rather than what was declared.
+     * @returns {string}
+     */
+    getProviderName() {
+      return activeName
     },
 
     /**
@@ -244,10 +189,11 @@ export function createSearchClient(website, options = {}) {
      * @param {number} [queryOptions.limit] - Maximum results
      * @param {string} [queryOptions.type] - Filter by type ('page' or 'section')
      * @param {string} [queryOptions.route] - Filter by route prefix
+     * @param {AbortSignal} [queryOptions.signal] - Cancel an in-flight query
      * @returns {Promise<Array>} Search results
      */
     async query(query, queryOptions = {}) {
-      const { limit = defaultLimit, type, route } = queryOptions
+      const { limit = defaultLimit, type, route, signal } = queryOptions
 
       const trimmed = query?.trim()
       if (!trimmed) return []
@@ -257,69 +203,54 @@ export function createSearchClient(website, options = {}) {
         return []
       }
 
-      const fuse = await getFuse()
-      let results = fuse.search(trimmed)
+      const opts = { limit, type, route, signal }
 
-      // Apply type filter
-      if (type) {
-        results = results.filter(({ item }) => item.type === type)
-      }
+      try {
+        const provider = await getProvider()
+        return await provider.query(trimmed, opts)
+      } catch (err) {
+        // An aborted query is a caller decision, not a provider failure.
+        if (err?.name === 'AbortError') throw err
 
-      // Apply route filter
-      if (route) {
-        results = results.filter(({ item }) => item.route?.startsWith(route))
-      }
-
-      // Apply limit
-      const limited = results.slice(0, limit)
-
-      // Transform results
-      return limited.map(({ item, matches }) => {
-        const snippet = buildSnippet(item.content, matches, { key: 'content' })
-
-        return {
-          // Identity
-          id: item.id,
-          type: item.type,
-
-          // Navigation
-          route: item.route,
-          sectionId: item.sectionId,
-          anchor: item.anchor,
-          href: item.anchor ? `${item.route}#${item.anchor}` : item.route,
-
-          // Display
-          title: item.title,
-          pageTitle: item.pageTitle,
-          description: item.description,
-          excerpt: item.excerpt,
-          component: item.component,
-
-          // Search result specific
-          snippetText: snippet.text,
-          snippetHtml: snippet.html,
-          matches
+        const fallback = await fallbackToIndex(err)
+        if (!fallback) {
+          console.warn(`[uniweb] Search failed: ${err?.message}`)
+          return []
         }
-      })
+        try {
+          return await fallback.query(trimmed, opts)
+        } catch (fallbackErr) {
+          console.warn(`[uniweb] Search fallback failed: ${fallbackErr?.message}`)
+          return []
+        }
+      }
     },
 
     /**
-     * Preload the search index (call this to warm the cache)
+     * Preload whatever the provider needs to answer quickly.
+     * A no-op for providers with nothing to warm.
      * @returns {Promise<void>}
      */
     async preload() {
       if (!website.isSearchEnabled()) return
-      await getFuse()
+      try {
+        const provider = await getProvider()
+        await provider.preload?.()
+      } catch (err) {
+        // Preloading is an optimization; failing it must not surface to a user.
+        console.warn(`[uniweb] Search preload failed: ${err?.message}`)
+      }
     },
 
     /**
-     * Clear the search cache
+     * Clear the provider's cache, if it keeps one.
      */
     clearCache() {
-      const indexUrl = website.getSearchIndexUrl()
-      clearSearchCache(indexUrl)
+      if (!providerPromise) return
+      providerPromise.then(p => p.clearCache?.()).catch(() => {})
     }
   }
 }
 
+export { emptyResult }
 export default createSearchClient
