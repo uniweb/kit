@@ -230,19 +230,23 @@ function RenderNode({ node, block, ...props }) {
       // whose body is real block content, recursed like a blockquote's rather
       // than flattened to a string.
       //
-      // `@Component` names FOUNDATION vocabulary — kit must not answer for it.
-      // A leaf inset settles the rule: `inset_placeholder` below resolves via
-      // `block.getInset()`, whose Block looks the name up on the foundation.
-      // kit's own Details and Alert are not reachable that way and must not
-      // become reachable here, or a foundation shipping its own Alert would
-      // be shadowed by ours. (kit still renders `details` / `alert` above —
-      // those are the editor's DOCUMENT node types on the sequential path,
-      // which is a different mechanism that happens to share a name.)
+      // NOTE: a container reaching this case means it was NOT lifted.
+      // `@uniweb/core`'s Block rewrites every `inset_block` to an
+      // `inset_placeholder` when it builds the render graph, so the normal
+      // path is the `inset_placeholder` case below — which resolves the
+      // component against the FOUNDATION. This branch is what is left for a
+      // document rendered without a Block behind it.
       //
-      // So: no name dispatch. Until the container resolves through the
-      // runtime, every container degrades to a VISIBLE generic box that keeps
-      // its body. Never a drop — an unmapped node taking its subtree with it
-      // is the failure this container exists to fix.
+      // `@Component` names foundation vocabulary, so kit must not answer for
+      // it. kit's own Details and Alert are not reachable through
+      // `getInset()` and must not become reachable here, or a foundation
+      // shipping its own Alert would be shadowed by ours. (kit still renders
+      // `details` / `alert` above — those are the editor's DOCUMENT node
+      // types, a different mechanism that happens to share a name.)
+      //
+      // So: no name dispatch. A VISIBLE generic box that keeps its body.
+      // Never a drop — an unmapped node taking its subtree with it is the
+      // failure this container exists to fix.
       const component = attrs?.component
       const body = content?.map((child, i) => (
         <RenderNode key={i} node={child} block={block} />

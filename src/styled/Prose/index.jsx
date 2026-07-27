@@ -175,10 +175,13 @@ function SequenceElement({ element, block }) {
       // an inset. Children recurse; flattening them to text is what the
       // sequence's default branch used to do, and it lost the body.
       //
-      // `@Component` names FOUNDATION vocabulary, so kit does NOT map the name
-      // to one of its own components — see the longer note in Section/Render.
-      // Every container degrades to a visible generic box until the runtime
-      // resolves the name; never a drop.
+      // Reaching this case means the container was NOT lifted — `@uniweb/core`
+      // rewrites `inset_block` to `inset_placeholder` when it builds the render
+      // graph, and the `inset` case resolves that against the foundation. This
+      // is the fallback for a document rendered without a Block behind it.
+      //
+      // kit does NOT map the name to one of its own components — see the longer
+      // note in Section/Render. A visible generic box; never a drop.
       const body = element.children?.map((el, i) => (
         <SequenceElement key={i} element={el} block={block} />
       ))
