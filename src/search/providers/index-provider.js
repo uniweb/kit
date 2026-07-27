@@ -41,8 +41,41 @@ const DEFAULT_FUSE_OPTIONS = {
   ],
   threshold: 0.35,
   includeMatches: true,
+  // Exposed so ranking is inspectable, and so a foundation that wants its own
+  // ordering has something to order by. Fuse omits `score` entirely without it,
+  // which is why nothing could be ranked on relevance before.
+  includeScore: true,
   ignoreLocation: true,
   minMatchCharLength: 2
+}
+
+/**
+ * Does this entry literally contain every word of the query?
+ *
+ * Fuse is approximate by design, and on fields the size of a whole page that
+ * turns into a real problem: searching "inset" on a documentation site
+ * returned 68 hits of which 4 contained the word, and all four ranked below
+ * the tenth result — so every result the reader saw was a near-miss on a page
+ * that never mentions the term.
+ *
+ * Fuzzy is the right FALLBACK — it is what tolerates a typo — but it must not
+ * outrank an exact match. Checking containment directly is the cheap, honest
+ * signal Fuse's score does not provide here.
+ *
+ * Every token must appear, so "Inset Components" does not match a page that
+ * merely says "components". Matching is substring-based rather than
+ * word-boundary so that "inset" still finds "insets".
+ */
+function literalTier(item, tokens) {
+  if (!tokens.length) return 2
+
+  const title = `${item.title || ''} ${item.pageTitle || ''}`.toLowerCase()
+  if (tokens.every((t) => title.includes(t))) return 0
+
+  const body = `${title} ${item.content || ''} ${item.excerpt || ''}`.toLowerCase()
+  if (tokens.every((t) => body.includes(t))) return 1
+
+  return 2
 }
 
 /**
@@ -291,6 +324,23 @@ export function createIndexProvider(website, options = {}) {
       if (route) {
         results = results.filter(({ item }) => item.route?.startsWith(route))
       }
+
+      // Rank pages that actually contain the words above Fuse's near-misses.
+      //
+      // Fuse sorts by its own score, which on page-sized content fields rates
+      // an approximate match as highly as an exact one — so a page containing
+      // the search term could sit below ten pages that never mention it, and
+      // the reader concludes the site has nothing on the subject.
+      //
+      // A stable sort by tier keeps Fuse's ordering *within* each tier, so
+      // relevance still decides among equals and the fuzzy tail is preserved
+      // rather than discarded. Applied before `limit`, because the cutoff is
+      // exactly where the problem showed up.
+      const tokens = String(text || '').toLowerCase().split(/\s+/).filter(Boolean)
+      results = results
+        .map((r, i) => ({ r, i, tier: literalTier(r.item, tokens) }))
+        .sort((a, b) => a.tier - b.tier || a.i - b.i)
+        .map(({ r }) => r)
 
       return results.slice(0, limit).map(({ item, matches }) => {
         const snippet = buildSnippet(item.content, matches, { key: 'content' })
