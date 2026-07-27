@@ -73,6 +73,46 @@ describe('Prose — the sequence renderer', () => {
   })
 })
 
+describe('a container names FOUNDATION vocabulary, not kit vocabulary', () => {
+  // The rule a leaf inset already follows: `inset_placeholder` resolves via
+  // `block.getInset()`, and that Block looks its component up on the
+  // foundation. kit's own Details and Alert have never been reachable that
+  // way, and an `@Component` container must not make them reachable — a
+  // foundation shipping its own Alert would be shadowed by ours, which
+  // inverts who owns a site's vocabulary.
+  //
+  // This is source-level on purpose. The dispatch it forbids was three lines
+  // inside a `case`, invisible to every behavioural test in this package, and
+  // it shipped. A grep-shaped assertion is what would have caught it.
+  const containerCase = source => {
+    const start = source.indexOf("case 'inset_block'")
+    expect(start).toBeGreaterThan(-1)
+    return source.slice(start, source.indexOf('\n    }', start))
+  }
+
+  it.each([
+    ['Render', '../src/styled/Section/Render.jsx'],
+    ['Prose', '../src/styled/Prose/index.jsx'],
+  ])('%s does not map a container name to a kit component', (_name, path) => {
+    const body = containerCase(read(path))
+    // No comparison of the component name against a name kit implements.
+    expect(body).not.toMatch(/===\s*'(Details|Alert|Warning)'/)
+    // And the unresolved case still keeps the body — visible, never a drop.
+    expect(body).toMatch(/data-inset-block=/)
+    expect(body).toMatch(/\{body\}/)
+  })
+
+  it('kit still renders the editor DOCUMENT node types, which are its job', () => {
+    // The other half of the distinction: `details` / `alert` / `warning` are
+    // node types a document format has, and giving them a standard
+    // presentation on the sequential path is exactly what Prose and Article
+    // are for. Only the `@Component` reference belongs to the foundation.
+    for (const node of ['details', 'alert', 'warning']) {
+      expect(renderCases).toContain(node)
+    }
+  })
+})
+
 describe('the difference between them is deliberate', () => {
   it('records what only the document renderer handles', () => {
     // Tables above all. A document body rendered with Prose loses them

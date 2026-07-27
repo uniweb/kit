@@ -229,34 +229,25 @@ function RenderNode({ node, block, ...props }) {
       // The block form of an inset: a fenced `@Component{params}` container
       // whose body is real block content, recursed like a blockquote's rather
       // than flattened to a string.
+      //
+      // `@Component` names FOUNDATION vocabulary — kit must not answer for it.
+      // A leaf inset settles the rule: `inset_placeholder` below resolves via
+      // `block.getInset()`, whose Block looks the name up on the foundation.
+      // kit's own Details and Alert are not reachable that way and must not
+      // become reachable here, or a foundation shipping its own Alert would
+      // be shadowed by ours. (kit still renders `details` / `alert` above —
+      // those are the editor's DOCUMENT node types on the sequential path,
+      // which is a different mechanism that happens to share a name.)
+      //
+      // So: no name dispatch. Until the container resolves through the
+      // runtime, every container degrades to a VISIBLE generic box that keeps
+      // its body. Never a drop — an unmapped node taking its subtree with it
+      // is the failure this container exists to fix.
       const component = attrs?.component
       const body = content?.map((child, i) => (
         <RenderNode key={i} node={child} block={block} />
       ))
 
-      // The summary of a Details container is its FIRST block, not an
-      // attribute — `detailsSummary` can carry marks, and an attribute would
-      // flatten them.
-      if (component === 'Details') {
-        const [summary, ...rest] = body || []
-        return (
-          <Details summary={summary} content={rest} open={attrs?.open} className="my-4" />
-        )
-      }
-
-      if (component === 'Alert' || component === 'Warning') {
-        return <Alert type={attrs?.type || 'info'} content={body} className="my-4" />
-      }
-
-      // An unrecognised component renders as a VISIBLE generic container that
-      // keeps its body. Never a drop: an unmapped node taking its subtree with
-      // it is the failure this container exists to fix, so a component this
-      // build does not know about degrades to "readable but not specially
-      // presented" instead of vanishing.
-      //
-      // Resolving `component` against the FOUNDATION — the way `inset_ref`
-      // does via `block.getInset` — is the follow-on. It belongs with the
-      // runtime, which owns foundation resolution; kit only knows its own.
       return (
         <div
           data-inset-block={component || 'unknown'}
