@@ -191,10 +191,22 @@ export function matchesShortcut(event, descriptor) {
  * `userAgentData.platform` is the modern signal; `navigator.platform` is
  * deprecated but still the most widely accurate fallback.
  *
- * @returns {boolean} false when there is no navigator (SSR).
+ * **A `navigator` check alone is not enough, and the failure is nasty.**
+ * Node 21+ defines `globalThis.navigator`, and on macOS its `platform` reads
+ * `'MacIntel'` — so during prerender this returned true and baked ⌘ into
+ * static HTML based on the machine that ran the BUILD. Every visitor then got
+ * the build box's platform, and the same source produced different output on a
+ * Mac laptop and a Linux CI runner.
+ *
+ * `document` is the discriminator: Node defines a navigator but never a DOM.
+ * Prerender therefore emits the non-Apple spelling, and the client corrects it
+ * on mount — which is safe here because the runtime always createRoots and
+ * never hydrates, so there is no mismatch to reconcile.
+ *
+ * @returns {boolean} false anywhere that is not a real browser.
  */
 export function isApplePlatform() {
-  if (typeof navigator === 'undefined') return false
+  if (typeof document === 'undefined' || typeof navigator === 'undefined') return false
   const modern = navigator.userAgentData?.platform
   if (typeof modern === 'string' && modern) return /mac|ios|iphone|ipad/i.test(modern)
   return /mac|iphone|ipad|ipod/i.test(navigator.platform || navigator.userAgent || '')

@@ -22,6 +22,7 @@ import {
   parseShortcut,
   matchesShortcut,
   formatShortcut,
+  isApplePlatform,
 } from '../src/hooks/useShortcut.js'
 
 /** Build an event-like object; defaults are "no modifiers held". */
@@ -174,6 +175,26 @@ describe('formatShortcut — the ⌘-on-Windows bug', () => {
 
   it('accepts a pre-parsed descriptor', () => {
     expect(formatShortcut(parseShortcut('mod+k'), { apple: true })).toBe('⌘K')
+  })
+})
+
+describe('isApplePlatform — must be false outside a real browser', () => {
+  it('does not treat a Node build process as an Apple platform', () => {
+    // This test runs in Node with no DOM, which is exactly the prerender
+    // environment. Node 21+ defines globalThis.navigator, and on macOS its
+    // `platform` reads 'MacIntel' — so a navigator-only check returns true
+    // here and bakes ⌘ into static HTML based on whichever machine ran the
+    // build. Every visitor then sees the build box's platform, and the same
+    // source produces different output on a Mac laptop than on a Linux runner.
+    //
+    // The assertion is therefore about the ENVIRONMENT, not the OS: this must
+    // hold on a Mac, which is where it would otherwise regress unnoticed.
+    expect(typeof document).toBe('undefined')
+    expect(isApplePlatform()).toBe(false)
+  })
+
+  it('formats for the non-Apple spelling when detection is unavailable', () => {
+    expect(formatShortcut('mod+k')).toBe('Ctrl+K')
   })
 })
 
