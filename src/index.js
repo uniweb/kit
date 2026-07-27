@@ -15,6 +15,9 @@
 // Navigation
 export { Link } from './components/Link/index.js'
 export { Image } from './components/Image/index.js'
+// Renders above the page from anywhere in the tree — see Overlay.jsx for why
+// a plain fixed+z-index element cannot escape a layout area.
+export { Overlay } from './components/Overlay/index.js'
 export { SafeHtml } from './components/SafeHtml/index.js'
 export { Icon } from './components/Icon/index.js'
 
