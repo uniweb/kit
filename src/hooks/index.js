@@ -15,6 +15,17 @@ export { useInView, useIsInView } from './useInView.js'
 export { usePageState } from './usePageState.js'
 export { useWebsiteState } from './useWebsiteState.js'
 
+// Keyboard shortcuts — the mechanism only; kit binds no keys of its own.
+export {
+  useShortcut,
+  useShortcuts,
+  useShortcutLabel,
+  parseShortcut,
+  matchesShortcut,
+  formatShortcut,
+  isApplePlatform
+} from './useShortcut.js'
+
 // Theme data hooks (runtime theme access)
 export {
   useThemeData,

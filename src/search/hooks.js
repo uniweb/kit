@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createSearchClient, loadSearchIndex } from './client.js'
+import { useShortcut } from '../hooks/useShortcut.js'
 
 /**
  * Hook to create and use a search client
@@ -237,7 +238,17 @@ export function useSearchIndex(website, options = {}) {
 }
 
 /**
- * Hook for Cmd/Ctrl+K keyboard shortcut to open search
+ * Hook for Cmd/Ctrl+K keyboard shortcut to open search.
+ *
+ * **Prefer `useShortcut` for new code.** This is a thin alias kept so existing
+ * foundations keep working; it is the one place in kit that names a specific
+ * key, and it does so only for back-compat. Which combo opens search is the
+ * foundation's call, not kit's — `useShortcut('mod+k', open)` says the same
+ * thing without implying the framework chose it.
+ *
+ * A wrapper rather than a second implementation, so the matching rules
+ * (case-insensitive key, shift handling, typing-target policy) can only ever
+ * have one behaviour.
  *
  * @param {Function|Object} callbacks - Either onOpen function, or { onOpen, onPreload }
  *
@@ -256,18 +267,12 @@ export function useSearchShortcut(callbacks) {
     ? { onOpen: callbacks, onPreload: null }
     : callbacks
 
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
-        onPreload?.()
-        onOpen()
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+  const handler = useCallback(() => {
+    onPreload?.()
+    onOpen()
   }, [onOpen, onPreload])
+
+  useShortcut('mod+k', handler)
 }
 
 /**

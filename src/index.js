@@ -77,6 +77,14 @@ export {
   // Observable state bridges (page.state / website.state)
   usePageState,
   useWebsiteState,
+  // Keyboard shortcuts (mechanism only — foundations choose every key)
+  useShortcut,
+  useShortcuts,
+  useShortcutLabel,
+  parseShortcut,
+  matchesShortcut,
+  formatShortcut,
+  isApplePlatform,
   // Form submission lifecycle for foundation Form components
   useFormSubmit
 } from './hooks/index.js'
