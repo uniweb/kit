@@ -22,8 +22,12 @@ import { emptyResult } from './result.js'
 const indexCache = new Map()
 const fuseCache = new Map()
 
-const STORAGE_VERSION = 'v1'
-const STORAGE_PREFIX = `uniweb:search:${STORAGE_VERSION}:`
+// Bumped to v2 when stored entries gained a validator. The version is part of
+// the key, so every v1 entry — which had no way to be revalidated and could
+// outlive any number of rebuilds — is orphaned rather than trusted.
+const STORAGE_VERSION = 'v2'
+const STORAGE_PREFIX = 'uniweb:search:'
+const STORAGE_KEY = (cacheKey) => `${STORAGE_PREFIX}${STORAGE_VERSION}:${cacheKey}`
 
 /**
  * Default Fuse.js options optimized for site search
@@ -63,14 +67,12 @@ function loadFromStorage(cacheKey) {
   const storage = getStorage()
   if (!storage) return null
 
-  const raw = storage.getItem(`${STORAGE_PREFIX}${cacheKey}`)
+  const raw = storage.getItem(STORAGE_KEY(cacheKey))
   if (!raw) return null
 
   try {
     const parsed = JSON.parse(raw)
-    if (Array.isArray(parsed.entries)) {
-      return parsed
-    }
+    if (Array.isArray(parsed.payload?.entries)) return parsed
     return null
   } catch {
     return null
@@ -78,19 +80,50 @@ function loadFromStorage(cacheKey) {
 }
 
 /**
- * Save index to localStorage
+ * Save index to localStorage, together with the validator that lets a later
+ * load ask the server whether it is still current.
+ *
  * @param {string} cacheKey - Cache key
  * @param {Object} payload - Index data
+ * @param {{etag?: string|null, lastModified?: string|null}} [validator]
  */
-function saveToStorage(cacheKey, payload) {
+function saveToStorage(cacheKey, payload, validator = {}) {
   const storage = getStorage()
   if (!storage) return
 
   try {
-    storage.setItem(`${STORAGE_PREFIX}${cacheKey}`, JSON.stringify(payload))
+    storage.setItem(
+      STORAGE_KEY(cacheKey),
+      JSON.stringify({
+        payload,
+        etag: validator.etag || null,
+        lastModified: validator.lastModified || null,
+      })
+    )
   } catch {
     // Ignore quota errors
   }
+}
+
+/**
+ * Drop entries written by an older storage schema.
+ *
+ * A search index runs to hundreds of kilobytes, so an orphaned one is a real
+ * bite out of a origin's storage quota rather than a tidiness issue.
+ */
+function pruneOldVersions() {
+  const storage = getStorage()
+  if (!storage) return
+
+  const current = `${STORAGE_PREFIX}${STORAGE_VERSION}:`
+  const stale = []
+  for (let i = 0; i < storage.length; i++) {
+    const key = storage.key(i)
+    if (key?.startsWith(STORAGE_PREFIX) && !key.startsWith(current)) stale.push(key)
+  }
+  stale.forEach((key) => {
+    try { storage.removeItem(key) } catch { /* ignore */ }
+  })
 }
 
 /**
@@ -104,32 +137,72 @@ function saveToStorage(cacheKey, payload) {
 export async function loadSearchIndex(indexUrl, options = {}) {
   const { cacheKey = indexUrl, useStorage = true } = options
 
-  // Check memory cache first
+  // Memory cache: scoped to one page load, where the index cannot change
+  // underneath us. This is the only cache read that needs no validation.
   if (indexCache.has(cacheKey)) {
     return indexCache.get(cacheKey)
   }
 
-  // Check localStorage cache
-  if (useStorage) {
-    const cached = loadFromStorage(cacheKey)
+  if (useStorage) pruneOldVersions()
+  const cached = useStorage ? loadFromStorage(cacheKey) : null
+
+  // ALWAYS ask the server, even holding a stored copy.
+  //
+  // Returning the stored index unconditionally — what this did before — has no
+  // expiry and no way to notice a rebuild, so a visitor who searched once kept
+  // answering from that index for as long as the entry survived. A redeploy
+  // did not dislodge it.
+  //
+  // It also collided across sites. The key is the index URL, which is
+  // `/search-index.json` for every Uniweb project, and localStorage is scoped
+  // to an origin — so two projects sharing a dev port shared one entry, and a
+  // search on one could return the other's pages. Revalidating settles that
+  // too: a different server answers 200 with its own index and replaces it.
+  const headers = {}
+  if (cached?.etag) headers['If-None-Match'] = cached.etag
+  else if (cached?.lastModified) headers['If-Modified-Since'] = cached.lastModified
+
+  let response
+  try {
+    // `no-cache` = revalidate, not "don't cache". `force-cache` (the previous
+    // value) told the browser to prefer any stored response regardless of age,
+    // which defeated revalidation a second time over.
+    response = await fetch(indexUrl, { headers, cache: 'no-cache' })
+  } catch (error) {
+    // Offline or unreachable. A stored index is better than no search at all,
+    // and this is the one path where serving it unvalidated is the right call.
     if (cached) {
-      indexCache.set(cacheKey, cached)
-      return cached
+      indexCache.set(cacheKey, cached.payload)
+      return cached.payload
     }
+    throw error
   }
 
-  // Fetch from server
-  const response = await fetch(indexUrl, { cache: 'force-cache' })
+  // Unchanged since we stored it — the whole point of keeping the validator.
+  if (response.status === 304 && cached) {
+    indexCache.set(cacheKey, cached.payload)
+    return cached.payload
+  }
+
   if (!response.ok) {
+    if (cached) {
+      indexCache.set(cacheKey, cached.payload)
+      return cached.payload
+    }
     throw new Error(`Failed to load search index: ${response.status}`)
   }
 
   const payload = await response.json()
 
-  // Cache the result
   indexCache.set(cacheKey, payload)
   if (useStorage) {
-    saveToStorage(cacheKey, payload)
+    // A host that sends no validator still gets stored — it just costs a full
+    // fetch next time instead of a 304. What it never does is get served as
+    // though it were known to be current.
+    saveToStorage(cacheKey, payload, {
+      etag: response.headers?.get?.('etag'),
+      lastModified: response.headers?.get?.('last-modified'),
+    })
   }
 
   return payload
@@ -145,7 +218,7 @@ export function clearSearchCache(cacheKey) {
     fuseCache.delete(cacheKey)
     const storage = getStorage()
     if (storage) {
-      storage.removeItem(`${STORAGE_PREFIX}${cacheKey}`)
+      storage.removeItem(STORAGE_KEY(cacheKey))
     }
   } else {
     indexCache.clear()
