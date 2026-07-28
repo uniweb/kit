@@ -55,8 +55,13 @@ function readAppliedScheme() {
  * Returns the Theme instance which provides methods like:
  * - getColor(name, shade) - Get a color value
  * - getPalette(name) - Get all shades for a color
- * - getContextToken(context, token) - Get semantic token
  * - getAppearance() - Get appearance configuration
+ *
+ * For a semantic token's ACTUAL value at some element, read the CSS variable
+ * rather than asking the theme: getComputedStyle(el).getPropertyValue('--heading').
+ * Only that accounts for the section's own `theme:` overrides and the active
+ * light/dark scheme. (`getContextToken`/`getContextTokens` were removed in
+ * 2026-07-28 for exactly this reason — see the note in @uniweb/core's theme.js.)
  *
  * @returns {Theme|null} Theme instance or null if not available
  *
