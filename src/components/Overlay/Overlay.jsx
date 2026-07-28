@@ -52,15 +52,17 @@
  * layer so the page underneath stays usable. Individual props still override.
  *
  * @example
- * // Dialog. The scrim colour is the foundation's to choose — this component
- * // renders no colour of its own.
- * // kit-palette-ok: illustrative caller code, and a scrim is the case the
- * // rule names as legitimately non-thematic
+ * // Dialog — a dimmed scrim comes with `modal`, so this adds only placement.
  * {isOpen && (
- *   <Overlay onClose={close} className="bg-black/50 items-center">
+ *   <Overlay onClose={close} className="items-center">
  *     <div role="dialog" aria-modal="true" aria-labelledby="t">…</div>
  *   </Overlay>
  * )}
+ *
+ * @example
+ * // A themed scrim, blurred, with the content near the top. The default is a
+ * // starting point, not a constraint.
+ * <Overlay onClose={close} className="bg-primary/20 backdrop-blur-sm pt-[12vh]">…</Overlay>
  *
  * @example
  * // Toast — above the page, but the page keeps working
@@ -172,8 +174,11 @@ function inertBackground(exceptNode) {
  *   scroll lock, inert background. `false` for a toast or other non-blocking
  *   layer that only needs to escape the stacking context.
  * @param {string} [props.className] - Classes for the scrim / positioning
- *   layer. It is a flex container, so `items-center`, `items-end` and friends
- *   place the content; the box itself is yours.
+ *   layer, applied last. `cn` resolves Tailwind conflicts, so anything here
+ *   overrides the defaults rather than fighting them: `bg-primary/10` recolours
+ *   the scrim (a theme token works here as readily as a fixed one),
+ *   `bg-transparent` removes it, `items-center` re-places the content,
+ *   `backdrop-blur-sm` adds to it. The box itself is yours.
  * @param {number|string} [props.zIndex=100]
  * @param {boolean} [props.closeOnEscape=true]
  * @param {boolean} [props.closeOnScrimClick=true]
@@ -322,10 +327,15 @@ export function Overlay({
       ref={layerRef}
       tabIndex={-1}
       className={cn(
-        'fixed inset-0 flex justify-center',
-        // A non-modal layer must not swallow clicks meant for the page; its
-        // content opts back in with `pointer-events-auto`.
-        modal ? 'items-start' : 'items-start pointer-events-none',
+        'fixed inset-0 flex items-start justify-center',
+        // kit-palette-ok: a modal scrim is the same black in either scheme —
+        // it dims the page rather than colouring a surface, so a theme token
+        // would be the wrong tool. Same call as Disclaimer's scrim.
+        modal ? 'bg-black/50' : 'pointer-events-none',
+        // Last, so a foundation's classes win: `cn` resolves Tailwind
+        // conflicts, which makes every one of these a plain override —
+        // `bg-primary/10` recolours it, `bg-transparent` removes it,
+        // `items-center` re-places the content, `backdrop-blur-sm` adds to it.
         className
       )}
       style={{ zIndex }}

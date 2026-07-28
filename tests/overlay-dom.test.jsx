@@ -53,6 +53,61 @@ describe('portal', () => {
   })
 })
 
+describe('the scrim', () => {
+  const layerOf = (baseElement) => baseElement.querySelector('.fixed.inset-0')
+
+  it('dims the page by default, so a modal looks modal', () => {
+    // Without this, `<Overlay onClose={x}>` renders a fully transparent layer
+    // — the page stays visually live behind a dialog that has taken over.
+    const { baseElement } = render(<Overlay onClose={() => {}}><Dialog /></Overlay>)
+    expect(layerOf(baseElement).className).toContain('bg-black/50')
+  })
+
+  it('lets a foundation recolour it', () => {
+    const { baseElement } = render(
+      <Overlay onClose={() => {}} className="bg-white/10"><Dialog /></Overlay>
+    )
+    const cls = layerOf(baseElement).className
+    expect(cls).toContain('bg-white/10')
+    expect(cls).not.toContain('bg-black/50')
+  })
+
+  it('lets a foundation remove it entirely', () => {
+    const { baseElement } = render(
+      <Overlay onClose={() => {}} className="bg-transparent"><Dialog /></Overlay>
+    )
+    const cls = layerOf(baseElement).className
+    expect(cls).toContain('bg-transparent')
+    expect(cls).not.toContain('bg-black/50')
+  })
+
+  it('keeps additive classes alongside the default', () => {
+    // Conflict resolution must not be so eager it drops classes that do not
+    // conflict — a blur is a different property from a colour.
+    const { baseElement } = render(
+      <Overlay onClose={() => {}} className="backdrop-blur-sm"><Dialog /></Overlay>
+    )
+    const cls = layerOf(baseElement).className
+    expect(cls).toContain('backdrop-blur-sm')
+    expect(cls).toContain('bg-black/50')
+  })
+
+  it('lets a foundation re-place the content', () => {
+    const { baseElement } = render(
+      <Overlay onClose={() => {}} className="items-center"><Dialog /></Overlay>
+    )
+    const cls = layerOf(baseElement).className
+    expect(cls).toContain('items-center')
+    expect(cls).not.toContain('items-start')
+  })
+
+  it('renders no scrim for a non-modal overlay', () => {
+    // A toast must not dim the page it is reporting on.
+    const { baseElement } = render(<Overlay modal={false}><Dialog /></Overlay>)
+    expect(layerOf(baseElement).className).not.toContain('bg-black/50')
+  })
+})
+
 describe('focus containment', () => {
   it('moves focus into the overlay on open', () => {
     render(<Overlay onClose={() => {}}><Dialog /></Overlay>)
