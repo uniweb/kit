@@ -212,6 +212,20 @@ function RenderNode({ node, block, ...props }) {
       return <Table content={content} className="my-4" />
     }
 
+    // KEEP. Slated for deletion once, and it would have blanked live content.
+    //
+    // Verified with the frontend 2026-07-29 (channel `framework-frontend-86fd`):
+    // `details` is EDITOR-AUTHORED ONLY — it is absent from `content-reader`'s
+    // `getBaseSchema()`, so no markdown can produce it — and nothing converts it on
+    // the way out (the app does not depend on `@uniweb/content-writer`, and its
+    // container boundary mapping is not built). So this case is currently **the only
+    // thing that renders an editor-authored container on a published page**, and the
+    // same holds for `warning` / `alert` above.
+    //
+    // The retirement signal is the app's container boundary mapping landing — it
+    // makes `details` an in-memory-only shape that never reaches the wire, and the
+    // frontend has undertaken to say so in-channel. Until then, deleting this
+    // silently blanks published content.
     case 'details': {
       const summary = attrs?.summary || 'Details'
       const detailsContent = content?.map(extractText).join('') || ''
