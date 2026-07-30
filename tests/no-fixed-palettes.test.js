@@ -98,3 +98,33 @@ describe('kit ships no fixed palettes', () => {
     expect(probe.match(FIXED_PALETTE)).toEqual(['bg-gray-200', 'text-white'])
   })
 })
+
+describe('prose-tokens.css is self-sufficient', () => {
+  // The bridge used to require a foundation to install Tailwind Typography and
+  // `@plugin` it FIRST, because these overrides only win if they come after the
+  // plugin's own declarations. Three parts, ordered, and getting it wrong fails
+  // silently: the variables are set, the rules they modify do not exist, and
+  // prose renders with no margins at all. Measured 2026-07-30 on a foundation
+  // missing only the plugin — `--tw-prose-body` present, every paragraph
+  // `margin-top: 0px`, no warning from Vite, Tailwind or the browser.
+  //
+  // Owning both halves here makes the order unorderable. These pin that.
+  const at = (rel) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
+  const css = at('../src/prose-tokens.css')
+
+  it('brings the plugin with it', () => {
+    expect(css).toMatch(/@plugin\s+["']@tailwindcss\/typography["']/)
+  })
+
+  it('declares the plugin as a real dependency, so the @plugin resolves', () => {
+    // A `@plugin` inside a package's CSS resolves from THAT package's
+    // dependencies. Without the declaration the import is a dangling reference
+    // and every consumer silently loses prose styling.
+    const pkg = JSON.parse(at('../package.json'))
+    expect(pkg.dependencies).toHaveProperty('@tailwindcss/typography')
+  })
+
+  it('keeps the overrides AFTER the plugin — the whole reason it moved here', () => {
+    expect(css.indexOf('@plugin')).toBeLessThan(css.indexOf('--tw-prose-body'))
+  })
+})

@@ -1,10 +1,13 @@
 /*
  * Tailwind Typography, wired to the theme.
  *
- * Usage — after the plugin, so these win on equal specificity:
+ * Usage — one line, in the foundation's stylesheet:
  *
- *   @plugin "@tailwindcss/typography";
  *   @import "@uniweb/kit/prose-tokens.css";
+ *
+ * That is the whole setup: this file brings the plugin with it (below) and then
+ * overrides its greys. It used to take two lines, and the foundation had to
+ * install the plugin itself and remember that the order mattered.
  *
  * `prose` ships its own greys, which means long-form body copy is the one part
  * of a foundation that ignores the site's theme.yml unless someone bridges it
@@ -28,6 +31,33 @@
  * owner, since it then renders correctly under any layout — and make sure the
  * other one only supplies column width and padding.
  */
+
+/*
+ * The plugin comes from kit, and the ORDER below is the reason.
+ *
+ * A `@plugin` inside a package's own CSS resolves from that package's
+ * dependencies, so a foundation importing this file needs nothing installed
+ * (verified 2026-07-30: a foundation with no typography dependency and no
+ * `@plugin` line of its own emitted `.prose :where(p){margin-top:1.25em}` in a
+ * production build).
+ *
+ * Why it moved here rather than staying the foundation's job. The overrides
+ * below have to come AFTER the plugin's own declarations or they lose on equal
+ * specificity — which made "install this, then import that, in this order" a
+ * three-part instruction a foundation could get subtly wrong, and the failure
+ * is silent: the variables are set, the rules they modify do not exist, and
+ * prose renders with no margins at all. Measured on a foundation missing only
+ * the plugin: `--tw-prose-body` present, every paragraph `margin-top: 0px`, no
+ * warning from anywhere. Owning both halves here makes the order unorderable.
+ *
+ * The precedent is `shiki` and `fuse.js` — kit takes DIRECT dependencies on
+ * what its own code needs at build time rather than asking a foundation to
+ * supply them (framework CLAUDE.md gotcha #10). This is that rule applied to
+ * the CSS layer. A foundation that never writes `prose` pays disk only:
+ * Tailwind emits utilities that are used, so an unused plugin generates
+ * nothing.
+ */
+@plugin "@tailwindcss/typography";
 
 .prose {
   --tw-prose-body: var(--body);
