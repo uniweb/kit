@@ -116,7 +116,11 @@ function SequenceElement({ element, block }) {
     }
 
     case 'video': {
-      return <Media src={element.attrs?.src} />
+      // Spread, don't cherry-pick `src`. A markdown-authored video carries
+      // `poster` and the playback flags (`{role=video poster=… autoplay muted
+      // loop controls}`), and <Media> reads all of them — passing only the src
+      // silently discarded every attribute the author wrote.
+      return <Media {...element.attrs} />
     }
 
     case 'codeBlock': {

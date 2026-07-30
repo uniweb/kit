@@ -202,11 +202,34 @@ function PlayButton({ onClick, className }) {
  * @example
  * // Local video
  * <Media src="/videos/intro.mp4" controls autoplay={false} />
+ *
+ * @example
+ * // A video authored in markdown, delivered via content.videos[]
+ * // ![Demo](./demo.mp4){role=video poster=./thumb.jpg autoplay muted loop}
+ * <Visual video={content.videos[0]} />
  */
 export function Media({
   src,
   media,
   thumbnail,
+  // Same concept, three producers. `thumbnail` is this component's own prop;
+  // `poster` is the authored markdown spelling (`{role=video poster=…}`, and
+  // what @uniweb/build auto-generates when it is absent); `coverImg` is what
+  // the editor's Video node carries. All three named here because a video
+  // entry from `content.videos[]` is spread straight in — `<Media {...video} />`
+  // via <Visual> — so an unrecognised one would land on the wrapper div, where
+  // it does nothing and React warns.
+  poster,
+  coverImg,
+  // Also part of the delivered video shape. Absorbed rather than forwarded:
+  // the reference documents wrapping media in a link as the FOUNDATION's job
+  // (docs/reference/content-structure.md, "Clickable Images and Videos"), so
+  // these are the author's to use, not this component's to consume.
+  alt,
+  role,
+  href,
+  target,
+  caption: captionProp,
   autoplay = false,
   muted = false,
   loop = false,
@@ -222,13 +245,14 @@ export function Media({
 
   // Normalize source
   const videoSrc = typeof src === 'string' ? src : (src?.src || media?.src || '')
-  const caption = media?.caption || src?.caption || ''
+  const caption = captionProp || media?.caption || src?.caption || ''
 
   // Detect video type
   const mediaType = detectMediaType(videoSrc)
 
   // Get thumbnail
-  const thumbnailSrc = thumbnail || getVideoThumbnail(videoSrc, mediaType)
+  const thumbnailSrc =
+    thumbnail || poster || coverImg || getVideoThumbnail(videoSrc, mediaType)
 
   // Handle play click (for facade mode)
   const handlePlay = useCallback(() => {
