@@ -70,6 +70,15 @@ const INLINE_INSET_RE = /<uniweb-inset data-ref-id="([^"]+)"><\/uniweb-inset>/g
 export const NOT_RENDERED = {
   dataBlock:
     'structured data, not prose — a component reads it from content.data[tag]',
+  inset_ref:
+    'a BUILD-TIME intermediate. The reader emits it for `![](@Component)`; the ' +
+    'build\'s content-collector extracts it into the section\'s insets and leaves ' +
+    'an `inset_placeholder`, which is what the `inset` case resolves. Its attrs ' +
+    'carry a component NAME and no refId, so there is nothing here to look up — ' +
+    'and kit answering for the name is the shadowing the inset_block case ' +
+    'refuses. Consequence worth knowing: a document rendered straight from ' +
+    'markdown without that build step (a collection record body, say) loses its ' +
+    'inline component references.',
   form: 'an editor node; its data reaches components as content.data[schemaId]',
   'card-group': 'an editor node, deprecated — maps to content.data[cardType]',
   'document-group': 'an editor node — its documents reach content.links',
