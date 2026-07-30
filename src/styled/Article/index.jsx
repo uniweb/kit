@@ -1,84 +1,54 @@
 /**
- * Article Component
+ * Article — a document, in a semantic <article>.
  *
- * Semantic article wrapper with prose typography.
- * Use for blog posts, news articles, documentation pages, etc.
+ * `<Prose>` with the right tag. That is the whole component now, and the point
+ * of it is the element: an article is a self-contained composition, and saying
+ * so in markup is what assistive technology and reader modes act on.
+ *
+ * It used to be its own thing — a prose container wrapped around a SECOND node
+ * walker that read raw ProseMirror. That is why articles rendered with no bold,
+ * no links and no math until 2026-07-30: the walker's `paragraph` case
+ * flattened inline content to plain text, and it had no case for math at all.
+ * Going through `<Render>` means there is one walk, and inline content arrives
+ * from the parser already correct.
  *
  * @module @uniweb/kit/styled/Article
  */
 
 import React from 'react'
-import { cn } from '../../utils/index.js'
-import { Render } from '../Section/Render.jsx'
-
-/**
- * Prose sizes
- */
-const SIZE_CLASSES = {
-  sm: 'prose-sm',
-  base: 'prose-base',
-  lg: 'prose-lg',
-  xl: 'prose-xl',
-  '2xl': 'prose-2xl'
-}
+import { Prose } from '../Prose/index.jsx'
 
 /**
  * Article - Semantic article with prose typography
  *
- * Renders content inside a semantic <article> tag with prose styling.
- * Can accept either children or a content prop (ProseMirror JSON).
- *
  * @param {Object} props
- * @param {Object|Array} [props.content] - ProseMirror content to render
+ * @param {Object|Array} [props.content] - Parsed content (`.sequence`), a
+ *   ProseMirror doc, or an array of ProseMirror nodes
+ * @param {Object} [props.block] - Block instance (supplies content; resolves insets)
+ * @param {Object} [props.components] - Per-element-type renderer overrides
  * @param {string} [props.size='lg'] - Text size: sm, base, lg, xl, 2xl
  * @param {string} [props.className] - Additional CSS classes
- * @param {React.ReactNode} [props.children] - Content to render (alternative to content prop)
+ * @param {React.ReactNode} [props.children] - Content to render (alternative to content)
  *
  * @example
- * // With ProseMirror content
  * <Article content={articleData.content} />
  *
  * @example
- * // With children
- * <Article>
- *   <h1>My Article</h1>
- *   <p>Article content...</p>
- * </Article>
- *
- * @example
- * // Composing with Render
- * <Article size="base" className="dark:prose-invert">
- *   <Render content={proseMirrorContent} />
- * </Article>
+ * <Article block={block} components={{ blockquote: PullQuote }} />
  */
-export function Article({
-  content,
-  block,
-  size = 'lg',
-  className,
-  children,
-  ...props
-}) {
-  const sizeClass = SIZE_CLASSES[size] || SIZE_CLASSES.lg
-
-  // Get content from block if not provided directly
-  let resolvedContent = content
-  if (!resolvedContent && block) {
-    resolvedContent = block.rawContent
-  }
-
-  // If it's a ProseMirror doc, get the content array
-  if (resolvedContent?.type === 'doc') {
-    resolvedContent = resolvedContent.content
-  }
-
+export function Article({ content, block, components, size = 'lg', className, children, ...props }) {
   return (
-    <article
-      className={cn('prose', sizeClass, 'max-w-none', className)}
+    <Prose
+      as="article"
+      content={content}
+      block={block}
+      components={components}
+      size={size}
+      className={className}
       {...props}
     >
-      {children || (resolvedContent && <Render content={resolvedContent} />)}
-    </article>
+      {children}
+    </Prose>
   )
 }
 

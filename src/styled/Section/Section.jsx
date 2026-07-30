@@ -10,7 +10,7 @@
 import React from 'react'
 import { cn } from '../../utils/index.js'
 import { useWebsite } from '../../hooks/useWebsite.js'
-import { Render } from './Render.jsx'
+import { Prose } from '../Prose/index.jsx'
 
 /**
  * Width presets
@@ -115,11 +115,17 @@ export function Section({
             columns !== '1' && 'grid gap-8',
             columns !== '1' && columnClass
           )}>
-            {children || (
-              <div className="prose prose-gray max-w-none">
-                <Render content={resolvedContent} />
-              </div>
-            )}
+            {/*
+              `prose-gray` was here until 2026-07-30, and prose-tokens.css
+              forbids it in as many words: a palette modifier "re-declares every
+              variable below", so it overrode the bridge that makes a prose
+              container answer to the site's theme.yml — the one thing that file
+              exists to do. Every Section rendering its own content styled its
+              prose with fixed Tailwind greys instead of the site's palette.
+              no-fixed-palettes did not catch it because it matches colour
+              UTILITIES (bg-, text-, border-), and this is a Typography modifier.
+            */}
+            {children || <Prose content={resolvedContent} />}
           </div>
         )}
       </div>

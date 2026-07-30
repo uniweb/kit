@@ -20,7 +20,8 @@
 // ============================================================================
 
 // Section - Rich content section layout container
-export { Section, Render } from './Section/index.js'
+export { Section } from './Section/index.js'
+export { Render, SequenceElement } from './Render/index.jsx'
 
 // Prose - Typography wrapper for long-form content
 export { Prose } from './Prose/index.jsx'

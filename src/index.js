@@ -131,7 +131,8 @@ export {
 // Styled Components (Tailwind-based)
 // ============================================================================
 
-export { Section, Render } from './styled/Section/index.js'
+export { Section } from './styled/Section/index.js'
+export { Render, SequenceElement } from './styled/Render/index.jsx'
 export { Prose } from './styled/Prose/index.jsx'
 export { Article } from './styled/Article/index.jsx'
 export { Code, Alert, Warning, Table, Details, Divider } from './styled/Section/renderers/index.js'
