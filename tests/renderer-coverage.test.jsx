@@ -29,6 +29,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { Render, SequenceElement, NOT_RENDERED } from '../src/styled/Render/index.jsx'
 import { Prose } from '../src/styled/Prose/index.jsx'
 import { Article } from '../src/styled/Article/index.jsx'
+import { Table as StyledTable } from '../src/styled/Section/renderers/Table.jsx'
 
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
 
@@ -343,5 +344,57 @@ describe('there is ONE walk', () => {
 
   it('SequenceElement is exported, so an override can recurse if it must', () => {
     expect(typeof SequenceElement).toBe('function')
+  })
+})
+
+describe('the styled Table, as an override', () => {
+  // kit's Table is the opt-in alternative to the engine's plain one: same
+  // content, visible structure. It read raw ProseMirror until 2026-07-31 and
+  // got two things wrong silently — it tested for a `tableHeader` node type
+  // the reader never emits, so no cell was ever a <th>, and it read only the
+  // first text node of the first paragraph, discarding marks.
+  const cell = (t, attrs = {}) => ({
+    type: 'tableCell',
+    attrs: { header: false, align: null, colspan: 1, rowspan: 1, ...attrs },
+    content: [para(typeof t === 'string' ? text(t) : t)],
+  })
+  const doc = pm([{
+    type: 'table',
+    content: [
+      { type: 'tableRow', content: [cell('Name', { header: true }), cell('Qty', { header: true, align: 'right' })] },
+      { type: 'tableRow', content: [cell(text('Bolt', { type: 'bold' })), cell('12', { colspan: 2 })] },
+    ],
+  }])
+
+  it('drops in as a components override with no adapter', () => {
+    const out = html(<Render content={doc} components={{ table: StyledTable }} />)
+    expect(out).toContain('<table')
+    expect(out).toContain('<thead')
+  })
+
+  it('makes header cells th — the bug that made every table a flat grid', () => {
+    const out = html(<Render content={doc} components={{ table: StyledTable }} />)
+    // `<th` also matches `<thead` — anchor on the tag boundary.
+    expect((out.match(/<th[\s>]/g) || []).length).toBe(2)
+  })
+
+  it('keeps a cell\'s marks — it renders the sequence, not a text scrape', () => {
+    const out = html(<Render content={doc} components={{ table: StyledTable }} />)
+    expect(out).toContain('<strong>Bolt</strong>')
+  })
+
+  it('carries alignment and spans', () => {
+    const out = html(<Render content={doc} components={{ table: StyledTable }} />)
+    expect(out).toMatch(/text-align:\s*right/)
+    expect(out).toMatch(/colspan="2"/i)
+  })
+
+  it('takes rows directly too, for use outside the engine', () => {
+    const rows = [{ cells: [{ children: [{ type: 'paragraph', text: 'Solo' }], header: true }] }]
+    expect(html(<StyledTable rows={rows} />)).toContain('Solo')
+  })
+
+  it('renders nothing for an empty table rather than an empty shell', () => {
+    expect(html(<StyledTable rows={[]} />)).toBe('')
   })
 })
