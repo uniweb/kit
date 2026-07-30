@@ -35,7 +35,17 @@ const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), '
 /** Install a minimal Uniweb singleton — what useWebsite() reads. */
 function withWebsite(fn) {
   const prev = globalThis.uniweb
-  globalThis.uniweb = { activeWebsite: { basePath: '' }, routingComponents: {} }
+  globalThis.uniweb = {
+    // `getRoutingComponents` is what <Link> reaches for; with none registered it
+    // takes the SSG branch and emits a plain <a>, which is the path a
+    // prerendered page takes anyway.
+    activeWebsite: {
+      basePath: '',
+      getRoutingComponents: () => ({}),
+      localize: (v, d = '') => v ?? d,
+    },
+    routingComponents: {},
+  }
   try {
     return fn()
   } finally {
@@ -133,6 +143,56 @@ describe('tables render — they used to be destroyed at the parser', () => {
     // Case-insensitive: React 19 emits the prop verbatim (`colSpan="2"`), and
     // HTML attribute names are case-insensitive, so the browser reads it fine.
     expect(out).toMatch(/colspan="2"/i)
+  })
+
+  it('a one-paragraph cell is unwrapped — no <p> for typography to space out', () => {
+    // The schema makes a cell `paragraph+`, so a markdown cell is always
+    // exactly one paragraph. Emitting that <p> faithfully is what a typography
+    // layer then gives margins to: measured 17.5px top and bottom inside every
+    // cell on a real docs site, turning one-line reference rows into 75px.
+    const out = html(<Render content={doc} />)
+    expect(out).not.toMatch(/<t[hd][^>]*><p>/)
+    expect(out).toContain('<strong>Bolt</strong>')
+  })
+
+  it('a link-only cell unwraps too — the parser promotes it to a `link`', () => {
+    // The shape that is easy to miss: a paragraph holding nothing but a link
+    // is PROMOTED to a `link` element, which is what makes a link on its own
+    // line a call to action in prose. In a cell that promotion means nothing,
+    // and wrapping it in <p> made every link-only cell tall — 17 on one real
+    // docs page, found only by looking at the rendered site.
+    const linkCell = pm([{
+      type: 'table',
+      content: [{
+        type: 'tableRow',
+        content: [{
+          type: 'tableCell',
+          attrs: { header: false, align: null, colspan: 1, rowspan: 1 },
+          content: [para(text('Lucide', { type: 'link', attrs: { href: 'https://lucide.dev' } }))],
+        }],
+      }],
+    }])
+    const out = html(<Render content={linkCell} />)
+    expect(out).not.toMatch(/<td[^>]*><p>/)
+    expect(out).toContain('lucide.dev')
+    expect(out).toContain('Lucide')
+  })
+
+  it('a cell with several blocks still gets them', () => {
+    const rich = pm([{
+      type: 'table',
+      content: [{
+        type: 'tableRow',
+        content: [{
+          type: 'tableCell',
+          attrs: { header: false, align: null, colspan: 1, rowspan: 1 },
+          content: [para(text('One')), para(text('Two'))],
+        }],
+      }],
+    }])
+    const out = html(<Render content={rich} />)
+    expect(out).toContain('<p><span>One</span></p>')
+    expect(out).toContain('<p><span>Two</span></p>')
   })
 
   it('a cell keeps its marks — it renders a nested sequence, not a text scrape', () => {

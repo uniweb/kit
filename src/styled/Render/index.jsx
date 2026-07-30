@@ -145,6 +145,51 @@ function renderAll(sequence, block, components) {
 }
 
 /**
+ * A table cell's contents, with a lone block UNWRAPPED.
+ *
+ * The schema declares `tableCell` as `paragraph+`, so a markdown cell is always
+ * exactly one block — and emitting its `<p>` faithfully is what a typography
+ * layer then gives paragraph margins to. Measured on a real docs site: 17.5px
+ * top and bottom inside every cell, turning a one-line reference row into 75px.
+ *
+ * TWO shapes reach a cell, which is easy to miss and was: an ordinary paragraph,
+ * and a `link` — because the parser PROMOTES a paragraph holding nothing but a
+ * link, which is what makes a link on its own line a call to action in prose.
+ * A cell whose whole content is a link is the same promotion arriving somewhere
+ * it means nothing, so it unwraps too. Fixing only the paragraph left every
+ * link-only cell tall, which is how this was found: 17 of them on one page.
+ *
+ * A cell holding genuinely several blocks still gets them, because that is what
+ * it is.
+ */
+function renderCell(cell, block, components) {
+  const children = cell.children || []
+  if (children.length !== 1) return renderAll(children, block, components)
+
+  const [only] = children
+
+  if (only?.type === 'paragraph') {
+    if (!only.text) return null
+    return /<uniweb-inset/.test(only.text) ? (
+      renderParagraphWithInsets(only.text, block)
+    ) : (
+      <SafeHtml value={only.text} as="span" />
+    )
+  }
+
+  if (only?.type === 'link') {
+    const { href, label } = only.attrs || {}
+    return <Link to={href}>{label}</Link>
+  }
+
+  if (only?.type === 'button') {
+    return <Link to={only.attrs?.href}>{only.text}</Link>
+  }
+
+  return renderAll(children, block, components)
+}
+
+/**
  * One element of a sequence.
  *
  * A `components` entry for the element's type replaces the default entirely and
@@ -255,7 +300,7 @@ export function SequenceElement({ element, block, components }) {
                 colSpan={cell.colspan > 1 ? cell.colspan : undefined}
                 rowSpan={cell.rowspan > 1 ? cell.rowspan : undefined}
               >
-                {renderAll(cell.children, block, components)}
+                {renderCell(cell, block, components)}
               </CellTag>
             )
           })}
