@@ -54,8 +54,8 @@ describe('resolveEndpointUrl — base-relative resolution', () => {
   test('resolves under a backend-served subpath', () => {
     // The property that lets a backend expose search as a subroute of the path
     // it already serves the site from, with no framework change.
-    expect(resolveEndpointUrl('_search', '/gateway/site/abc123'))
-      .toBe('/gateway/site/abc123/_search')
+    expect(resolveEndpointUrl('_search', '/sites/abc123'))
+      .toBe('/sites/abc123/_search')
   })
 
   test('tolerates a leading slash and a trailing slash on the base', () => {
