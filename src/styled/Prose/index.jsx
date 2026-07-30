@@ -174,6 +174,33 @@ function SequenceElement({ element, block }) {
       )
     }
 
+    case 'concept_block': {
+      // A tagged prose fence (```md:faq). Its body is authored prose, so the
+      // default branch — which returns null — would DROP it, silently, from a
+      // section a foundation renders through <Prose>.
+      //
+      // kit does not dispatch on the tag, for the same reason it refuses to
+      // answer for an `@Component` name: the set of concepts is not the
+      // framework's to hold, and a foundation rendering `content.data[tag]`
+      // its own way must not be shadowed by whatever kit would have picked.
+      //
+      // So: a VISIBLE generic box that keeps its body. Never a drop. The tag
+      // rides on a data attribute, where a foundation's CSS can reach it
+      // without kit having an opinion about what it means.
+      const body = element.children?.map((el, i) => (
+        <SequenceElement key={i} element={el} block={block} />
+      ))
+
+      return (
+        <div
+          data-concept={element.tag || 'unknown'}
+          className="border border-border rounded-md p-4 my-4"
+        >
+          {body}
+        </div>
+      )
+    }
+
     case 'inset_block': {
       // A component reference that carries block content — the block form of
       // an inset. Children recurse; flattening them to text is what the

@@ -239,6 +239,34 @@ function RenderNode({ node, block, ...props }) {
       )
     }
 
+    case 'concept_block': {
+      // A tagged prose fence (```md:faq) — authored prose under a concept name.
+      //
+      // The `default:` branch below already recurses a node's content, so the
+      // body would survive without this case. It is explicit anyway, for two
+      // reasons. It gives the block a container a foundation's CSS can target
+      // (`[data-concept]`) instead of letting its prose flow into the page as
+      // if the fence were not there; and it makes this lane agree with
+      // <Prose>, whose own default DROPS an unknown element — the same content
+      // rendering in one walker and vanishing in the other is worse than
+      // either behaviour on its own.
+      //
+      // No dispatch on the tag, exactly as below: the set of concepts belongs
+      // to whatever is editing or rendering the content, never to kit.
+      const body = content?.map((child, i) => (
+        <RenderNode key={i} node={child} block={block} />
+      ))
+
+      return (
+        <div
+          data-concept={attrs?.tag || 'unknown'}
+          className="border border-border rounded-md p-4 my-4"
+        >
+          {body}
+        </div>
+      )
+    }
+
     case 'inset_block': {
       // The block form of an inset: a fenced `@Component{params}` container
       // whose body is real block content, recursed like a blockquote's rather

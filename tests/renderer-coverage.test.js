@@ -43,13 +43,18 @@ const RENDER_NODES = [
   // block-bodied container (a ```@Component{params} fence). Both resolve a
   // component reference — one has children, the other does not.
   'inset_placeholder', 'inset_block',
+  // `concept_block` is the third body-carrying container (a ```md:<tag>
+  // fence). Unlike the two above it resolves NOTHING — its tag names the
+  // content, not a component — so kit renders a generic box around the body
+  // and leaves the meaning to whoever knows the concept.
+  'concept_block',
 ]
 
 /** Sequence element types Prose is expected to handle. */
 const PROSE_ELEMENTS = [
   'paragraph', 'heading', 'image', 'video', 'codeBlock',
   'blockquote', 'list', 'divider', 'button', 'link',
-  'inset', 'icon', 'math', 'dataBlock', 'inset_block',
+  'inset', 'icon', 'math', 'dataBlock', 'inset_block', 'concept_block',
 ]
 
 describe('Render — the document renderer', () => {
@@ -102,6 +107,28 @@ describe('a container names FOUNDATION vocabulary, not kit vocabulary', () => {
     expect(body).toMatch(/\{body\}/)
   })
 
+  it.each([
+    ['Render', '../src/styled/Section/Render.jsx'],
+    ['Prose', '../src/styled/Prose/index.jsx'],
+  ])('%s does not dispatch on a concept TAG either', (_name, path) => {
+    // The same rule one layer over. A container names foundation vocabulary; a
+    // concept block names CONTENT — and the set of concepts belongs to whoever
+    // is editing or rendering it, never to kit. The moment kit renders its own
+    // accordion for `faq`, a foundation that ships a better one is shadowed,
+    // and the framework has quietly become renderer-of-record for a vocabulary
+    // it was designed not to hold.
+    const source = read(path)
+    const start = source.indexOf("case 'concept_block'")
+    expect(start).toBeGreaterThan(-1)
+    const body = source.slice(start, source.indexOf('\n    }', start))
+
+    // No comparison of the tag against any known concept name.
+    expect(body).not.toMatch(/===\s*'(faq|details|alert|warning|note|tip|steps)'/)
+    // The body survives, and the tag is exposed for CSS rather than branched on.
+    expect(body).toMatch(/data-concept=/)
+    expect(body).toMatch(/\{body\}/)
+  })
+
   it('kit still renders the editor DOCUMENT node types, which are its job', () => {
     // The other half of the distinction: `details` / `alert` / `warning` are
     // node types a document format has, and giving them a standard
@@ -127,6 +154,12 @@ describe('the difference between them is deliberate', () => {
     // authored prose, so both renderers must handle it or a page section
     // rendered with Prose loses the body — the trap this file exists for.
     expect(proseCases.has('inset_block')).toBe(true)
+    // Same for `concept_block`, and it arrived here the hard way: Render's
+    // `default:` recurses a node's children while Prose's returns null, so
+    // before this case existed the very same block rendered in one walker and
+    // vanished in the other. An asymmetric default is worse than a missing
+    // case, because whichever lane you happen to test looks correct.
+    expect(proseCases.has('concept_block')).toBe(true)
   })
 
   it('records what only the sequence renderer handles', () => {
