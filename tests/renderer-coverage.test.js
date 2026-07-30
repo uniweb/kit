@@ -179,3 +179,30 @@ describe('the difference between them is deliberate', () => {
     }
   })
 })
+
+describe('an alert node keeps its own severity', () => {
+  // A `warning` node carrying no `type` attr used to render as an INFO box:
+  // both cases shared a `|| 'info'` default, so the output contradicted the
+  // node. Unreached today because the editor's mapping always carries `type`,
+  // which is why it survived — a wrong default is invisible while nothing
+  // produces the input that exposes it.
+  //
+  // Source-level, like the dispatch guards above: the defect was one `||` in a
+  // branch no behavioural test in this package reaches.
+  const alertCase = () => {
+    const source = read('../src/styled/Section/Render.jsx')
+    const start = source.indexOf("case 'warning':")
+    expect(start).toBeGreaterThan(-1)
+    return source.slice(start, source.indexOf('\n    }', start))
+  }
+
+  it('does not default a warning node to info', () => {
+    expect(alertCase()).not.toMatch(/attrs\?\.type\s*\|\|\s*'info'\s*$/m)
+  })
+
+  it('falls back to the node type before falling back to info', () => {
+    const body = alertCase()
+    expect(body).toMatch(/type\s*===\s*'warning'/)
+    expect(body).toMatch(/'info'/) // still the default for a bare `alert`
+  })
+})

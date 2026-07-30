@@ -185,7 +185,13 @@ function RenderNode({ node, block, ...props }) {
 
     case 'warning':
     case 'alert': {
-      const alertType = attrs?.type || 'info'
+      // The NODE TYPE is the answer when no `type` attr overrides it. Both
+      // used to fall back to 'info', so a `warning` node carrying no attrs
+      // rendered as an info box — the node said one thing and the output said
+      // another. Not reached today (the editor's mapping always carries
+      // `type`), which is exactly why it went unnoticed: the wrong default
+      // only shows on content nothing currently produces.
+      const alertType = attrs?.type || (type === 'warning' ? 'warning' : 'info')
       const alertContent = content?.map(extractText).join('') || ''
       return <Alert type={alertType} content={alertContent} className="my-4" />
     }
