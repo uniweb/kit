@@ -44,7 +44,7 @@
  * }
  */
 
-import { getUniweb } from '@uniweb/core'
+import { getUniweb, recordDataUrl } from '@uniweb/core'
 import { useFetched } from './useFetched.js'
 
 /**
@@ -63,7 +63,19 @@ export function useEntityDetail(record, options = {}) {
   return useFetched(request)
 }
 
-function buildDetailRequest(record, collection) {
+/**
+ * Build the fetch request for one record's full payload.
+ *
+ * Exported for tests only — not re-exported from the package index. The
+ * static-file branch has to resolve to the same URL the build writes and the
+ * same URL core's dynamic-route auto-detail injects; a test can only assert
+ * that if it can call this without a React tree.
+ *
+ * @param {Object|null} record
+ * @param {string} collection
+ * @returns {{path?: string, url?: string, schema: string}|null}
+ */
+export function buildDetailRequest(record, collection) {
   const slug = record?.slug
   if (!slug || !collection) return null
 
@@ -83,10 +95,11 @@ function buildDetailRequest(record, collection) {
     return { url, schema: collection }
   }
 
-  // Static-file default — the build emitted per-record JSON files.
-  // Phase 5 of the CDN migration moved storage from /data/ to /_data/;
-  // the site router accepts both URL shapes during the transition.
-  return { path: `/_data/${collection}/${slug}.json`, schema: collection }
+  // Static-file default — the build emitted per-record JSON files. Shares
+  // `recordDataUrl` with the build that writes them and with core's
+  // dynamic-route auto-detail injection, which is the other half of this
+  // same feature: the three must resolve one record to one URL.
+  return { path: recordDataUrl(collection, slug), schema: collection }
 }
 
 export default useEntityDetail
