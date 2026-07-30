@@ -113,6 +113,13 @@ describe('tables render — they used to be destroyed at the parser', () => {
     },
   ])
 
+  it('scrolls when it overflows — the one class, and it is behaviour', () => {
+    // Not decoration: a table wider than its column pushes the page sideways
+    // without it. A real docs site has no table CSS of its own and relied on
+    // kit for exactly this.
+    expect(html(<Render content={doc} />)).toContain('overflow-x-auto')
+  })
+
   it('emits a real table, with a head', () => {
     const out = html(<Render content={doc} />)
     expect(out).toContain('<thead>')
@@ -159,6 +166,8 @@ describe('the engine does not decide design', () => {
     expect(out).toContain('<blockquote>')
     expect(out).toContain('<ul>')
     expect(out).not.toMatch(/class="[^"]*(italic|border-l-4|pl-6|my-4)/)
+    // `overflow-x-auto` on a table wrapper is the one survivor, and it is
+    // structural — see the table block above.
   })
 
   it('answers for no name — not a component, not a concept tag', () => {

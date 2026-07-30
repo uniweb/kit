@@ -262,11 +262,23 @@ export function SequenceElement({ element, block, components }) {
         </tr>
       )
 
+      // The one class the engine emits, and it is behaviour rather than
+      // decoration: a table wider than its column has to scroll inside its own
+      // box or it pushes the whole page sideways. Nothing about how the table
+      // LOOKS is decided here — borders, padding and header weight come from
+      // the typography layer, which answers to the site's theme.yml.
+      //
+      // Kept deliberately when the rest of kit's table styling went: a real
+      // docs site (uniweb-site) has no table CSS of its own and relied on kit
+      // for exactly this, so dropping it would have broken every wide
+      // reference table on a phone.
       return (
-        <table>
-          {hasHeader && <thead>{renderRow(first, 'h')}</thead>}
-          <tbody>{(hasHeader ? rest : rows).map((row, i) => renderRow(row, i))}</tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table>
+            {hasHeader && <thead>{renderRow(first, 'h')}</thead>}
+            <tbody>{(hasHeader ? rest : rows).map((row, i) => renderRow(row, i))}</tbody>
+          </table>
+        </div>
       )
     }
 
