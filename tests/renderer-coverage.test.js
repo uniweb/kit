@@ -37,8 +37,12 @@ const proseCases = casesIn(read('../src/styled/Prose/index.jsx'))
 /** Block-level node types Render is expected to handle. */
 const RENDER_NODES = [
   'paragraph', 'heading', 'image', 'video', 'codeBlock',
-  'blockquote', 'bulletList', 'orderedList', 'table', 'details',
-  'alert', 'warning', 'divider', 'horizontalRule', 'button',
+  'blockquote', 'bulletList', 'orderedList', 'table',
+  // `details` / `alert` / `warning` were here until 2026-07-30. They were
+  // editor-authored node types no markdown could produce, and those concepts
+  // are now tagged prose fences — so kit renders them the way it renders any
+  // other concept: as a `concept_block`, generically, answering for no name.
+  'divider', 'horizontalRule', 'button',
   // `inset_placeholder` is the leaf inset's slot; `inset_block` is the
   // block-bodied container (a ```@Component{params} fence). Both resolve a
   // component reference — one has children, the other does not.
@@ -129,13 +133,20 @@ describe('a container names FOUNDATION vocabulary, not kit vocabulary', () => {
     expect(body).toMatch(/\{body\}/)
   })
 
-  it('kit still renders the editor DOCUMENT node types, which are its job', () => {
-    // The other half of the distinction: `details` / `alert` / `warning` are
-    // node types a document format has, and giving them a standard
-    // presentation on the sequential path is exactly what Prose and Article
-    // are for. Only the `@Component` reference belongs to the foundation.
+  it('kit answers for NO name — the exception is retired', () => {
+    // This assertion is inverted from what it said until 2026-07-30. It used
+    // to carve out `details` / `alert` / `warning` as document node types kit
+    // was right to render, distinct from an `@Component` reference. That
+    // distinction was real while those types existed and only kit rendered
+    // them; it is gone now that the concepts are tagged prose fences.
+    //
+    // So the rule is unqualified, and worth stating as a test because the
+    // convenient thing to do next is to give `concept_block` a lookup table —
+    // `faq` → an accordion, `warning` → kit's Alert. That is the same
+    // shadowing with a different key, and it would put the list of known
+    // concepts back in the framework.
     for (const node of ['details', 'alert', 'warning']) {
-      expect(renderCases).toContain(node)
+      expect(renderCases).not.toContain(node)
     }
   })
 })
@@ -146,9 +157,11 @@ describe('the difference between them is deliberate', () => {
     // silently, which is exactly the trap this file exists to make visible.
     const onlyRender = RENDER_NODES.filter(n => !proseCases.has(n))
 
+    // Shorter since 2026-07-30: `details` / `alert` / `warning` left this list
+    // by being retired rather than by Prose gaining them.
     expect(onlyRender).toEqual([
-      'bulletList', 'orderedList', 'table', 'details',
-      'alert', 'warning', 'horizontalRule', 'inset_placeholder',
+      'bulletList', 'orderedList', 'table',
+      'horizontalRule', 'inset_placeholder',
     ])
     // `inset_block` is deliberately NOT in that list: a container carries
     // authored prose, so both renderers must handle it or a page section
@@ -180,29 +193,30 @@ describe('the difference between them is deliberate', () => {
   })
 })
 
-describe('an alert node keeps its own severity', () => {
-  // A `warning` node carrying no `type` attr used to render as an INFO box:
-  // both cases shared a `|| 'info'` default, so the output contradicted the
-  // node. Unreached today because the editor's mapping always carries `type`,
-  // which is why it survived — a wrong default is invisible while nothing
-  // produces the input that exposes it.
-  //
-  // Source-level, like the dispatch guards above: the defect was one `||` in a
-  // branch no behavioural test in this package reaches.
-  const alertCase = () => {
-    const source = read('../src/styled/Section/Render.jsx')
-    const start = source.indexOf("case 'warning':")
-    expect(start).toBeGreaterThan(-1)
-    return source.slice(start, source.indexOf('\n    }', start))
-  }
+describe('the retired node types leave nothing behind', () => {
+  // The severity bug these used to carry (a `warning` node with no `type` attr
+  // rendering as an INFO box) went with the branch, so its guard went too —
+  // there is no `||` left to assert about. What is worth pinning instead is
+  // that the deletion was complete: a half-removed case leaves an import or a
+  // component reference that reads as intent to bring it back.
+  const source = () => read('../src/styled/Section/Render.jsx')
 
-  it('does not default a warning node to info', () => {
-    expect(alertCase()).not.toMatch(/attrs\?\.type\s*\|\|\s*'info'\s*$/m)
+  it('renders no Alert or Details component', () => {
+    const body = source().replace(/\/\/[^\n]*/g, '') // comments explain the retirement
+    expect(body).not.toMatch(/<Alert\b/)
+    expect(body).not.toMatch(/<Details\b/)
   })
 
-  it('falls back to the node type before falling back to info', () => {
-    const body = alertCase()
-    expect(body).toMatch(/type\s*===\s*'warning'/)
-    expect(body).toMatch(/'info'/) // still the default for a bare `alert`
+  it('imports neither of them any more', () => {
+    expect(source()).not.toMatch(/^import .*\bfrom '\.\/renderers\/(Alert|Details)\.jsx'/m)
+  })
+
+  it('but the package still EXPORTS both — a foundation imports them directly', () => {
+    // The components were never the problem; kit answering for a node type
+    // was. Dropping the exports would break every foundation that renders its
+    // own callout, and `agents.md` documents them under "Other styled".
+    const index = read('../src/index.js')
+    expect(index).toMatch(/\bAlert\b/)
+    expect(index).toMatch(/\bDetails\b/)
   })
 })

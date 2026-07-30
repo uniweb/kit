@@ -15,9 +15,7 @@ import { Media } from '../../components/Media/index.js'
 import { Icon } from '../../components/Icon/index.js'
 import { Link } from '../../components/Link/index.js'
 import { Code } from './renderers/Code.jsx'
-import { Alert } from './renderers/Alert.jsx'
 import { Table } from './renderers/Table.jsx'
-import { Details } from './renderers/Details.jsx'
 import { Divider } from './renderers/Divider.jsx'
 
 /**
@@ -183,19 +181,6 @@ function RenderNode({ node, block, ...props }) {
       return <Code content={code} language={language} className="my-4" />
     }
 
-    case 'warning':
-    case 'alert': {
-      // The NODE TYPE is the answer when no `type` attr overrides it. Both
-      // used to fall back to 'info', so a `warning` node carrying no attrs
-      // rendered as an info box — the node said one thing and the output said
-      // another. Not reached today (the editor's mapping always carries
-      // `type`), which is exactly why it went unnoticed: the wrong default
-      // only shows on content nothing currently produces.
-      const alertType = attrs?.type || (type === 'warning' ? 'warning' : 'info')
-      const alertContent = content?.map(extractText).join('') || ''
-      return <Alert type={alertType} content={alertContent} className="my-4" />
-    }
-
     case 'blockquote': {
       return (
         <blockquote className="border-l-4 border-border pl-4 italic text-subtle my-4">
@@ -218,32 +203,27 @@ function RenderNode({ node, block, ...props }) {
       return <Table content={content} className="my-4" />
     }
 
-    // KEEP. Slated for deletion once, and it would have blanked live content.
+    // RETIRED 2026-07-30: `details`, `warning` and `alert`.
     //
-    // Verified with the frontend 2026-07-29 (channel `framework-frontend-86fd`):
-    // `details` is EDITOR-AUTHORED ONLY — it is absent from `content-reader`'s
-    // `getBaseSchema()`, so no markdown can produce it — and nothing converts it on
-    // the way out (the app does not depend on `@uniweb/content-writer`, and its
-    // container boundary mapping is not built). So this case is currently **the only
-    // thing that renders an editor-authored container on a published page**, and the
-    // same holds for `warning` / `alert` above.
+    // They were editor-authored DOCUMENT node types — absent from
+    // content-reader's `getBaseSchema()`, so no markdown could produce one —
+    // and this file was the only thing that rendered them on a published page.
+    // That is why the case carried a KEEP note and a retirement signal.
     //
-    // The retirement signal is the app's container boundary mapping landing — it
-    // makes `details` an in-memory-only shape that never reaches the wire, and the
-    // frontend has undertaken to say so in-channel. Until then, deleting this
-    // silently blanks published content.
-    case 'details': {
-      const summary = attrs?.summary || 'Details'
-      const detailsContent = content?.map(extractText).join('') || ''
-      return (
-        <Details
-          summary={summary}
-          content={detailsContent}
-          open={attrs?.open}
-          className="my-4"
-        />
-      )
-    }
+    // Both conditions are now answered rather than waited on. The concepts move
+    // to tagged prose fences (```md:warning, ```md:faq), so the shapes still
+    // exist; and legacy stored content is explicitly not a constraint (Diego,
+    // 2026-07-30: "this is a refactor and we don't even need to migrate from
+    // legacy content"). So the retirement is a decision, not a discovery.
+    //
+    // `Alert` and `Details` are UNCHANGED and still exported from the package
+    // root — a foundation imports them directly, and `agents.md` documents them.
+    // What went away is kit answering for a node type, not the components.
+    //
+    // Deliberately NOT replaced by tag dispatch on `concept_block` below. See
+    // that case: the set of concepts belongs to whoever edits or renders the
+    // content, and kit rendering its own accordion for `faq` is the framework
+    // becoming renderer-of-record for a vocabulary it is designed not to hold.
 
     case 'concept_block': {
       // A tagged prose fence (```md:faq) — authored prose under a concept name.
@@ -288,9 +268,10 @@ function RenderNode({ node, block, ...props }) {
       // `@Component` names foundation vocabulary, so kit must not answer for
       // it. kit's own Details and Alert are not reachable through
       // `getInset()` and must not become reachable here, or a foundation
-      // shipping its own Alert would be shadowed by ours. (kit still renders
-      // `details` / `alert` above — those are the editor's DOCUMENT node
-      // types, a different mechanism that happens to share a name.)
+      // shipping its own Alert would be shadowed by ours. (This used to carve
+      // out an exception for the `details` / `alert` node types kit rendered
+      // above — a different mechanism that happened to share a name. Those are
+      // retired, so the rule is now unqualified: kit answers for no name.)
       //
       // So: no name dispatch. A VISIBLE generic box that keeps its body.
       // Never a drop — an unmapped node taking its subtree with it is the
