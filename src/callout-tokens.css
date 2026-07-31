@@ -6,10 +6,16 @@
  *   @import "@uniweb/kit/callout-tokens.css";
  *
  * OPT-IN, and that is the point. kit's render engine emits a concept block as
- * a plain bordered box carrying `data-concept="<tag>"` and decides nothing
- * about how it looks, because what a callout looks like is a foundation's
- * design. This file is the answer for the foundations that do not want to make
- * that decision — the common look, themed, in one import.
+ * a bare `<div data-concept="<tag>">` — no classes, no box, nothing decided,
+ * because what a callout looks like is a foundation's design. Without an
+ * import like this one a concept block is unstyled and reads as plain prose,
+ * which is the correct default for a tag nobody has designed for yet.
+ *
+ * So this file supplies the WHOLE look, not just the colours: the frame, the
+ * padding and the spacing as well as the tint. An earlier version set only
+ * `border-color` and `background-color`, which on a bare div with no border
+ * width and no padding rendered as a tinted band running edge to edge — the
+ * right hue and nothing else.
  *
  * ── Why five names may live here when they may not live in a component ──
  *
@@ -38,13 +44,25 @@
  *
  * ── Tags with no rule ──
  *
- * A concept block whose tag is not one of the five keeps the engine's plain
- * bordered box. That is deliberate: an unrecognized concept should look
+ * A concept block whose tag is not one of the five gets the neutral frame
+ * above and no tint. That is deliberate: an unrecognized concept should look
  * unremarkable rather than borrow a severity it was never given.
  */
 
+/*
+ * The frame. `--border` is the neutral fallback, so a tag with no rule of its
+ * own below still reads as a deliberate box rather than as loose prose.
+ *
+ * The margin is stated here because the engine emits an unclassed div: a prose
+ * container styles the elements it knows, and this is not one of them, so
+ * without this a callout would sit flush against the paragraph above it and
+ * against the next callout.
+ */
 [data-concept] {
+  border: 1px solid var(--border);
   border-radius: var(--radius, 0.5rem);
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0;
 }
 
 [data-concept="note"],
