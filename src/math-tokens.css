@@ -1,0 +1,80 @@
+/*
+ * MathML layout for Temml-produced math.
+ *
+ * Usage — one line in the foundation's stylesheet:
+ *
+ *   @import "@uniweb/kit/math-tokens.css";
+ *
+ * `prose-tokens.css` already imports this, so a foundation using that needs
+ * nothing further. This file exists separately because rendering math and
+ * setting up prose typography are different decisions: the academic template
+ * has 23 equations and no prose column, and while these rules lived inside
+ * prose-tokens it shipped its maths unstyled — matrices with their rows
+ * touching, `=` signs out of line, no equation numbers — with nothing to point
+ * at. Correct metrics are not a typography opt-in.
+ *
+ * press emits the same declarations into its EPUB and Paged.js output, since
+ * those lanes carry their own stylesheets and cannot import this one. The two
+ * copies are pinned by `framework/_contracts/math-css-parity.test.js`.
+ */
+
+/* ─── Math (Temml → MathML) ────────────────────────────────────────────────────
+   Browsers render MathML natively, so it is easy to conclude math needs no CSS.
+   It needs these, for two separate reasons.
+
+   Temml emits class hooks and expects a stylesheet to define them: `tml-left`
+   and `tml-right` carry the `&` column alignment of an `aligned` environment,
+   `tml-jot` its extra row spacing. Undefined, a derivation's `=` signs drift
+   out of line and its rows sit flush. Those three declarations are Temml's own.
+
+   The `math mtd` rule is not. Temml's stylesheet only *adjusts* row spacing for
+   jot, on the stated assumption that mtd already gets 0.5ex of vertical padding
+   "per MathML-Core and user-agent CSS" — but a pristine mtd measures 0px in
+   Chrome (2026-07). A pmatrix or cases carries no tml-* class at all, so
+   Temml's stylesheet alone fixes the derivation and leaves the matrix touching.
+
+   These live here rather than in their own opt-in file because correct math
+   metrics are not a design choice the way callout colours are — a site that
+   sets its typography should not also have to know this.
+
+   press ships the same declarations to the EPUB and Paged.js lanes, which have
+   their own stylesheets and cannot import this one. That duplicate is pinned by
+   `framework/_contracts/math-css-parity.test.js`, not by trust. */
+.tml-right { text-align: right; }
+.tml-left { text-align: left; }
+.tml-sml-pad { padding-left: 0.05em; }
+math mtd { padding-top: 0.5ex; padding-bottom: 0.5ex; }
+math mtable.tml-jot mtd { padding-top: 0.7ex; padding-bottom: 0.7ex; }
+
+/* AMS auto-numbering. Which equations number is the AUTHOR's choice, made in
+   LaTeX: `align` and `equation` number, `aligned` and the starred forms do not.
+   Without these two rules that choice was discarded -- `align` and `align*`
+   rendered identically, so an author who asked for numbers silently got none. */
+.tml-eqn::before {
+  counter-increment: tmlEqnNo;
+  content: "(" counter(tmlEqnNo) ")";
+}
+body {
+  counter-reset: tmlEqnNo;
+}
+/* Display math needs CSS block layout, not MathML layout, for an equation TAG
+   to reach the right margin: the tag rides in an mtable whose `width:100%`
+   Chromium ignores under `display: block math`, collapsing the spacer cells so
+   "(1)" sits glued to the equation instead of at the margin.
+
+   `!important` is not decoration. Temml emits `style="display:block math"` on
+   every display formula unconditionally — no option turns it off — so an inline
+   style beats any rule we write, including Temml's own `math.tml-display
+   { display: block }`, which is exactly what this restores. Fixing it here
+   rather than in the generator also repairs math that was already built.
+
+   Scoped with :has() to formulas that actually carry a tag. Switching every
+   display formula to CSS block layout would left-align the lot -- MathML layout
+   is what centres them -- so an unnumbered derivation or matrix keeps
+   `display: block math` and stays centred. Where :has() is unsupported the tag
+   simply does not reach the margin; nothing else changes. */
+math.tml-display:has(.tml-eqn) {
+  display: block !important;
+  width: 100%;
+}
+
