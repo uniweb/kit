@@ -101,3 +101,31 @@
 .prose :is(h1, h2, h3, h4) {
   scroll-margin-top: calc(var(--header-height, 4rem) + 1rem);
 }
+
+/* ─── Math (Temml → MathML) ────────────────────────────────────────────────────
+   Browsers render MathML natively, so it is easy to conclude math needs no CSS.
+   It needs these, for two separate reasons.
+
+   Temml emits class hooks and expects a stylesheet to define them: `tml-left`
+   and `tml-right` carry the `&` column alignment of an `aligned` environment,
+   `tml-jot` its extra row spacing. Undefined, a derivation's `=` signs drift
+   out of line and its rows sit flush. Those three declarations are Temml's own.
+
+   The `math mtd` rule is not. Temml's stylesheet only *adjusts* row spacing for
+   jot, on the stated assumption that mtd already gets 0.5ex of vertical padding
+   "per MathML-Core and user-agent CSS" — but a pristine mtd measures 0px in
+   Chrome (2026-07). A pmatrix or cases carries no tml-* class at all, so
+   Temml's stylesheet alone fixes the derivation and leaves the matrix touching.
+
+   These live here rather than in their own opt-in file because correct math
+   metrics are not a design choice the way callout colours are — a site that
+   sets its typography should not also have to know this.
+
+   press ships the same declarations to the EPUB and Paged.js lanes, which have
+   their own stylesheets and cannot import this one. That duplicate is pinned by
+   `framework/_contracts/math-css-parity.test.js`, not by trust. */
+.tml-right { text-align: right; }
+.tml-left { text-align: left; }
+.tml-sml-pad { padding-left: 0.05em; }
+math mtd { padding-top: 0.5ex; padding-bottom: 0.5ex; }
+math mtable.tml-jot mtd { padding-top: 0.7ex; padding-bottom: 0.7ex; }
