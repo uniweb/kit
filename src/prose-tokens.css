@@ -97,8 +97,15 @@
 }
 
 /* Anchors land clear of a fixed site header when something scrolls to them —
-   a contents rail, or a link with a #fragment. */
-.prose :is(h1, h2, h3, h4) {
+   a contents rail, or a link with a #fragment.
+
+   Figures, tables and display math are on this list because they became anchor
+   targets: an authored `{#fig-cells}` is emitted onto the element, and a
+   cross-reference links to it. Without them a `[#eq-binomial]` scrolls its
+   equation flush to the viewport top and the sticky header covers it — which is
+   exactly what happened the first time the feature was clicked. Headings had
+   the rule and nothing else did, because until then nothing else was a target. */
+.prose :is(h1, h2, h3, h4, figure, table, .math-display) {
   scroll-margin-top: calc(var(--header-height, 4rem) + 1rem);
 }
 
