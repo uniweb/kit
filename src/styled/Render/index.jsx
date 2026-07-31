@@ -85,6 +85,23 @@ export const NOT_RENDERED = {
 }
 
 /**
+ * The author's `{#id}`, if they wrote one.
+ *
+ * Reads the same two places the xref registry reads
+ * (`@uniweb/kit/xref/registry.js`), because an id that numbers a figure and an
+ * id that anchors it must be the same string — otherwise `[#fig-cells]` would
+ * resolve to "Figure 3" and link to nothing.
+ *
+ * Emitting it matters beyond cross-references: it is what makes
+ * `/page#fig-cells` land on the figure, and what gives EPUB and Paged.js real
+ * internal links. Until 2026-07-31 nothing emitted it, so an authored id
+ * existed only inside the registry and never reached the document.
+ */
+function authoredId(element) {
+  return element?.attrs?.id ?? element?.id ?? undefined
+}
+
+/**
  * Normalize whatever a caller passed into a sequence.
  *
  * Accepts a parsed content object (`content.sequence`), a Block (its content is
@@ -213,7 +230,7 @@ export function SequenceElement({ element, block, components }) {
       // The id is the anchor `useHeadings()` and every in-page nav link
       // resolve against, so it is behaviour rather than decoration.
       return (
-        <Tag id={headingId(element.text || '')}>
+        <Tag id={authoredId(element) || headingId(element.text || '')}>
           <SafeHtml value={element.text} as="span" />
         </Tag>
       )
@@ -235,7 +252,7 @@ export function SequenceElement({ element, block, components }) {
       const { url, src, alt, caption, role } = element.attrs || {}
       if (role === 'icon') return <Icon {...element.attrs} />
       return (
-        <figure>
+        <figure id={authoredId(element)}>
           <Image src={url || src} alt={alt || caption || ''} />
           {caption && <figcaption>{caption}</figcaption>}
         </figure>
@@ -262,6 +279,7 @@ export function SequenceElement({ element, block, components }) {
       const Tag = display ? 'div' : 'span'
       return (
         <Tag
+          id={authoredId(element)}
           className={display ? 'math-display' : 'math-inline'}
           dangerouslySetInnerHTML={{ __html: element.mathml }}
         />
@@ -319,7 +337,7 @@ export function SequenceElement({ element, block, components }) {
       // reference table on a phone.
       return (
         <div className="overflow-x-auto">
-          <table>
+          <table id={authoredId(element)}>
             {hasHeader && <thead>{renderRow(first, 'h')}</thead>}
             <tbody>{(hasHeader ? rest : rows).map((row, i) => renderRow(row, i))}</tbody>
           </table>

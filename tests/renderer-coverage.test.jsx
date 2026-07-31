@@ -398,3 +398,56 @@ describe('the styled Table, as an override', () => {
     expect(html(<StyledTable rows={[]} />)).toBe('')
   })
 })
+
+describe('an authored {#id} reaches the document', () => {
+  /**
+   * `{#id}` is the one thing curly braces carry that is identity rather than a
+   * parameter — it is what numbers a figure AND what anchors it. Until
+   * 2026-07-31 nothing emitted it: the id lived only inside the xref registry,
+   * so `[#eq-x]` resolved to "Equation 1" while `#eq-x` in a URL matched
+   * nothing and a reference had no target to link to.
+   *
+   * These assert the emission per element kind, because each one is a separate
+   * branch of the walk and a missing id is invisible — the page renders
+   * perfectly, and only the link is dead.
+   */
+  // Reuses the file's withWebsite wrapper — the heading branch renders through
+  // <SafeHtml>, which reaches the Uniweb singleton.
+  const renderEl = (element) => html(<SequenceElement element={element} />)
+
+  it('puts it on a figure', () => {
+    const out = renderEl({ type: 'image', attrs: { src: '/c.png', alt: 'A cell', id: 'fig-cell' } })
+    expect(out).toMatch(/<figure id="fig-cell"/)
+  })
+
+  it('puts it on display math', () => {
+    const out = renderEl({ type: 'math', display: true, id: 'eq-energy', mathml: '<math></math>' })
+    expect(out).toMatch(/id="eq-energy"/)
+  })
+
+  it('puts it on a table', () => {
+    const out = renderEl({
+      type: 'table',
+      attrs: { id: 'tbl-costs' },
+      rows: [{ cells: [{ header: true, content: [] }] }],
+    })
+    expect(out).toMatch(/<table id="tbl-costs"/)
+  })
+
+  it('lets an authored id win over a heading\'s text slug', () => {
+    // Both are anchors, so the author's explicit choice is the more specific
+    // instruction. The slug stays the default for the headings nobody labels.
+    const labelled = renderEl({ type: 'heading', level: 2, text: 'Results', attrs: { id: 'sec-results' } })
+    expect(labelled).toMatch(/id="sec-results"/)
+
+    const plain = renderEl({ type: 'heading', level: 2, text: 'Results' })
+    expect(plain).toMatch(/id="results"/)
+  })
+
+  it('emits no id attribute when the author wrote none', () => {
+    // `undefined` rather than an empty string — an `id=""` would be a real
+    // attribute matching nothing, which is worse than its absence.
+    expect(renderEl({ type: 'image', attrs: { src: '/c.png', alt: 'x' } })).not.toMatch(/id=/)
+    expect(renderEl({ type: 'math', display: true, mathml: '<math></math>' })).not.toMatch(/id=/)
+  })
+})

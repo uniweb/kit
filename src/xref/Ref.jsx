@@ -136,6 +136,23 @@ export function Ref({ params, block }) {
     const missingTail = resolved.filter((r) => r.missing).map((r) => `[?${r.id}]`).join(', ')
     const body = [text, missingTail].filter(Boolean).join(', ')
 
+    // A reference to exactly one target links to it. The renderer emits the
+    // author's `{#id}` onto the labelled element, so `#fig-cells` is a real
+    // anchor in the page, in an EPUB, and in a Paged.js document.
+    //
+    // Only the single case. A cluster reads "Figures 1 and 2" — one href
+    // could only point at one of them, and linking the whole phrase to the
+    // first target is a worse answer than linking none of it. Making each
+    // number its own link means `renderGroupSameKind` returning nodes rather
+    // than a string; worth doing when someone needs it, not before.
+    if (onlyResolved.length === 1 && resolved.length === 1) {
+        return (
+            <a className="xref" href={`#${onlyResolved[0].id}`}>
+                {body}{locator}
+            </a>
+        )
+    }
+
     return <span className="xref">{body}{locator}</span>
 }
 
