@@ -1,4 +1,15 @@
-@import "./math-tokens.css";
+/*
+ * Maths is NOT included here. A foundation that renders equations imports
+ * `@uniweb/kit/math-tokens.css` as well — MathML needs its own layout rules,
+ * and prose typography does not imply them.
+ *
+ * They were briefly one file, and that is what shipped the academic template's
+ * equations unstyled: 23 of them, no prose column, so it imported neither. The
+ * fix is not to make prose pull maths in behind the reader's back — that just
+ * restates "prose implies maths" one indirection out, and leaves two ways to
+ * get one stylesheet. Each of kit's entry points owns one concern and the
+ * foundation composes them.
+ */
 
 /*
  * Tailwind Typography, wired to the theme.
