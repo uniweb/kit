@@ -7,7 +7,8 @@
     ".": "./src/index.js",
     "./xref": "./src/xref/index.js",
     "./theme-tokens.css": "./src/theme-tokens.css",
-    "./prose-tokens.css": "./src/prose-tokens.css"
+    "./prose-tokens.css": "./src/prose-tokens.css",
+    "./callout-tokens.css": "./src/callout-tokens.css"
   },
   "files": [
     "src",

@@ -128,3 +128,40 @@ describe('prose-tokens.css is self-sufficient', () => {
     expect(css.indexOf('@plugin')).toBeLessThan(css.indexOf('--tw-prose-body'))
   })
 })
+
+describe('callout-tokens.css — opt-in, and the colours are the site\'s', () => {
+  // The engine emits a plain box with `data-concept` and decides nothing about
+  // how it looks. This is the answer for foundations that do not want to make
+  // that decision — and it may name the five tags where a COMPONENT may not,
+  // because CSS loses to specificity and the names are GitHub's, not ours.
+  const at = (rel) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
+  const css = at('../src/callout-tokens.css')
+
+  it('is a separate import, not folded into prose-tokens', () => {
+    // prose-tokens is typography. A callout is not typography, and a
+    // foundation should be able to take one without the other.
+    const pkg = JSON.parse(at('../package.json'))
+    expect(pkg.exports).toHaveProperty('./callout-tokens.css')
+    expect(at('../src/prose-tokens.css')).not.toMatch(/data-concept/)
+  })
+
+  it('styles the five GitHub alert kinds', () => {
+    for (const tag of ['note', 'tip', 'important', 'warning', 'caution']) {
+      expect(css, `${tag} has no rule`).toMatch(new RegExp(`data-concept="${tag}"`))
+    }
+  })
+
+  it('takes every colour from a theme token', () => {
+    // The rule this whole file polices, applied here: kit supplies which token
+    // a tag maps to, the site supplies what that token is.
+    const decls = css.match(/(border-color|background-color):[^;]+;/g) || []
+    expect(decls.length).toBeGreaterThan(5)
+    for (const d of decls) expect(d, `not tokenized: ${d}`).toMatch(/var\(--/)
+  })
+
+  it('leaves an unrecognized tag alone', () => {
+    // An unknown concept should look unremarkable rather than borrow a
+    // severity it was never given.
+    expect(css).not.toMatch(/\[data-concept\]\s*\{[^}]*background-color/)
+  })
+})

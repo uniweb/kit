@@ -1,0 +1,89 @@
+/*
+ * Callout styling for the five standard concept tags, wired to the theme.
+ *
+ * Usage — one line, in the foundation's stylesheet, alongside the others:
+ *
+ *   @import "@uniweb/kit/callout-tokens.css";
+ *
+ * OPT-IN, and that is the point. kit's render engine emits a concept block as
+ * a plain bordered box carrying `data-concept="<tag>"` and decides nothing
+ * about how it looks, because what a callout looks like is a foundation's
+ * design. This file is the answer for the foundations that do not want to make
+ * that decision — the common look, themed, in one import.
+ *
+ * ── Why five names may live here when they may not live in a component ──
+ *
+ * kit answers for no NAME: it must never render its own accordion for `faq` or
+ * its own Alert for a `@Alert` reference, because that shadows a foundation
+ * shipping its own and cannot be overridden without forking. Two things make a
+ * stylesheet different:
+ *
+ *   1. CSS loses to specificity. A foundation that disagrees writes one rule
+ *      and wins, keeping kit's walk and its own look.
+ *   2. These five are not names we invented. `NOTE`, `TIP`, `IMPORTANT`,
+ *      `WARNING` and `CAUTION` are GitHub's alert kinds, which content-reader
+ *      accepts as a second spelling of a concept block. Implementing a
+ *      published convention is the same category as shipping icon-library
+ *      prefixes; inventing a list would be the concept registry the whole
+ *      design forbids.
+ *
+ * ── The colours are the site's ──
+ *
+ * Every value below is a semantic token the site sets in `theme.yml` —
+ * `--info`, `--warning`, `--error`, `--success` and their `-subtle` surfaces.
+ * kit supplies the MAPPING (which tag means which token); the site supplies
+ * what those tokens are, and they flip with the visitor's scheme on their own.
+ * No fixed palette appears here, for the reason `tests/no-fixed-palettes.test.js`
+ * exists.
+ *
+ * ── Tags with no rule ──
+ *
+ * A concept block whose tag is not one of the five keeps the engine's plain
+ * bordered box. That is deliberate: an unrecognized concept should look
+ * unremarkable rather than borrow a severity it was never given.
+ */
+
+[data-concept] {
+  border-radius: var(--radius, 0.5rem);
+}
+
+[data-concept="note"],
+[data-concept="info"] {
+  border-color: var(--info);
+  background-color: var(--info-subtle);
+}
+
+[data-concept="tip"],
+[data-concept="success"] {
+  border-color: var(--success);
+  background-color: var(--success-subtle);
+}
+
+[data-concept="important"] {
+  border-color: var(--primary);
+  background-color: var(--muted);
+}
+
+[data-concept="warning"] {
+  border-color: var(--warning);
+  background-color: var(--warning-subtle);
+}
+
+[data-concept="caution"],
+[data-concept="error"] {
+  border-color: var(--error);
+  background-color: var(--error-subtle);
+}
+
+/*
+ * A callout inside a `prose` container should not inherit the container's
+ * first-child/last-child margin collapsing on its own children, or the box
+ * gains dead space at top and bottom that its neighbours do not have.
+ */
+[data-concept] > :first-child {
+  margin-top: 0;
+}
+
+[data-concept] > :last-child {
+  margin-bottom: 0;
+}
