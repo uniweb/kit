@@ -46,11 +46,20 @@
 math mtd { padding-top: 0.5ex; padding-bottom: 0.5ex; }
 math mtable.tml-jot mtd { padding-top: 0.7ex; padding-bottom: 0.7ex; }
 
-/* AMS auto-numbering. Which equations number is the AUTHOR's choice, made in
+/* AMS auto-numbering, for lanes that keep our CSS counter.
+
+   Scoped to :empty because the document lanes cannot rely on it -- Paged.js
+   rewrites counters for its own pagination and strips counter-increment, so
+   every equation rendered as "(0)" (measured 2026-07-31; the declaration
+   survives intact without the polyfill). press therefore writes the numbers
+   into the spans as text, and a span carrying a number is no longer :empty, so
+   the two can never both fire.
+
+   AMS auto-numbering. Which equations number is the AUTHOR's choice, made in
    LaTeX: `align` and `equation` number, `aligned` and the starred forms do not.
    Without these two rules that choice was discarded -- `align` and `align*`
    rendered identically, so an author who asked for numbers silently got none. */
-.tml-eqn::before {
+.tml-eqn:empty::before {
   counter-increment: tmlEqnNo;
   content: "(" counter(tmlEqnNo) ")";
 }
