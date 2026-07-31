@@ -51,9 +51,9 @@ describe('a resolved reference is navigable', () => {
     expect(render(website, '#fig-cell')).toMatch(/href="#fig-cell"/)
   })
 
-  it('leaves a multi-target cluster unlinked', () => {
-    // "Figures 1 and 2" — one href could only reach one of them, and pointing
-    // the whole phrase at the first is a worse answer than pointing at none.
+  it('links each counter in a cluster separately', () => {
+    // "Figures 1 and 2" is one label over two targets, so the label cannot sit
+    // inside a link — but each number can, and each points at its own element.
     const website = websiteWith(
       { type: 'image', attrs: { id: 'fig-a', src: '/a.png' } },
       { type: 'image', attrs: { id: 'fig-b', src: '/b.png' } },
@@ -61,8 +61,47 @@ describe('a resolved reference is navigable', () => {
     buildXrefRegistry(website)
 
     const out = render(website, '#fig-a;#fig-b')
-    expect(out).not.toMatch(/<a\b/)
-    expect(out).toMatch(/^<span class="xref">/)
+    expect(out).toMatch(/href="#fig-a"[^>]*>1</)
+    expect(out).toMatch(/href="#fig-b"[^>]*>2</)
+    // The plural label stays outside the links, and the prose reads correctly.
+    expect(out.replace(/<[^>]+>/g, '')).toBe('Figures 1 and 2')
+  })
+
+  it('punctuates three or more as prose', () => {
+    const website = websiteWith(
+      { type: 'image', attrs: { id: 'fig-a', src: '/a.png' } },
+      { type: 'image', attrs: { id: 'fig-b', src: '/b.png' } },
+      { type: 'image', attrs: { id: 'fig-c', src: '/c.png' } },
+    )
+    buildXrefRegistry(website)
+
+    const out = render(website, '#fig-a;#fig-b;#fig-c')
+    expect(out.replace(/<[^>]+>/g, '')).toBe('Figures 1, 2, and 3')
+    expect(out.match(/<a /g)).toHaveLength(3)
+  })
+
+  it('links the resolved half of a cluster and leaves the typo visible', () => {
+    const website = websiteWith({ type: 'image', attrs: { id: 'fig-a', src: '/a.png' } })
+    buildXrefRegistry(website)
+
+    const out = render(website, '#fig-a;#fig-typo')
+    expect(out).toMatch(/href="#fig-a"/)
+    expect(out).toContain('[?fig-typo]')
+    expect(out.replace(/<[^>]+>/g, '')).toBe('Figure 1, [?fig-typo]')
+  })
+
+  it('links each part of a mixed-kind cluster to its own target', () => {
+    const website = websiteWith(
+      { type: 'image', attrs: { id: 'fig-a', src: '/a.png' } },
+      { type: 'math', display: true, id: 'eq-a', latex: 'x' },
+    )
+    buildXrefRegistry(website)
+
+    const out = render(website, '#fig-a;#eq-a')
+    expect(out).toMatch(/href="#fig-a"/)
+    expect(out).toMatch(/href="#eq-a"/)
+    // Each keeps its own singular label, since they are different kinds.
+    expect(out.replace(/<[^>]+>/g, '')).toBe('Figure 1, Equation 1')
   })
 
   it('does not link an id that was never declared', () => {

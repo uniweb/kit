@@ -66,20 +66,39 @@ function renderEntry(entry, kindMeta) {
     return label ? `${label}${sep}${counter}` : counter
 }
 
+/** A counter as a link to the element it numbers. */
+function counterLink(entry) {
+    return (
+        <a key={entry.id} href={`#${entry.id}`}>
+            {entry.counterText}
+        </a>
+    )
+}
+
+/**
+ * Prose list punctuation: "1", "1 and 2", "1, 2, and 3".
+ *
+ * Takes and returns nodes rather than strings so each counter can be its own
+ * link. A cluster's LABEL is deliberately left outside them — "Figures" covers
+ * the whole group, and there is no single target it could point at.
+ */
+function joinProse(nodes) {
+    if (nodes.length <= 1) return nodes
+    if (nodes.length === 2) return [nodes[0], ' and ', nodes[1]]
+    const out = []
+    nodes.forEach((node, i) => {
+        if (i > 0) out.push(i === nodes.length - 1 ? ', and ' : ', ')
+        out.push(node)
+    })
+    return out
+}
+
 function renderGroupSameKind(entries, kindMeta) {
-    if (entries.length === 1) {
-        return renderEntry(entries[0], kindMeta)
-    }
-    const label = kindMeta?.labelPlural || kindMeta?.label || ''
+    const plural = entries.length > 1
+    const label = (plural ? kindMeta?.labelPlural || kindMeta?.label : kindMeta?.label) || ''
     const sep = kindMeta?.sep ?? ' '
-    const counters = entries.map((e) => e.counterText)
-    let body
-    if (counters.length === 2) {
-        body = counters.join(' and ')
-    } else {
-        body = counters.slice(0, -1).join(', ') + ', and ' + counters[counters.length - 1]
-    }
-    return label ? `${label}${sep}${body}` : body
+    const body = joinProse(entries.map(counterLink))
+    return label ? [label, sep, ...body] : body
 }
 
 export function Ref({ params, block }) {
@@ -119,41 +138,49 @@ export function Ref({ params, block }) {
                 `[xref] mixed-kind cluster (${[...new Set(allKinds)].join(', ')}) — falling back to comma-separated rendering`,
             )
         }
-        const parts = resolved.map((r) =>
-            r.missing ? `[?${r.id}]` : renderEntry(r.entry, r.kindMeta),
-        )
-        return <span className="xref">{parts.join(', ')}{locator}</span>
+        // Each kind keeps its own singular label, and each resolved part links
+        // to its own target. A missing one stays visible text.
+        const parts = []
+        resolved.forEach((r, i) => {
+            if (i > 0) parts.push(', ')
+            if (r.missing) {
+                parts.push(`[?${r.id}]`)
+                return
+            }
+            const label = r.kindMeta?.label || ''
+            const sep = r.kindMeta?.sep ?? ' '
+            if (label) parts.push(label, sep)
+            parts.push(counterLink(r.entry))
+        })
+        return <span className="xref">{parts}{locator}</span>
     }
 
     const onlyResolved = resolved.filter((r) => !r.missing)
-    const text = onlyResolved.length > 0
-        ? renderGroupSameKind(
-              onlyResolved.map((r) => r.entry),
-              onlyResolved[0].kindMeta,
-          )
-        : ''
 
-    const missingTail = resolved.filter((r) => r.missing).map((r) => `[?${r.id}]`).join(', ')
-    const body = [text, missingTail].filter(Boolean).join(', ')
-
-    // A reference to exactly one target links to it. The renderer emits the
-    // author's `{#id}` onto the labelled element, so `#fig-cells` is a real
-    // anchor in the page, in an EPUB, and in a Paged.js document.
-    //
-    // Only the single case. A cluster reads "Figures 1 and 2" — one href
-    // could only point at one of them, and linking the whole phrase to the
-    // first target is a worse answer than linking none of it. Making each
-    // number its own link means `renderGroupSameKind` returning nodes rather
-    // than a string; worth doing when someone needs it, not before.
+    // The single case links the WHOLE reference — "Equation 1", label and all,
+    // is one phrase naming one thing, so the label belongs inside the link.
+    // A cluster cannot do that: "Figures 1 and 2" has one label over two
+    // targets, so there each counter is its own link and the label is plain.
     if (onlyResolved.length === 1 && resolved.length === 1) {
+        const { entry, kindMeta } = onlyResolved[0]
         return (
-            <a className="xref" href={`#${onlyResolved[0].id}`}>
-                {body}{locator}
+            <a className="xref" href={`#${entry.id}`}>
+                {renderEntry(entry, kindMeta)}{locator}
             </a>
         )
     }
 
-    return <span className="xref">{body}{locator}</span>
+    const body = onlyResolved.length > 0
+        ? renderGroupSameKind(
+              onlyResolved.map((r) => r.entry),
+              onlyResolved[0].kindMeta,
+          )
+        : []
+
+    const missing = resolved.filter((r) => r.missing).map((r) => `[?${r.id}]`)
+    const parts = missing.length > 0 && body.length > 0 ? [...body, ', ', ...missing] : [...body, ...missing]
+
+    return <span className="xref">{parts}{locator}</span>
 }
 
 export default Ref

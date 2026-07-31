@@ -136,3 +136,15 @@
 .tml-sml-pad { padding-left: 0.05em; }
 math mtd { padding-top: 0.5ex; padding-bottom: 0.5ex; }
 math mtable.tml-jot mtd { padding-top: 0.7ex; padding-bottom: 0.7ex; }
+
+/* AMS auto-numbering. Which equations number is the AUTHOR's choice, made in
+   LaTeX: `align` and `equation` number, `aligned` and the starred forms do not.
+   Without these two rules that choice was discarded -- `align` and `align*`
+   rendered identically, so an author who asked for numbers silently got none. */
+.tml-eqn::before {
+  counter-increment: tmlEqnNo;
+  content: "(" counter(tmlEqnNo) ")";
+}
+body {
+  counter-reset: tmlEqnNo;
+}
