@@ -28,6 +28,7 @@
  */
 
 import { emptyResult } from './providers/result.js'
+import { resolveService } from '../utils/services.js'
 
 // Re-exported so existing importers of these keep working; they live with the
 // provider that owns them now.
@@ -92,7 +93,24 @@ export function createSearchClient(website, options = {}) {
   } = options
 
   const searchConfig = website.getSearchConfig?.() || {}
-  const declared = providerOverride || searchConfig.provider || 'index'
+
+  // Where search is answered: the site's own `search.endpoint`, else the host's
+  // `services.search`, else nothing. Same rule every site service resolves by.
+  const service = resolveService(website, 'search')
+
+  // The AUTHORED provider, read from config rather than from getSearchConfig(),
+  // which fills in 'index' before kit sees it (core/website.js). That default
+  // would make "the author chose index" and "the author said nothing"
+  // indistinguishable — and the difference is precisely what decides whether a
+  // host's offer applies. An author who picked a provider means it; one who
+  // picked nothing gets whatever the host serves, and the local index if the
+  // host serves none.
+  const authoredProvider = website?.config?.search?.provider
+
+  const declared =
+    providerOverride ||
+    authoredProvider ||
+    (service.source === 'host' ? 'endpoint' : 'index')
 
   // One in-flight resolution shared by every caller.
   let providerPromise = null
@@ -115,7 +133,14 @@ export function createSearchClient(website, options = {}) {
         activeName = 'index'
       }
 
-      return factory(website, { ...providerOptions, endpoint: searchConfig.endpoint })
+      // `service.url` is already joined to the base; the endpoint provider
+      // joins again, which is a no-op because the join is idempotent. Falls
+      // back to the raw authored value, and to the provider's own default when
+      // an author selects `endpoint` without naming one.
+      return factory(website, {
+        ...providerOptions,
+        endpoint: service.url || searchConfig.endpoint,
+      })
     })()
 
     return providerPromise

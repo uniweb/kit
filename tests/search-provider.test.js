@@ -13,9 +13,30 @@ import { resolveEndpointUrl, createEndpointProvider } from '../src/search/provid
 import { emptyResult } from '../src/search/providers/result.js'
 
 /** Minimal Website stand-in — only what the search path reads. */
-function makeWebsite({ provider, endpoint, basePath = '', locale = 'en', enabled = true } = {}) {
+/**
+ * A real Website carries BOTH of these and they are not the same thing:
+ * `config` is the payload's site config — the authored values, verbatim — while
+ * `getSearchConfig()` is the derived view that fills in defaults (core defaults
+ * `provider` to 'index'). Kit reads the authored provider from `config`,
+ * because the derived one cannot express "the author said nothing", and that is
+ * the distinction deciding whether a host's offer applies.
+ *
+ * `services` is the host tier: what the deployment says it serves.
+ */
+function makeWebsite({
+  provider,
+  endpoint,
+  basePath = '',
+  locale = 'en',
+  enabled = true,
+  services,
+} = {}) {
   return {
     basePath,
+    config: {
+      search: { enabled, provider, endpoint },
+      ...(services ? { services } : {}),
+    },
     isSearchEnabled: () => enabled,
     getActiveLocale: () => locale,
     getSearchIndexUrl: () => `${basePath}/search-index.json`,
@@ -164,6 +185,72 @@ describe('result contract', () => {
 
     // A component may read any contract key without guarding for undefined.
     expect(Object.keys(result).sort()).toEqual(Object.keys(emptyResult()).sort())
+  })
+})
+
+/**
+ * A host may answer search itself, and says so in the same `services` block it
+ * uses for every other service. Resolution is the one documented in
+ * site-derived-artifacts.md: site.yml → served payload → the local index.
+ *
+ * The case worth being careful about is the third test here. Core defaults
+ * `provider` to 'index' before kit sees it, so reading the derived value would
+ * make an author's explicit `provider: index` indistinguishable from silence —
+ * and a host would then quietly override an author who chose the local index on
+ * purpose.
+ */
+describe('client provider resolution — a host that serves search', () => {
+  test('uses the host endpoint when the site declares no provider', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ results: [] }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const client = createSearchClient(
+      makeWebsite({ services: { search: { endpoint: '/_search' } } })
+    )
+    await client.query('x')
+
+    expect(client.getProviderName()).toBe('endpoint')
+    expect(fetchMock.mock.calls[0][0]).toContain('/_search')
+  })
+
+  test('resolves the host endpoint against the base path', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ results: [] }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const client = createSearchClient(
+      makeWebsite({ basePath: '/docs', services: { search: { endpoint: '/_search' } } })
+    )
+    await client.query('x')
+
+    expect(fetchMock.mock.calls[0][0]).toContain('/docs/_search')
+  })
+
+  test('an author who chose the local index keeps it, host or no host', () => {
+    const client = createSearchClient(
+      makeWebsite({ provider: 'index', services: { search: { endpoint: '/_search' } } })
+    )
+    expect(client.getProviderName()).toBe('index')
+  })
+
+  test('an authored endpoint wins over the host', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ results: [] }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const client = createSearchClient(
+      makeWebsite({
+        provider: 'endpoint',
+        endpoint: '/mine',
+        services: { search: { endpoint: '/theirs' } },
+      })
+    )
+    await client.query('x')
+
+    expect(fetchMock.mock.calls[0][0]).toContain('/mine')
+    expect(fetchMock.mock.calls[0][0]).not.toContain('/theirs')
+  })
+
+  test('no host and no declaration is still the local index', () => {
+    expect(createSearchClient(makeWebsite()).getProviderName()).toBe('index')
   })
 })
 
