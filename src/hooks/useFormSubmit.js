@@ -104,6 +104,19 @@ export function useFormSubmit(defaults = {}) {
     response,
     canSubmit: !!target,
     unavailableReason,
+    // Whether a file field can actually deliver its bytes. FALSE TODAY, for
+    // every site: `submitForm` sends a `fileSlots` manifest and the second
+    // phase — PUT the bytes to the endpoint's `uploadUrls` — is not built.
+    //
+    // Exposed rather than left implicit because the failure is otherwise
+    // invisible: the submission succeeds and the attachment is discarded. A
+    // component should check this where it decides whether to RENDER a file
+    // input, for the same reason it checks `canSubmit` at render rather than on
+    // the button press — the framework knows before the visitor types, and
+    // telling them afterwards costs them the work twice.
+    //
+    // Becomes endpoint-dependent rather than a constant once the phase lands.
+    canUploadFiles: false,
     submit,
     reset,
   }

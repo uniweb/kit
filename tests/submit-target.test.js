@@ -280,3 +280,52 @@ describe('deriveSummary', () => {
     expect(deriveSummary({})).toEqual({ title: 'Submission', subtitle: '' })
   })
 })
+
+/**
+ * Declaring files is not sending them.
+ *
+ * `submitForm` sends a `fileSlots` manifest; the second phase — PUT the bytes to
+ * the endpoint's `uploadUrls` — is not built. Left silent that is the worst
+ * shape a failure takes: the submission succeeds, the text lands, and the
+ * attachment is discarded with nothing reporting it. These pin the two places
+ * that must not go quiet again.
+ */
+describe('file uploads — declared, not delivered', () => {
+  it('warns loudly when files are declared, because the bytes are not sent', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const fetchFn = fakeFetch()
+
+    await submitForm({
+      formData: { Name: 'Ada' },
+      target: '/forms',
+      fileSlots: [{ name: 'cv.pdf', size: 10, mime: 'application/pdf' }],
+      fetchFn,
+    })
+
+    expect(warn).toHaveBeenCalledTimes(1)
+    expect(warn.mock.calls[0][0]).toMatch(/not implemented/i)
+    warn.mockRestore()
+  })
+
+  it('stays quiet when no files are declared', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    await submitForm({ formData: { Name: 'Ada' }, target: '/forms', fetchFn: fakeFetch() })
+    expect(warn).not.toHaveBeenCalled()
+    warn.mockRestore()
+  })
+
+  // The manifest still rides, so the endpoint's own validation and the eventual
+  // second phase both keep working from it.
+  it('still sends the manifest — the warning is not a refusal', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const fetchFn = fakeFetch()
+    await submitForm({
+      formData: { Name: 'Ada' },
+      target: '/forms',
+      fileSlots: [{ name: 'cv.pdf', size: 10 }],
+      fetchFn,
+    })
+    expect(JSON.parse(fetchFn.calls[0].init.body).fileSlots).toHaveLength(1)
+    vi.restoreAllMocks()
+  })
+})

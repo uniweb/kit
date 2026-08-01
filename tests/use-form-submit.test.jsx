@@ -184,3 +184,19 @@ describe('useFormSubmit', () => {
     expect(result.current.response).toBeNull()
   })
 })
+
+/**
+ * A file input a foundation renders is a promise it can deliver the bytes. Kit
+ * cannot today, so it says so where a component decides whether to render one —
+ * the same reason `canSubmit` is checked at render rather than on the button
+ * press. Telling a visitor afterwards costs them the work twice.
+ */
+describe('useFormSubmit — file uploads', () => {
+  it('reports that files cannot be delivered, even with a working target', () => {
+    setWebsite(makeWebsite({ submit: '/forms' }))
+    const { result } = renderHook(() => useFormSubmit())
+
+    expect(result.current.canSubmit).toBe(true)
+    expect(result.current.canUploadFiles).toBe(false)
+  })
+})

@@ -64,6 +64,21 @@ export async function submitForm({
     throw new Error('submitForm: fetch is unavailable in this environment')
   }
 
+  // Declaring files is not sending them, and nothing here sends them: the
+  // second phase (PUT the bytes to the endpoint's `uploadUrls`) is not built.
+  // Left silent, a visitor attaches a file, the submission succeeds, and the
+  // attachment is discarded with nothing reporting a problem — so say so.
+  // `useFormSubmit` exposes `canUploadFiles` so a component can refuse the
+  // input up front, which is the better place to catch this; this is the guard
+  // for callers reaching the low-level function directly.
+  if (Array.isArray(fileSlots) && fileSlots.length > 0) {
+    console.warn(
+      `[uniweb] submitForm: ${fileSlots.length} file(s) declared, but file upload ` +
+      'is not implemented — the manifest is sent and the bytes are NOT. The ' +
+      'submission will otherwise succeed. Do not offer file fields yet.',
+    )
+  }
+
   // ── API name → wire name. See the header before "correcting" these. ──
   const body = {
     formData,
