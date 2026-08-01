@@ -1,63 +1,78 @@
 /**
- * Submit a form to the Uniweb submission endpoint.
+ * POST a form's values to a submission endpoint.
  *
- * Form components in a foundation collect field values and call this to
- * deliver them to the platform's submission pipeline. The submission lands
- * keyed by the site's identity (resolved by the platform from the
- * visitor's hostname), so this function takes no siteId — the page's
- * own URL determines the destination.
+ * This is the low-level companion of `useFormSubmit()`. Most components want
+ * the hook — it resolves the target from the site's configuration and tracks
+ * the request's lifecycle. Reach for this directly when you are submitting
+ * outside React, or already hold a resolved target.
  *
- * The default `submitPath` is `/_submit`, served on the visitor's hostname
- * by the Uniweb runtime infrastructure. Override only if you're testing
- * against a non-standard endpoint.
+ * ## `target` is required, and there is no default
  *
- * The `preview` object becomes the {title, subtitle, tag} that the
- * editor's inbox row displays for this submission. If a foundation
- * doesn't pass one, a fallback is derived from the first two non-empty
- * string fields of `formData` so the row is always meaningful.
+ * Where a site's submissions go is the site's declaration (`submit:` in
+ * site.yml — see `resolveSubmitTarget`), never this function's guess. Calling
+ * without a target throws rather than falling back to a path, because a form
+ * POSTing into a 404 loses what a visitor typed and reports success-shaped
+ * failure. Resolve first, disable the control if there is nowhere to send.
  *
- * Optional `turnstileToken` is forwarded as-is for bot-protection
- * verification when the platform has Turnstile enabled.
+ * ## API names and wire names differ, on purpose
+ *
+ * The request body's field names are a contract with already-deployed
+ * endpoints, so they are kept exactly as those endpoints read them. This
+ * function's *arguments* are named for what they mean to a foundation
+ * developer. The mapping is applied in one place below and is not a bug to
+ * tidy up — changing the body's spelling would require every deployed endpoint
+ * to change with it.
  *
  * @param {object} args
- * @param {Record<string, unknown>} args.formData      — field values
- * @param {object} [args.preview]                       — { title, subtitle, tag? }
- * @param {object} [args.metadata]                      — formId, sectionType, sectionId, pageId, pageLabel, …
- * @param {string} [args.turnstileToken]                — Cloudflare Turnstile token
+ * @param {Record<string, unknown>} args.formData  — field values
+ * @param {string} args.target                     — resolved endpoint URL (required)
+ * @param {object} [args.summary]                  — { title, subtitle, tag? }, a short
+ *                                                   human-readable digest of this
+ *                                                   submission; derived from formData
+ *                                                   when omitted
+ * @param {object} [args.context]                  — where the submission came from:
+ *                                                   formId, sectionType, sectionId,
+ *                                                   pageId, pageLabel
+ * @param {string} [args.verificationToken]        — bot-protection token, when the
+ *                                                   endpoint verifies one
  * @param {Array<{name:string,size:number,mime?:string}>} [args.fileSlots]
- *                                                       — declared file uploads (multi-step ingestion)
- * @param {string} [args.submitPath='/_submit']         — endpoint override (testing)
- * @param {typeof fetch} [args.fetchFn=fetch]           — fetch override (testing / SSR)
+ *                                                 — declared file uploads
+ * @param {typeof fetch} [args.fetchFn=fetch]      — fetch override (testing / SSR)
  *
  * @returns {Promise<{ submissionId: string, uploadUrls?: Array }>}
- * @throws {Error} on non-2xx with the server's `error` message when present.
+ * @throws {Error} with no target, and on non-2xx with the server's message when present.
  */
 export async function submitForm({
   formData,
-  preview,
-  metadata = {},
-  turnstileToken,
+  target,
+  summary,
+  context = {},
+  verificationToken,
   fileSlots,
-  submitPath = '/_submit',
   fetchFn = typeof fetch === 'function' ? fetch : null,
 } = {}) {
   if (!formData || typeof formData !== 'object') {
     throw new Error('submitForm: formData object is required')
   }
+  if (!target || typeof target !== 'string') {
+    throw new Error(
+      'submitForm: no submission target. Declare `submit:` in site.yml, or ' +
+      'check `canSubmit` from useFormSubmit() before calling.',
+    )
+  }
   if (!fetchFn) {
     throw new Error('submitForm: fetch is unavailable in this environment')
   }
 
-  const finalPreview = preview || derivePreviewFromFormData(formData)
-
+  // ── API name → wire name. See the header before "correcting" these. ──
   const body = {
     formData,
-    metadata: { ...metadata, preview: finalPreview },
-    ...(turnstileToken ? { turnstileToken } : {}),
+    metadata: { ...context, preview: summary || deriveSummary(formData) },
+    ...(verificationToken ? { turnstileToken: verificationToken } : {}),
     ...(Array.isArray(fileSlots) && fileSlots.length ? { fileSlots } : {}),
   }
 
-  const res = await fetchFn(submitPath, {
+  const res = await fetchFn(target, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -73,14 +88,14 @@ export async function submitForm({
 }
 
 /**
- * Build a default preview from a form's field values: first two non-empty
- * string fields become the title / subtitle. Mirrors the legacy
- * getStandardPreview() convention from the prior Form class.
+ * Build a default summary from a form's values: the first two non-empty string
+ * fields become the title and subtitle, so whoever reads submissions sees
+ * something meaningful even when a component passes no summary of its own.
  *
  * @param {Record<string, unknown>} data
  * @returns {{ title: string, subtitle: string }}
  */
-export function derivePreviewFromFormData(data) {
+export function deriveSummary(data) {
   if (!data || typeof data !== 'object') return { title: 'Submission', subtitle: '' }
   const entries = Object.entries(data).filter(
     ([, v]) => typeof v === 'string' && v.trim().length > 0,

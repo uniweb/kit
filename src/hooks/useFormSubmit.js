@@ -1,29 +1,45 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { submitForm } from '../utils/submitForm.js'
+import { resolveSubmitTarget } from '../utils/submitTarget.js'
+import { useWebsite } from './useWebsite.js'
 
 /**
- * React hook wrapping `submitForm()` with state machine for the
- * `idle → submitting → success | error` lifecycle most form UIs need.
+ * Submit a form, with the `idle → submitting → success | error` lifecycle most
+ * form UIs need.
  *
- * Pass `defaults` once (formId, sectionType, preview-builder, …) and call
- * `submit(formData)` from your submit handler. The hook exposes:
- *   - status: 'idle' | 'submitting' | 'success' | 'error'
- *   - error:  Error | null
- *   - response: { submissionId, uploadUrls? } | null  (on success)
- *   - submit: async (formData, perCallOverrides?) => response
- *   - reset:  () => void
+ * The hook resolves *where* to submit from the site's configuration (`submit:`
+ * in site.yml) or from its host, so a component never names an endpoint. When
+ * neither supplies one, `canSubmit` is false and `unavailableReason` says why —
+ * render the control disabled rather than letting someone fill in a form whose
+ * contents have nowhere to go. See `resolveSubmitTarget` for the precedence.
  *
- * `defaults.preview` may be either a static object or a function of formData
- * that returns one. The function form is useful when the preview is computed
- * from the same fields that just got submitted.
+ * ```jsx
+ * const { submit, status, error, canSubmit, unavailableReason } =
+ *   useFormSubmit({ block, context: { formId: 'contact' } })
  *
- * Examples — see kit's submitForm() JSDoc for the full payload contract.
+ * <button type="submit" disabled={!canSubmit || status === 'submitting'}>
+ *   {canSubmit ? 'Send' : unavailableReason}
+ * </button>
+ * ```
+ *
+ * Pass `block` and the submission carries where it came from — section type,
+ * section id, page id and label — without every component assembling that by
+ * hand. Anything in `context` wins over what the block supplies.
+ *
+ * `summary` may be an object or a function of the submitted values, which is
+ * the useful form when the digest is built from the fields that were just
+ * filled in.
  *
  * @param {object} [defaults] — merged into every submit() call
+ * @param {object} [defaults.block] — the section's block, for submission context
+ * @param {object} [defaults.context] — formId and any explicit overrides
+ * @param {object|Function} [defaults.summary] — { title, subtitle, tag? } or (formData) => that
  * @returns {{
  *   status: 'idle' | 'submitting' | 'success' | 'error',
  *   error: Error | null,
  *   response: object | null,
+ *   canSubmit: boolean,
+ *   unavailableReason: string | null,
  *   submit: (formData: object, overrides?: object) => Promise<object>,
  *   reset: () => void,
  * }}
@@ -33,16 +49,36 @@ export function useFormSubmit(defaults = {}) {
   const [error, setError] = useState(null)
   const [response, setResponse] = useState(null)
 
+  const { website } = useWebsite()
+  const { url: target, reason: unavailableReason } = resolveSubmitTarget(website)
+
+  // `defaults` is a fresh object every render, so listing it as a dependency
+  // would rebuild the callback on each one. A ref is what actually makes "the
+  // newest defaults win" true — with an empty dependency list the callback
+  // closes over the *first* render's defaults forever, so a summary or context
+  // computed from changing content would silently keep sending the original.
+  const defaultsRef = useRef(defaults)
+  defaultsRef.current = defaults
+
   const submit = useCallback(
     async (formData, perCallOverrides = {}) => {
       setStatus('submitting')
       setError(null)
       try {
-        const merged = { ...defaults, ...perCallOverrides, formData }
-        // Resolve preview-as-function against the formData being submitted.
-        if (typeof merged.preview === 'function') {
-          merged.preview = merged.preview(formData)
+        const { block, context, summary, ...rest } = {
+          ...defaultsRef.current,
+          ...perCallOverrides,
         }
+
+        const merged = {
+          ...rest,
+          formData,
+          target,
+          // Block-derived context first so an explicit `context` overrides it.
+          context: { ...contextFromBlock(block), ...context },
+          summary: typeof summary === 'function' ? summary(formData) : summary,
+        }
+
         const result = await submitForm(merged)
         setStatus('success')
         setResponse(result)
@@ -53,11 +89,7 @@ export function useFormSubmit(defaults = {}) {
         throw err
       }
     },
-    // `defaults` is referentially unstable across renders; we deliberately
-    // close over the latest one each render rather than memo the hook.
-    // The lint rule fires false positives here.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [target],
   )
 
   const reset = useCallback(() => {
@@ -66,5 +98,40 @@ export function useFormSubmit(defaults = {}) {
     setResponse(null)
   }, [])
 
-  return { status, error, response, submit, reset }
+  return {
+    status,
+    error,
+    response,
+    canSubmit: !!target,
+    unavailableReason,
+    submit,
+    reset,
+  }
+}
+
+/**
+ * Where a submission came from, read off the block the form is rendered in.
+ *
+ * `stableId` is preferred over the positional `id` because it survives a
+ * section being reordered on its page — a submission's origin should not change
+ * because something moved above it. Keys with no value are dropped rather than
+ * sent as null, so they never mask a caller-supplied one.
+ *
+ * @param {object} [block]
+ * @returns {object}
+ */
+function contextFromBlock(block) {
+  if (!block) return {}
+
+  const page = block.page
+  const fields = {
+    sectionType: block.type,
+    sectionId: block.stableId || block.id,
+    pageId: page?.id,
+    pageLabel: page?.title,
+  }
+
+  return Object.fromEntries(
+    Object.entries(fields).filter(([, v]) => v !== undefined && v !== null && v !== ''),
+  )
 }

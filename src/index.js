@@ -124,7 +124,9 @@ export {
   getLocaleLabel,
   // Form submission utilities (low-level companion of useFormSubmit hook)
   submitForm,
-  derivePreviewFromFormData
+  deriveSummary,
+  resolveSubmitTarget,
+  NO_SUBMIT_TARGET_REASON
 } from './utils/index.js'
 
 // ============================================================================

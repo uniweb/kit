@@ -247,7 +247,8 @@ export function detectMediaType(url) {
 // Form Submission
 // ─────────────────────────────────────────────────────────────────
 
-export { submitForm, derivePreviewFromFormData } from './submitForm.js'
+export { submitForm, deriveSummary } from './submitForm.js'
+export { resolveSubmitTarget, NO_SUBMIT_TARGET_REASON } from './submitTarget.js'
 
 /**
  * The text of a ProseMirror node, flattened.
