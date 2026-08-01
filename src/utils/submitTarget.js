@@ -21,9 +21,10 @@
  * A destination comes from the first of these that applies:
  *
  *   1. `submit:` here — the site operator's declaration.
- *   2. A value the HOST supplies in the served payload. Not implemented yet;
- *      see below for where it slots in.
- *   3. Neither — `url: null` plus a reason, so the form renders disabled.
+ *   2. `forms: { endpoint, reason }` in the served payload config — what the
+ *      HOST reports about this site. A host that accepts submissions gives an
+ *      endpoint; one that does not may give a reason, which is relayed verbatim.
+ *   3. Neither — `url: null` plus a generic reason, so the form renders disabled.
  *
  * What the framework must never do is invent one. It cannot know where a given
  * site can accept a submission, and guessing is worse than having none: on a
@@ -38,13 +39,13 @@
  * offers the path when something is actually there to catch it. Same bytes, and
  * only one of them is correct.
  *
- * ## Adding tier 2
+ * ## Simulating a host locally
  *
- * It belongs between the two branches below — read the host-supplied field off
- * the payload config, after the authored value and before giving up. The host
- * owns that value end to end; relay whatever reason it gives verbatim rather
- * than interpreting it, since the framework has no standing to judge why a
- * given site can or cannot accept submissions.
+ * The bundle lane spreads all of site.yml into the payload config, so writing
+ * `forms: { endpoint: … }` in site.yml exercises tier 2 end to end with no
+ * framework change. It cannot leak into a real deployment: the sync lane is an
+ * explicit allowlist and does not carry `forms`, so a synced site's value can
+ * only have come from its host.
  */
 
 /**
@@ -64,21 +65,39 @@ export const NO_SUBMIT_TARGET_REASON =
  *   site declares none. `reason` is set exactly when `url` is null.
  */
 export function resolveSubmitTarget(website) {
-  // Tier 1 — the site operator's own declaration.
-  const declared = website?.config?.submit
+  const config = website?.config
+  const basePath = website?.basePath
 
-  const endpoint =
+  // Tier 1 — the site operator's own declaration (`submit:` in site.yml).
+  const declared = config?.submit
+  const declaredEndpoint =
     typeof declared === 'string'
       ? declared.trim()
       : typeof declared?.endpoint === 'string'
         ? declared.endpoint.trim()
         : ''
 
-  if (endpoint) {
-    return { url: resolveAgainstBase(endpoint, website?.basePath), reason: null }
+  if (declaredEndpoint) {
+    return { url: resolveAgainstBase(declaredEndpoint, basePath), reason: null }
   }
 
-  // Tier 2 — a host-supplied destination — goes here. See the header.
+  // Tier 2 — a destination the HOST reports, under `forms` in the served
+  // payload config. Named for the capability rather than the action so it
+  // cannot be misread as the authored `submit` sitting beside it in the same
+  // flat object.
+  const host = config?.forms
+  const hostEndpoint = typeof host?.endpoint === 'string' ? host.endpoint.trim() : ''
+  if (hostEndpoint) {
+    return { url: resolveAgainstBase(hostEndpoint, basePath), reason: null }
+  }
+
+  // A host that reports WHY it cannot accept submissions gets that relayed
+  // verbatim. The framework does not interpret, reword, or second-guess it: it
+  // has no standing to judge why a given site can or cannot accept them, and
+  // guessing at the reason in public code would mean encoding someone else's
+  // policy here.
+  const hostReason = typeof host?.reason === 'string' ? host.reason.trim() : ''
+  if (hostReason) return { url: null, reason: hostReason }
 
   // Tier 3 — nobody supplied one.
   return { url: null, reason: NO_SUBMIT_TARGET_REASON }

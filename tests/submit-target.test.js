@@ -24,8 +24,11 @@ import {
 } from '../src/utils/submitTarget.js'
 
 /** A website whose only relevant surface is `config` + `basePath`. */
-function makeWebsite({ submit, basePath = '' } = {}) {
-  return { basePath, config: submit === undefined ? {} : { submit } }
+function makeWebsite({ submit, forms, basePath = '' } = {}) {
+  const config = {}
+  if (submit !== undefined) config.submit = submit
+  if (forms !== undefined) config.forms = forms
+  return { basePath, config }
 }
 
 /** A fetch double that records the call and returns a 200 JSON body. */
@@ -88,6 +91,49 @@ describe('resolveSubmitTarget', () => {
   it('does not double a slash when the base carries a trailing one', () => {
     expect(resolveAgainstBase('/forms', '/docs/')).toBe('/docs/forms')
     expect(resolveAgainstBase('/forms', '')).toBe('/forms')
+  })
+})
+
+describe('resolveSubmitTarget — a host-supplied destination', () => {
+  it('uses the host endpoint when the site declares none', () => {
+    const site = makeWebsite({ forms: { endpoint: '/_submit' } })
+    expect(resolveSubmitTarget(site)).toEqual({ url: '/_submit', reason: null })
+  })
+
+  it('resolves the host endpoint against the base too', () => {
+    const site = makeWebsite({ forms: { endpoint: '/_submit' }, basePath: '/gateway/site/abc' })
+    expect(resolveSubmitTarget(site).url).toBe('/gateway/site/abc/_submit')
+  })
+
+  // Precedence: the operator's own declaration is an override, so a site that
+  // names an endpoint keeps it even where the host offers one.
+  it('prefers the authored declaration over the host', () => {
+    const site = makeWebsite({ submit: '/mine', forms: { endpoint: '/_submit' } })
+    expect(resolveSubmitTarget(site).url).toBe('/mine')
+  })
+
+  /**
+   * A host that declines says why, and that string reaches the visitor
+   * unaltered. The framework has no standing to judge or reword the reason, and
+   * inventing one in public code would mean encoding someone else's policy here.
+   */
+  it('relays the host reason verbatim when it supplies no endpoint', () => {
+    const site = makeWebsite({ forms: { reason: 'Submissions are turned off for this site.' } })
+    expect(resolveSubmitTarget(site)).toEqual({
+      url: null,
+      reason: 'Submissions are turned off for this site.',
+    })
+  })
+
+  it('falls back to the generic reason when the host says nothing useful', () => {
+    for (const forms of [undefined, {}, { endpoint: '' }, { reason: '   ' }, null]) {
+      expect(resolveSubmitTarget(makeWebsite({ forms })).reason).toBe(NO_SUBMIT_TARGET_REASON)
+    }
+  })
+
+  it('prefers a host endpoint over a host reason when both are present', () => {
+    const site = makeWebsite({ forms: { endpoint: '/_submit', reason: 'ignored' } })
+    expect(resolveSubmitTarget(site)).toEqual({ url: '/_submit', reason: null })
   })
 })
 
