@@ -126,7 +126,27 @@ export function createEndpointProvider(website, options = {}) {
       })
 
       if (!response.ok) {
-        throw new Error(`Search endpoint returned ${response.status}`)
+        // An endpoint that declines usually explains why, in words meant for a
+        // visitor rather than a status code — "Search is not available on this
+        // site." Read it and carry it, the same way `submitForm` does with a
+        // rejected submission.
+        //
+        // This does not change the degradation: a failed search still falls
+        // back to the local index, because a failed READ should degrade and
+        // that guarantee is older than this. What changes is that when there is
+        // no index to fall back to, the error a foundation can surface says
+        // something a person understands instead of a number.
+        let declined
+        try {
+          declined = (await response.json())?.error
+        } catch {
+          /* not JSON — the status is all there is */
+        }
+        throw new Error(
+          typeof declined === 'string' && declined.trim()
+            ? declined.trim()
+            : `Search endpoint returned ${response.status}`
+        )
       }
 
       const results = extractResults(await response.json()).map(normalize)
