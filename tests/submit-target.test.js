@@ -291,7 +291,7 @@ describe('deriveSummary', () => {
  * that must not go quiet again.
  */
 describe('file uploads — declared, not delivered', () => {
-  it('warns loudly when files are declared, because the bytes are not sent', async () => {
+  it('warns when a manifest arrives with no files to send', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const fetchFn = fakeFetch()
 
@@ -303,7 +303,7 @@ describe('file uploads — declared, not delivered', () => {
     })
 
     expect(warn).toHaveBeenCalledTimes(1)
-    expect(warn.mock.calls[0][0]).toMatch(/not implemented/i)
+    expect(warn.mock.calls[0][0]).toMatch(/bytes are NOT/)
     warn.mockRestore()
   })
 
@@ -327,5 +327,119 @@ describe('file uploads — declared, not delivered', () => {
     })
     expect(JSON.parse(fetchFn.calls[0].init.body).fileSlots).toHaveLength(1)
     vi.restoreAllMocks()
+  })
+})
+
+/**
+ * Phase two — the bytes.
+ *
+ * Phase one posts a manifest and gets a submission id; the attachment travels
+ * separately so it never rides inside the JSON. The endpoint's shape:
+ * `POST {target}/upload` with a raw body and `X-Submission-Id` / `X-Slot`, then
+ * `POST {target}/finalize`.
+ *
+ * The failure cases matter more than the happy one. By the time an upload runs,
+ * the submission row already exists — so a silent failure here is the
+ * discarded-attachment bug relocated, and a caller must be able to tell the
+ * visitor their message landed and their file did not.
+ */
+const fileOf = (name, type = 'application/pdf') => ({ name, size: 3, type })
+
+function uploadFetch(first = { submissionId: 'sub-1' }) {
+  const calls = []
+  const fn = async (url, init) => {
+    calls.push({ url, init })
+    return { ok: true, status: 200, json: async () => first }
+  }
+  fn.calls = calls
+  return fn
+}
+
+describe('submitForm — uploading attachments', () => {
+  it('posts the manifest, then each file, then finalizes', async () => {
+    const fetchFn = uploadFetch()
+    const result = await submitForm({
+      formData: { Name: 'Ada' },
+      target: '/_submit',
+      files: [{ file: fileOf('a.pdf'), field: 'photos' }, fileOf('b.png', 'image/png')],
+      fetchFn,
+    })
+
+    expect(fetchFn.calls.map((c) => c.url)).toEqual([
+      '/_submit', '/_submit/upload', '/_submit/upload', '/_submit/finalize',
+    ])
+    expect(result.filesUploaded).toBe(2)
+
+    // The manifest is derived from the files, so it cannot disagree with them.
+    const manifest = JSON.parse(fetchFn.calls[0].init.body).fileSlots
+    expect(manifest).toEqual([
+      { name: 'a.pdf', size: 3, mime: 'application/pdf', field: 'photos' },
+      { name: 'b.png', size: 3, mime: 'image/png' },
+    ])
+
+    // X-Slot indexes the manifest, so the two are built in one order.
+    const up = fetchFn.calls[1].init
+    expect(up.headers['X-Submission-Id']).toBe('sub-1')
+    expect(up.headers['X-Slot']).toBe('0')
+    expect(up.headers['Content-Type']).toBe('application/pdf')
+    expect(up.body.name).toBe('a.pdf') // the File itself, not JSON
+    expect(fetchFn.calls[2].init.headers['X-Slot']).toBe('1')
+    expect(JSON.parse(fetchFn.calls[3].init.body)).toEqual({ submissionId: 'sub-1' })
+  })
+
+  it('prefers uploadUrls when the endpoint returns them', async () => {
+    const fetchFn = uploadFetch({ submissionId: 'sub-2', uploadUrls: ['https://r2/put/0'] })
+    await submitForm({ formData: { a: '1' }, target: '/_submit', files: [fileOf('a.pdf')], fetchFn })
+
+    expect(fetchFn.calls[1].url).toBe('https://r2/put/0')
+  })
+
+  it('skips both extra calls when there are no files', async () => {
+    const fetchFn = uploadFetch()
+    const r = await submitForm({ formData: { a: '1' }, target: '/_submit', fetchFn })
+
+    expect(fetchFn.calls).toHaveLength(1)
+    expect(r.filesUploaded).toBeUndefined()
+  })
+
+  it('reports that the submission landed when an upload fails', async () => {
+    const calls = []
+    const fetchFn = async (url, init) => {
+      calls.push(url)
+      if (url.endsWith('/upload')) return { ok: false, status: 413, json: async () => ({}) }
+      return { ok: true, status: 200, json: async () => ({ submissionId: 'sub-3' }) }
+    }
+    await expect(
+      submitForm({ formData: { a: '1' }, target: '/_submit', files: [fileOf('big.pdf')], fetchFn }),
+    ).rejects.toThrow(/sub-3 was recorded, but uploading "big\.pdf" failed \(HTTP 413\)/)
+    expect(calls).not.toContain('/_submit/finalize') // never finalize a broken upload
+  })
+
+  it('reports a finalize failure without pretending the files did not arrive', async () => {
+    const fetchFn = async (url) => {
+      if (url.endsWith('/finalize')) return { ok: false, status: 500, json: async () => ({}) }
+      return { ok: true, status: 200, json: async () => ({ submissionId: 'sub-4' }) }
+    }
+    await expect(
+      submitForm({ formData: { a: '1' }, target: '/_submit', files: [fileOf('a.pdf')], fetchFn }),
+    ).rejects.toThrow(/were uploaded, but finalizing failed/)
+  })
+
+  it('refuses to upload when the endpoint returns no submissionId', async () => {
+    const fetchFn = uploadFetch({})
+    await expect(
+      submitForm({ formData: { a: '1' }, target: '/_submit', files: [fileOf('a.pdf')], fetchFn }),
+    ).rejects.toThrow(/no submissionId/)
+    expect(fetchFn.calls).toHaveLength(1)
+  })
+
+  it('ignores a trailing slash on the target when deriving the phase-two paths', async () => {
+    const fetchFn = uploadFetch()
+    await submitForm({ formData: { a: '1' }, target: '/_submit/', files: [fileOf('a.pdf')], fetchFn })
+
+    // one file → manifest, upload, finalize
+    expect(fetchFn.calls.map((c) => c.url)).toEqual([
+      '/_submit/', '/_submit/upload', '/_submit/finalize',
+    ])
   })
 })

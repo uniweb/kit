@@ -35,8 +35,17 @@
  *                                                   pageId, pageLabel
  * @param {string} [args.verificationToken]        — bot-protection token, when the
  *                                                   endpoint verifies one
+ * @param {Array<File|{file:File,field?:string}>} [args.files]
+ *                                                 — attachments to upload. The
+ *                                                   manifest is derived from
+ *                                                   these; phase two sends the
+ *                                                   bytes. The `{file, field}`
+ *                                                   form records which field an
+ *                                                   attachment came from.
  * @param {Array<{name:string,size:number,mime?:string}>} [args.fileSlots]
- *                                                 — declared file uploads
+ *                                                 — a manifest with no bytes.
+ *                                                   Accepted, but ONLY sends the
+ *                                                   declaration; prefer `files`
  * @param {typeof fetch} [args.fetchFn=fetch]      — fetch override (testing / SSR)
  *
  * @returns {Promise<{ submissionId: string, uploadUrls?: Array }>}
@@ -48,6 +57,7 @@ export async function submitForm({
   summary,
   context = {},
   verificationToken,
+  files,
   fileSlots,
   fetchFn = typeof fetch === 'function' ? fetch : null,
 } = {}) {
@@ -64,27 +74,33 @@ export async function submitForm({
     throw new Error('submitForm: fetch is unavailable in this environment')
   }
 
-  // Declaring files is not sending them, and nothing here sends them: the
-  // second phase (PUT the bytes to the endpoint's `uploadUrls`) is not built.
-  // Left silent, a visitor attaches a file, the submission succeeds, and the
-  // attachment is discarded with nothing reporting a problem — so say so.
-  // `useFormSubmit` exposes `canUploadFiles` so a component can refuse the
-  // input up front, which is the better place to catch this; this is the guard
-  // for callers reaching the low-level function directly.
-  if (Array.isArray(fileSlots) && fileSlots.length > 0) {
+  const entries = normalizeFiles(files)
+
+  // A manifest without the files it describes cannot be delivered — the bytes
+  // are what phase two sends. Passing `fileSlots` alone declares attachments
+  // nobody receives, which is a success that is not one, so say so.
+  if (entries.length === 0 && Array.isArray(fileSlots) && fileSlots.length > 0) {
     console.warn(
-      `[uniweb] submitForm: ${fileSlots.length} file(s) declared, but file upload ` +
-      'is not implemented — the manifest is sent and the bytes are NOT. The ' +
-      'submission will otherwise succeed. Do not offer file fields yet.',
+      `[uniweb] submitForm: ${fileSlots.length} file(s) declared via \`fileSlots\` with no ` +
+      '`files` — the manifest is sent and the bytes are NOT. Pass `files` so they upload.',
     )
   }
+
+  const slots = entries.length
+    ? entries.map(({ file, field }) => ({
+        name: file.name,
+        size: file.size,
+        mime: file.type || 'application/octet-stream',
+        ...(field ? { field } : {}),
+      }))
+    : fileSlots
 
   // ── API name → wire name. See the header before "correcting" these. ──
   const body = {
     formData,
     metadata: { ...context, preview: summary || deriveSummary(formData) },
     ...(verificationToken ? { turnstileToken: verificationToken } : {}),
-    ...(Array.isArray(fileSlots) && fileSlots.length ? { fileSlots } : {}),
+    ...(Array.isArray(slots) && slots.length ? { fileSlots: slots } : {}),
   }
 
   const res = await fetchFn(target, {
@@ -99,7 +115,95 @@ export async function submitForm({
     throw new Error(serverMessage || `Submission failed (HTTP ${res.status})`)
   }
 
-  return res.json()
+  const result = await res.json()
+  if (entries.length === 0) return result
+
+  await uploadFiles(entries, result, target, fetchFn)
+  return { ...result, filesUploaded: entries.length }
+}
+
+/**
+ * Accept either bare `File`s or `{ file, field }` pairs, and drop anything that
+ * is not a file. The pair form exists so a submission can say WHICH field an
+ * attachment came from — a form may have more than one file input.
+ */
+function normalizeFiles(files) {
+  if (!Array.isArray(files)) return []
+  return files
+    .map((f) => (f && typeof f === 'object' && 'file' in f ? f : { file: f }))
+    .filter(({ file }) => file && typeof file === 'object' && 'name' in file)
+}
+
+/**
+ * Phase two — send the bytes.
+ *
+ * Phase one posts a *manifest* and gets back a submission id; the bytes go
+ * separately so they never ride inside the JSON. Two shapes are honoured:
+ *
+ *  - **`uploadUrls` in the response** — one per slot, in slot order. Used when
+ *    present, because an endpoint returning them is telling you where to write.
+ *  - **Otherwise `{target}/upload`** — raw body, `X-Submission-Id` and `X-Slot`
+ *    headers, then `{target}/finalize`. This is the shape the endpoint
+ *    documents, and it is the default rather than a fallback.
+ *
+ * `X-Slot` is the index into the manifest sent in phase one, which is why the
+ * entries and the slots are built from one list in one order.
+ *
+ * **Failures throw, and the message says what did land.** The submission row
+ * already exists at this point, so a silent failure here is the same
+ * discarded-attachment bug in a new place — a caller must be able to tell the
+ * visitor that their message arrived and their file did not.
+ */
+async function uploadFiles(entries, result, target, fetchFn) {
+  const submissionId = result?.submissionId
+  if (!submissionId) {
+    throw new Error(
+      'submitForm: the submission was recorded but returned no submissionId, so its ' +
+      `${entries.length} attachment(s) could not be uploaded.`,
+    )
+  }
+
+  const base = String(target).replace(/\/+$/, '')
+  const urls = Array.isArray(result?.uploadUrls) ? result.uploadUrls : []
+
+  for (const [slot, { file }] of entries.entries()) {
+    const url = urls[slot] || `${base}/upload`
+    let res
+    try {
+      res = await fetchFn(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': file.type || 'application/octet-stream',
+          'X-Submission-Id': submissionId,
+          'X-Slot': String(slot),
+        },
+        body: file,
+      })
+    } catch (err) {
+      throw new Error(
+        `submitForm: submission ${submissionId} was recorded, but uploading ` +
+        `"${file.name}" failed — ${err.message}`,
+      )
+    }
+    if (!res.ok) {
+      throw new Error(
+        `submitForm: submission ${submissionId} was recorded, but uploading ` +
+        `"${file.name}" failed (HTTP ${res.status}).`,
+      )
+    }
+  }
+
+  const done = await fetchFn(`${base}/finalize`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ submissionId }),
+  })
+  if (!done.ok) {
+    throw new Error(
+      `submitForm: submission ${submissionId} and its ${entries.length} attachment(s) ` +
+      `were uploaded, but finalizing failed (HTTP ${done.status}).`,
+    )
+  }
 }
 
 /**

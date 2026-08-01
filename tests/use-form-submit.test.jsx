@@ -186,17 +186,29 @@ describe('useFormSubmit', () => {
 })
 
 /**
- * A file input a foundation renders is a promise it can deliver the bytes. Kit
- * cannot today, so it says so where a component decides whether to render one —
- * the same reason `canSubmit` is checked at render rather than on the button
- * press. Telling a visitor afterwards costs them the work twice.
+ * A file input a foundation renders is a promise it can deliver the bytes, so
+ * the answer belongs where a component decides whether to render one — the same
+ * reason `canSubmit` is checked at render rather than on the button press.
+ *
+ * It tracks `canSubmit` because it is a statement about this client, not about
+ * the endpoint: whether a given endpoint accepts uploads is discovered on
+ * submit and reported by a throw. What must never come back is offering a file
+ * input when nothing could send the bytes at all.
  */
 describe('useFormSubmit — file uploads', () => {
-  it('reports that files cannot be delivered, even with a working target', () => {
+  it('can deliver files once there is a target', () => {
     setWebsite(makeWebsite({ submit: '/forms' }))
     const { result } = renderHook(() => useFormSubmit())
 
     expect(result.current.canSubmit).toBe(true)
+    expect(result.current.canUploadFiles).toBe(true)
+  })
+
+  it('cannot deliver files when there is nowhere to submit', () => {
+    setWebsite(makeWebsite())
+    const { result } = renderHook(() => useFormSubmit())
+
+    expect(result.current.canSubmit).toBe(false)
     expect(result.current.canUploadFiles).toBe(false)
   })
 })
