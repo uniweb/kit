@@ -14,6 +14,7 @@
  */
 
 import { emptyResult } from './result.js'
+import { resolveServiceUrl } from '../../utils/services.js'
 
 /** Path used when a site declares `provider: endpoint` without an `endpoint:`. */
 const DEFAULT_ENDPOINT = '_search'
@@ -31,17 +32,17 @@ const DEFAULT_ENDPOINT = '_search'
  * An absolute URL is passed through untouched, for a search service on another
  * origin.
  *
+ * The join itself is the shared one every site service uses — this function is
+ * now only the *default*, which is the one thing search has that the others must
+ * not: a form submission with no declared target has nowhere to go, whereas
+ * search with no declared endpoint has a conventional one.
+ *
  * @param {string} endpoint - Declared endpoint (relative or absolute)
  * @param {string} basePath - `website.basePath`, normalized without a trailing slash
  * @returns {string}
  */
 export function resolveEndpointUrl(endpoint, basePath = '') {
-  const path = endpoint || DEFAULT_ENDPOINT
-  if (/^https?:\/\//i.test(path)) return path
-
-  const base = (basePath || '').replace(/\/+$/, '')
-  const rel = path.replace(/^\/+/, '')
-  return `${base}/${rel}`
+  return resolveServiceUrl(endpoint || DEFAULT_ENDPOINT, basePath)
 }
 
 /**

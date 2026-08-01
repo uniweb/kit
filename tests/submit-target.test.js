@@ -27,7 +27,9 @@ import {
 function makeWebsite({ submit, forms, basePath = '' } = {}) {
   const config = {}
   if (submit !== undefined) config.submit = submit
-  if (forms !== undefined) config.forms = forms
+  // The host tier lives under `services`, keyed by service name — provenance is
+  // structural rather than a naming convention two keys have to keep apart.
+  if (forms !== undefined) config.services = { submit: forms }
   return { basePath, config }
 }
 
@@ -44,9 +46,10 @@ function fakeFetch(body = { submissionId: 'abc' }, { ok = true, status = 200 } =
 
 describe('resolveSubmitTarget', () => {
   it('resolves the shorthand string form', () => {
-    const { url, reason } = resolveSubmitTarget(makeWebsite({ submit: '/forms' }))
+    const { url, reason, source } = resolveSubmitTarget(makeWebsite({ submit: '/forms' }))
     expect(url).toBe('/forms')
     expect(reason).toBeNull()
+    expect(source).toBe('site')
   })
 
   it('resolves the object form', () => {
@@ -97,7 +100,7 @@ describe('resolveSubmitTarget', () => {
 describe('resolveSubmitTarget — a host-supplied destination', () => {
   it('uses the host endpoint when the site declares none', () => {
     const site = makeWebsite({ forms: { endpoint: '/_submit' } })
-    expect(resolveSubmitTarget(site)).toEqual({ url: '/_submit', reason: null })
+    expect(resolveSubmitTarget(site)).toMatchObject({ url: '/_submit', reason: null, source: 'host' })
   })
 
   it('resolves the host endpoint against the base too', () => {
@@ -119,9 +122,10 @@ describe('resolveSubmitTarget — a host-supplied destination', () => {
    */
   it('relays the host reason verbatim when it supplies no endpoint', () => {
     const site = makeWebsite({ forms: { reason: 'Submissions are turned off for this site.' } })
-    expect(resolveSubmitTarget(site)).toEqual({
+    expect(resolveSubmitTarget(site)).toMatchObject({
       url: null,
       reason: 'Submissions are turned off for this site.',
+      source: 'host',
     })
   })
 
@@ -133,7 +137,7 @@ describe('resolveSubmitTarget — a host-supplied destination', () => {
 
   it('prefers a host endpoint over a host reason when both are present', () => {
     const site = makeWebsite({ forms: { endpoint: '/_submit', reason: 'ignored' } })
-    expect(resolveSubmitTarget(site)).toEqual({ url: '/_submit', reason: null })
+    expect(resolveSubmitTarget(site)).toMatchObject({ url: '/_submit', reason: null, source: 'host' })
   })
 })
 
