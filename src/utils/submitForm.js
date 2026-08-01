@@ -116,10 +116,14 @@ export async function submitForm({
   }
 
   const result = await res.json()
+
+  // A submission with no attachments is COMPLETE at this point — the create
+  // call wrote the whole record. Finalizing anyway would re-assert the state it
+  // already has: accepted, and pointless.
   if (entries.length === 0) return result
 
-  await uploadFiles(entries, result, target, fetchFn)
-  return { ...result, filesUploaded: entries.length }
+  const report = await uploadFiles(entries, result, target, fetchFn)
+  return { ...result, filesUploaded: entries.length, ...report }
 }
 
 /**
@@ -146,8 +150,13 @@ function normalizeFiles(files) {
  *    headers, then `{target}/finalize`. This is the shape the endpoint
  *    documents, and it is the default rather than a fallback.
  *
- * `X-Slot` is the index into the manifest sent in phase one, which is why the
- * entries and the slots are built from one list in one order.
+ * `X-Slot` is the **0-based index into the manifest sent in phase one** — which
+ * is why the entries and the slots are built from one list in one order, and
+ * why nothing here reorders them. An endpoint bounds it to the declared count
+ * and rejects anything outside the range.
+ *
+ * The filename is NOT sent as a header. It travels in the manifest, which is
+ * the contract; an endpoint takes the name from there.
  *
  * **Failures throw, and the message says what did land.** The submission row
  * already exists at this point, so a silent failure here is the same
@@ -193,10 +202,23 @@ async function uploadFiles(entries, result, target, fetchFn) {
     }
   }
 
+  // The manifest rides the finalize body as well as the create body. An
+  // endpoint may or may not trust it — the one we are built against verifies
+  // each slot against storage instead, precisely because a client-supplied
+  // count is what a quota or an invoice would otherwise derive from. Sending it
+  // costs a few bytes and satisfies the stricter reading of the contract, in
+  // which `files` is required and its absence is a malformed call.
+  const manifest = entries.map(({ file }, slot) => ({
+    slot,
+    name: file.name,
+    size: file.size,
+    mime: file.type || 'application/octet-stream',
+  }))
+
   const done = await fetchFn(`${base}/finalize`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ submissionId }),
+    body: JSON.stringify({ submissionId, files: manifest }),
   })
   if (!done.ok) {
     throw new Error(
@@ -204,6 +226,32 @@ async function uploadFiles(entries, result, target, fetchFn) {
       `were uploaded, but finalizing failed (HTTP ${done.status}).`,
     )
   }
+
+  // Finalize reports what the endpoint actually found in storage, which is not
+  // necessarily what we believe we sent. Checking it is the whole point of
+  // reading this body: every upload can return 2xx and one can still be absent,
+  // and the alternative to catching it here is a support ticket about an
+  // attachment nobody received.
+  //
+  // Only acted on when the endpoint reports a number — an endpoint that returns
+  // nothing (or something else) is not thereby claiming a loss.
+  let report
+  try {
+    report = await done.json()
+  } catch {
+    return undefined // not JSON — nothing to verify against
+  }
+
+  const recorded = report?.filesRecorded
+  if (typeof recorded === 'number' && recorded < entries.length) {
+    throw new Error(
+      `submitForm: submission ${submissionId} was recorded, but only ${recorded} of ` +
+      `${entries.length} attachment(s) reached storage. The endpoint verifies each upload, ` +
+      'so the difference did not arrive.',
+    )
+  }
+
+  return report && typeof report === 'object' ? report : undefined
 }
 
 /**

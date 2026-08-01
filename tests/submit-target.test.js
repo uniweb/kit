@@ -384,7 +384,73 @@ describe('submitForm — uploading attachments', () => {
     expect(up.headers['Content-Type']).toBe('application/pdf')
     expect(up.body.name).toBe('a.pdf') // the File itself, not JSON
     expect(fetchFn.calls[2].init.headers['X-Slot']).toBe('1')
-    expect(JSON.parse(fetchFn.calls[3].init.body)).toEqual({ submissionId: 'sub-1' })
+
+    // Finalize carries the manifest as well as the id. The endpoint we are
+    // built against verifies each slot against storage rather than trusting
+    // this, but a stricter reading of the contract requires it and an absent
+    // array is a malformed call there — so send it and satisfy both.
+    expect(JSON.parse(fetchFn.calls[3].init.body)).toEqual({
+      submissionId: 'sub-1',
+      files: [
+        { slot: 0, name: 'a.pdf', size: 3, mime: 'application/pdf' },
+        { slot: 1, name: 'b.png', size: 3, mime: 'image/png' },
+      ],
+    })
+  })
+
+  /**
+   * Finalize reports what the endpoint FOUND, which need not match what we
+   * believe we sent: every upload can return 2xx and one can still be absent.
+   * Catching that here is the difference between a caller who can tell the
+   * visitor, and a support ticket weeks later about a file nobody received.
+   */
+  it('throws when finalize reports fewer files than were uploaded', async () => {
+    const fetchFn = async (url) =>
+      url.endsWith('/finalize')
+        ? { ok: true, status: 200, json: async () => ({ ok: true, filesRecorded: 1, totalSizeBytes: 3 }) }
+        : { ok: true, status: 200, json: async () => ({ submissionId: 'sub-9' }) }
+
+    await expect(
+      submitForm({
+        formData: { Name: 'Ada' },
+        target: '/_submit',
+        files: [fileOf('a.pdf'), fileOf('b.png', 'image/png')],
+        fetchFn,
+      }),
+    ).rejects.toThrow(/sub-9 was recorded, but only 1 of 2 attachment/)
+  })
+
+  it("surfaces the endpoint's own count and size when they agree", async () => {
+    const fetchFn = async (url) =>
+      url.endsWith('/finalize')
+        ? { ok: true, status: 200, json: async () => ({ ok: true, filesRecorded: 1, totalSizeBytes: 3 }) }
+        : { ok: true, status: 200, json: async () => ({ submissionId: 'sub-8' }) }
+
+    const result = await submitForm({
+      formData: { Name: 'Ada' },
+      target: '/_submit',
+      files: [fileOf('a.pdf')],
+      fetchFn,
+    })
+
+    expect(result).toMatchObject({ submissionId: 'sub-8', filesUploaded: 1, filesRecorded: 1, totalSizeBytes: 3 })
+  })
+
+  // An endpoint that reports nothing is not thereby claiming a loss — only a
+  // NUMBER lower than what we sent is evidence, and silence is not a number.
+  it('does not invent a failure when finalize returns no report', async () => {
+    const fetchFn = async (url) =>
+      url.endsWith('/finalize')
+        ? { ok: true, status: 200, json: async () => { throw new Error('not JSON') } }
+        : { ok: true, status: 200, json: async () => ({ submissionId: 'sub-7' }) }
+
+    const result = await submitForm({
+      formData: { Name: 'Ada' },
+      target: '/_submit',
+      files: [fileOf('a.pdf')],
+      fetchFn,
+    })
+    expect(result).toEqual({ submissionId: 'sub-7', filesUploaded: 1 })
   })
 
   it('prefers uploadUrls when the endpoint returns them', async () => {
