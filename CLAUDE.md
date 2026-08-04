@@ -31,11 +31,14 @@ src/components/Image/
 
 ## Dependencies
 
-- `@uniweb/core` — Runtime core (published separately, referenced as `latest`)
+- `@uniweb/core`, `@uniweb/semantic-parser`, `@uniweb/scene` — sibling packages, referenced as `workspace:*` (resolved from the monorepo during development; the publish script rewrites them to real versions on release)
 - `clsx` + `tailwind-merge` — Class name merging (`cn()` utility)
 - `fuse.js` — Client-side search
 - `shiki` — Syntax highlighting
+- `@tailwindcss/typography` — the prose plugin behind `prose-tokens.css`
 - React 19 as peer dependency
+
+**`fuse.js` and `shiki` are direct dependencies on purpose, not peers.** Kit is bundled *into* a foundation by that foundation's Vite build, so kit's own dynamic imports have to resolve from the foundation's `node_modules`. Declaring them as peers would leave them absent there. They stay lazy-loaded and code-split — direct just means resolvable. See the framework scope's gotcha on the foundation/site build architecture.
 
 ## Publishing
 
