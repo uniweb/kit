@@ -112,7 +112,7 @@ describe('endpoint provider', () => {
 
     const website = makeWebsite({ provider: 'endpoint', basePath: '/docs', locale: 'fr' })
     const provider = createEndpointProvider(website, { endpoint: '_search' })
-    const results = await provider.query('hello', { limit: 5 })
+    const { results } = await provider.query('hello', { limit: 5 })
 
     const url = new URL(fetchMock.mock.calls[0][0])
     expect(url.pathname).toBe('/docs/_search')
@@ -131,7 +131,7 @@ describe('endpoint provider', () => {
     })))
 
     const provider = createEndpointProvider(makeWebsite({ provider: 'endpoint' }), {})
-    const [result] = await provider.query('x')
+    const { results: [result] } = await provider.query('x')
 
     expect(result.href).toBe('/about#Section2')
   })
@@ -146,7 +146,7 @@ describe('endpoint provider', () => {
     for (const body of shapes) {
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(body)))
       const provider = createEndpointProvider(makeWebsite({ provider: 'endpoint' }), {})
-      const results = await provider.query('a')
+      const { results } = await provider.query('a')
       expect(results).toHaveLength(1)
       expect(results[0].id).toBe('a')
     }
@@ -181,7 +181,7 @@ describe('result contract', () => {
     })))
 
     const provider = createEndpointProvider(makeWebsite({ provider: 'endpoint' }), {})
-    const [result] = await provider.query('a')
+    const { results: [result] } = await provider.query('a')
 
     // A component may read any contract key without guarding for undefined.
     expect(Object.keys(result).sort()).toEqual(Object.keys(emptyResult()).sort())
@@ -361,5 +361,99 @@ describe('degradation', () => {
     const client = createSearchClient(makeWebsite({ provider: 'endpoint', enabled: false }))
     expect(await client.query('x')).toEqual([])
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * `total` — how many matched before `limit`, the 47 in "showing 10 of 47".
+ *
+ * The value only exists at the provider, before the slice, so it has to be
+ * carried deliberately. `null` is a real answer meaning "this provider cannot
+ * say" — a deployment fact, like `matches` or `item` on a result, not a failure.
+ */
+describe('match totals', () => {
+  test('the endpoint provider carries a stated total', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ total: 47, results: [{ id: 'a', route: '/a' }] }))
+    )
+    const provider = createEndpointProvider(makeWebsite({ provider: 'endpoint' }), {
+      endpoint: '_search'
+    })
+    expect(await provider.query('x', { limit: 10 })).toMatchObject({ total: 47 })
+  })
+
+  test('a server that states no total yields null, not a guess', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ results: [{ id: 'a', route: '/a' }] }))
+    )
+    const provider = createEndpointProvider(makeWebsite({ provider: 'endpoint' }), {
+      endpoint: '_search'
+    })
+    const { results, total } = await provider.query('x', { limit: 10 })
+    expect(results).toHaveLength(1)
+    expect(total).toBeNull() // NOT results.length — that number is already available
+  })
+
+  /**
+   * The subtle one. The server counted matches for a query it answered without
+   * knowing about `type`/`route`, which are applied here. Reporting its number
+   * beside a locally-narrowed list would render "showing 1 of 47" next to a
+   * filter that produced the 1 — consistent-looking and wrong. Nor can it be
+   * recomputed: what arrived was already capped at `limit`.
+   */
+  test('discards a stated total when a local filter narrowed the set', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        jsonResponse({
+          total: 47,
+          results: [
+            { id: 'a', type: 'page', route: '/a' },
+            { id: 'b', type: 'section', route: '/b' }
+          ]
+        })
+      )
+    )
+    const provider = createEndpointProvider(makeWebsite({ provider: 'endpoint' }), {
+      endpoint: '_search'
+    })
+
+    const narrowed = await provider.query('x', { limit: 10, type: 'page' })
+    expect(narrowed.results).toHaveLength(1)
+    expect(narrowed.total).toBeNull()
+
+    // A filter that removes nothing is not narrowing, so the count survives.
+    const untouched = await provider.query('x', { limit: 10, route: '/' })
+    expect(untouched.results).toHaveLength(2)
+    expect(untouched.total).toBe(47)
+  })
+
+  test('the client tolerates a transport that returns a bare array', async () => {
+    // `transport.query` is a public seam; its contract has always been "returns
+    // results". An array means no count offered, never an error.
+    const client = createSearchClient(makeWebsite({ provider: 'legacy' }), {
+      transports: {
+        legacy: { query: async () => [{ ...emptyResult(), id: 'a', route: '/a' }] }
+      }
+    })
+    expect(await client.queryWithTotal('x')).toEqual({
+      results: [expect.objectContaining({ id: 'a' })],
+      total: null
+    })
+  })
+
+  test('client.query still returns a bare array', async () => {
+    // The published surface. Widening it would break every foundation that
+    // iterates the result of `search.query(...)`.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ total: 47, results: [{ id: 'a', route: '/a' }] }))
+    )
+    const client = createSearchClient(makeWebsite({ provider: 'endpoint' }))
+    const results = await client.query('x')
+    expect(Array.isArray(results)).toBe(true)
+    expect(results).toHaveLength(1)
   })
 })

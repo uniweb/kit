@@ -476,8 +476,14 @@ const client = createSearchClient(website, {
   defaultLimit: 10
 })
 
-// Query
+// Query — returns SearchResult[]
 const results = await client.query('authentication', { limit: 5 })
+
+// Same query, plus how many matched before `limit` — the 47 in "showing 10 of 47".
+// `total` is null when the active provider cannot say (a deployment fact, not an
+// error): the local index always knows it; an endpoint knows it only if it
+// reports one. Render the count conditionally, the results unconditionally.
+const { results: page, total } = await client.queryWithTotal('authentication', { limit: 5 })
 
 // Preload index
 await client.preload()

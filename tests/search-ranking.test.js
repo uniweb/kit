@@ -73,7 +73,7 @@ afterEach(() => {
 
 describe('pages containing the term rank above near-misses', () => {
   it('puts every literal match ahead of every fuzzy one', async () => {
-    const ids = (await createIndexProvider(website).query('inset', { limit: 10 })).map((r) => r.id)
+    const ids = (await createIndexProvider(website).query('inset', { limit: 10 })).results.map((r) => r.id)
 
     const lastLiteral = Math.max(ids.indexOf('patterns'), ids.indexOf('reference'))
     const firstFuzzy = Math.min(
@@ -89,20 +89,20 @@ describe('pages containing the term rank above near-misses', () => {
   it('surfaces the documentation page instead of burying it', async () => {
     // The reported symptom, in miniature: this page documents insets and Fuse
     // rates it the worst match of the set.
-    const ids = (await createIndexProvider(website).query('inset', { limit: 10 })).map((r) => r.id)
+    const ids = (await createIndexProvider(website).query('inset', { limit: 10 })).results.map((r) => r.id)
     expect(ids.indexOf('patterns')).toBeLessThan(2)
     expect(contains('patterns', 'inset')).toBe(true)
   })
 
   it('prefers a title match over a body match', async () => {
-    const results = await createIndexProvider(website).query('inset components', { limit: 10 })
+    const { results } = await createIndexProvider(website).query('inset components', { limit: 10 })
     expect(results[0].route).toBe('/docs/reference/insets')
   })
 
   it('requires every word of a multi-word query', async () => {
     // "Inset Components" must not be satisfied by a page that only says one of
     // them, or the tier buys nothing on real queries.
-    const results = await createIndexProvider(website).query('Inset Components', { limit: 10 })
+    const { results } = await createIndexProvider(website).query('Inset Components', { limit: 10 })
     const top = results.slice(0, 2).map((r) => r.id)
     expect(top).not.toContain('insert')
     expect(top).not.toContain('instead')
@@ -113,7 +113,7 @@ describe('fuzzy matching is kept as a fallback', () => {
   it('still answers a misspelled query', async () => {
     // Why near-misses are reordered rather than dropped: with no literal match
     // anywhere, fuzzy is the only thing that can answer at all.
-    const results = await createIndexProvider(website).query('componnt pattrns', { limit: 10 })
+    const { results } = await createIndexProvider(website).query('componnt pattrns', { limit: 10 })
     expect(results.length).toBeGreaterThan(0)
     expect(results[0].route).toBe('/docs/development/component-patterns')
   })

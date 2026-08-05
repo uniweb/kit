@@ -17,12 +17,13 @@ import { useShortcut } from '../hooks/useShortcut.js'
  *
  * @example
  * function SearchComponent() {
- *   const { query, results, isLoading, error } = useSearch(website)
+ *   const { query, results, total, isLoading, error } = useSearch(website)
  *
  *   return (
  *     <div>
  *       <input onChange={e => query(e.target.value)} />
  *       {isLoading && <span>Searching...</span>}
+ *       {total !== null && <span>Showing {results.length} of {total}</span>}
  *       {results.map(r => <SearchResult key={r.id} result={r} />)}
  *     </div>
  *   )
@@ -32,6 +33,7 @@ export function useSearch(website, options = {}) {
   const { debounceMs = 150, ...clientOptions } = options
 
   const [results, setResults] = useState([])
+  const [total, setTotal] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
   const [lastQuery, setLastQuery] = useState('')
@@ -71,6 +73,7 @@ export function useSearch(website, options = {}) {
     // Empty query - clear results immediately
     if (!trimmed) {
       setResults([])
+      setTotal(0)
       setIsLoading(false)
       setError(null)
       return []
@@ -99,7 +102,8 @@ export function useSearch(website, options = {}) {
         setError(null)
 
         try {
-          const searchResults = await client.query(trimmed, queryOptions)
+          const { results: searchResults, total: matchTotal } =
+            await client.queryWithTotal(trimmed, queryOptions)
 
           // Skip if a newer search was started
           if (pendingRef.current !== searchId) {
@@ -108,7 +112,10 @@ export function useSearch(website, options = {}) {
           }
 
           setResults(searchResults)
+          setTotal(matchTotal)
           setIsLoading(false)
+          // Resolves with the ARRAY, unchanged — this hook's promise is a
+          // published surface and the count is available as state instead.
           resolve(searchResults)
         } catch (err) {
           // Skip if a newer search was started
@@ -119,6 +126,7 @@ export function useSearch(website, options = {}) {
 
           setError(err)
           setResults([])
+          setTotal(null)
           setIsLoading(false)
           resolve([])
         }
@@ -136,6 +144,7 @@ export function useSearch(website, options = {}) {
     }
     pendingRef.current = null
     setResults([])
+    setTotal(null)
     setLastQuery('')
     setError(null)
     setIsLoading(false)
@@ -156,6 +165,10 @@ export function useSearch(website, options = {}) {
   return {
     // State
     results,
+    // How many matched before `limit` — the 47 in "showing 10 of 47".
+    // `null` means the active provider cannot say, which is a normal state and
+    // not an error: render the count conditionally, the results always.
+    total,
     isLoading,
     error,
     lastQuery,

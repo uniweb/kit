@@ -342,7 +342,13 @@ export function createIndexProvider(website, options = {}) {
         .sort((a, b) => a.tier - b.tier || a.i - b.i)
         .map(({ r }) => r)
 
-      return results.slice(0, limit).map(({ item, matches }) => {
+      // Exact here, unlike the endpoint provider: the whole corpus is local, so
+      // this counts every match after filtering and before the cut — the number
+      // a "showing 10 of 47" needs, and 47 is knowable only on this side of the
+      // slice.
+      const total = results.length
+
+      const page = results.slice(0, limit).map(({ item, matches }) => {
         const snippet = buildSnippet(item.content, matches, { key: 'content' })
 
         return {
@@ -363,6 +369,8 @@ export function createIndexProvider(website, options = {}) {
           matches
         }
       })
+
+      return { results: page, total }
     },
 
     async preload() {

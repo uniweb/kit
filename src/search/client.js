@@ -84,6 +84,25 @@ async function loadProviderFactory(name, transports) {
  * const search = createSearchClient(website)
  * const results = await search.query('authentication')
  */
+/**
+ * Accept either provider return shape.
+ *
+ * A provider may return `SearchResult[]` or `{ results, total }`. Both are
+ * valid and the array form is not deprecated: `transport.query` is a public
+ * seam a third party implements, and its documented contract has always been
+ * "returns results". Widening that to an envelope would break every custom
+ * transport in the field to add a number most of them cannot supply.
+ *
+ * An array therefore means "no count offered" → `total: null`, which is exactly
+ * what null is for here. Our own two providers return the envelope.
+ */
+function normalizeQueryResult(returned) {
+  if (Array.isArray(returned)) return { results: returned, total: null }
+  const results = Array.isArray(returned?.results) ? returned.results : []
+  const total = Number.isInteger(returned?.total) ? returned.total : null
+  return { results, total }
+}
+
 export function createSearchClient(website, options = {}) {
   const {
     defaultLimit = 10,
@@ -207,7 +226,7 @@ export function createSearchClient(website, options = {}) {
     },
 
     /**
-     * Perform a search query
+     * Perform a search query.
      *
      * @param {string} query - Search query
      * @param {Object} queryOptions - Query options
@@ -218,21 +237,47 @@ export function createSearchClient(website, options = {}) {
      * @returns {Promise<Array>} Search results
      */
     async query(query, queryOptions = {}) {
+      return (await this.queryWithTotal(query, queryOptions)).results
+    },
+
+    /**
+     * The same query, plus how many matched.
+     *
+     * Exists because `query()` returns an array and a count cannot ride on one
+     * without being silently dropped by `.slice()`/`.filter()`/spread — and
+     * `query()` is a published surface returning `SearchResult[]`, so widening
+     * its return would break every foundation iterating it.
+     *
+     * **`total` is the match count BEFORE `limit`** — the 47 in "showing 10 of
+     * 47". It is `null` when unknowable, and null is a real answer rather than
+     * a failure: a provider-optional field in the same sense as `matches` or
+     * `item` on a result. Whether a count arrives is a DEPLOYMENT fact — the
+     * local index always knows it, an endpoint knows it only if it says so —
+     * so a UI must render the count conditionally and the bare result list
+     * unconditionally.
+     *
+     * ⚠️ `total >= results.length` is NOT guaranteed to be checkable: a
+     * provider reporting a count for a set we then filtered locally reports
+     * null instead, precisely so the two numbers are never inconsistent.
+     *
+     * @returns {Promise<{results: Array, total: number|null}>}
+     */
+    async queryWithTotal(query, queryOptions = {}) {
       const { limit = defaultLimit, type, route, signal } = queryOptions
 
       const trimmed = query?.trim()
-      if (!trimmed) return []
+      if (!trimmed) return { results: [], total: 0 }
 
       if (!website.isSearchEnabled()) {
         console.warn('Search is not enabled for this site')
-        return []
+        return { results: [], total: 0 }
       }
 
       const opts = { limit, type, route, signal }
 
       try {
         const provider = await getProvider()
-        return await provider.query(trimmed, opts)
+        return normalizeQueryResult(await provider.query(trimmed, opts))
       } catch (err) {
         // An aborted query is a caller decision, not a provider failure.
         if (err?.name === 'AbortError') throw err
@@ -240,13 +285,13 @@ export function createSearchClient(website, options = {}) {
         const fallback = await fallbackToIndex(err)
         if (!fallback) {
           console.warn(`[uniweb] Search failed: ${err?.message}`)
-          return []
+          return { results: [], total: null }
         }
         try {
-          return await fallback.query(trimmed, opts)
+          return normalizeQueryResult(await fallback.query(trimmed, opts))
         } catch (fallbackErr) {
           console.warn(`[uniweb] Search fallback failed: ${fallbackErr?.message}`)
-          return []
+          return { results: [], total: null }
         }
       }
     },

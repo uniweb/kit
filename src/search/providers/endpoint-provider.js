@@ -149,7 +149,8 @@ export function createEndpointProvider(website, options = {}) {
         )
       }
 
-      const results = extractResults(await response.json()).map(normalize)
+      const payload = await response.json()
+      const results = extractResults(payload).map(normalize)
 
       // Filters are applied client-side because they are not part of the wire
       // contract a third-party endpoint is expected to honor. A server that
@@ -158,7 +159,23 @@ export function createEndpointProvider(website, options = {}) {
       if (type) filtered = filtered.filter(r => r.type === type)
       if (route) filtered = filtered.filter(r => r.route?.startsWith(route))
 
-      return filtered.slice(0, limit)
+      // How many matched, when the endpoint says. Null when it does not, and
+      // null is a real answer — see `total` in client.js.
+      //
+      // ⚠️ Discarded when a local filter removed anything, because then the
+      // server counted a DIFFERENT set: it does not know about `type`/`route`,
+      // so its number describes matches we just narrowed away. Reporting it
+      // would render "showing 3 of 47" beside a filter that produced the 3 —
+      // a number that is not wrong about anything the reader can see, which is
+      // the worst kind. We cannot recompute it either: what arrived was already
+      // capped at `limit`, so the filtered count is a floor, not a total.
+      const narrowed = filtered.length !== results.length
+      const stated = Number.isInteger(payload?.total) ? payload.total : null
+
+      return {
+        results: filtered.slice(0, limit),
+        total: narrowed ? null : stated
+      }
     },
 
     // Nothing to warm: there is no index to download. Defined so every provider
