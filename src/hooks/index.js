@@ -37,3 +37,4 @@ export {
 
 // Form submission lifecycle for foundation Form components
 export { useFormSubmit } from './useFormSubmit.js'
+export { useFormValues, valueAt } from './useFormValues.js'

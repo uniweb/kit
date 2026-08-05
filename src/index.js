@@ -89,7 +89,11 @@ export {
   formatShortcut,
   isApplePlatform,
   // Form submission lifecycle for foundation Form components
-  useFormSubmit
+  useFormSubmit,
+  // The state of an AUTHORED form — seeds defaults, tracks edits, keeps Files
+  // out of the JSON payload. The foundation writes the controls and nothing else.
+  useFormValues,
+  valueAt
 } from './hooks/index.js'
 
 // ============================================================================
