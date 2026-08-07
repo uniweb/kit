@@ -124,6 +124,22 @@ describe('files never reach formData', () => {
     expect(round).toEqual({ email: 'a@b.co', plan: 'free', agree: false })
   })
 
+  /**
+   * `image` is the other spelling of an upload control in the authoring
+   * vocabulary, and the visual editor draws a file picker for it. Checking only
+   * `file` sent an image control's `File` through JSON.stringify, where it
+   * became `{}` — an attachment the visitor chose, reported as sent, arriving
+   * empty. The same failure as above, through the other word.
+   */
+  it('treats an `image` control as an upload, not as data', () => {
+    const { result } = render([{ name: 'avatar', type: 'image' }])
+    const a = file('a.png')
+    act(() => result.current.setValue('avatar', [a]))
+
+    expect(result.current.files).toEqual([{ file: a, field: 'avatar' }])
+    expect(result.current.formData).not.toHaveProperty('avatar')
+  })
+
   it('keeps the File in `values` so the input can show its selection', () => {
     const { result } = render(CONTROLS)
     act(() => result.current.setValue('photos', [file('a.png')]))

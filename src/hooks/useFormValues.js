@@ -171,6 +171,18 @@ function setIn(node, [key, ...rest], value) {
 }
 
 /**
+ * Which control kinds hold uploads.
+ *
+ * BOTH `file` and `image` — they are two words in the authoring vocabulary for
+ * the same control, and the visual editor draws a file picker for either. Only
+ * `file` was checked here, so an `image` control's `File` objects went into
+ * `formData` and `JSON.stringify` turned each into `{}`: an attachment the
+ * visitor chose, reported as sent, arriving empty. Exactly the failure the
+ * split below exists to prevent, reachable through the other spelling.
+ */
+const isUpload = (control) => control.type === 'file' || control.type === 'image'
+
+/**
  * Split the held values into what is submitted and what is uploaded.
  *
  * File controls are omitted from `formData` rather than serialized: they would
@@ -186,7 +198,7 @@ function split(controls, values) {
     const value = valueAt(values, control.path)
     if (value === undefined) continue
 
-    if (control.type === 'file') {
+    if (isUpload(control)) {
       for (const file of [].concat(value).filter(isFile)) {
         files.push({ file, field: control.path })
       }
