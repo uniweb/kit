@@ -393,10 +393,12 @@ describe('submitForm — uploading attachments', () => {
     // built against verifies each slot against storage rather than trusting
     // this, but a stricter reading of the contract requires it and an absent
     // array is a malformed call there — so send it and satisfy both.
+    // `field` rides here too, so the two manifests describing the same files
+    // describe them with the same keys.
     expect(JSON.parse(fetchFn.calls[3].init.body)).toEqual({
       submissionId: 'sub-1',
       files: [
-        { slot: 0, name: 'a.pdf', size: 3, mime: 'application/pdf' },
+        { slot: 0, name: 'a.pdf', size: 3, mime: 'application/pdf', field: 'photos' },
         { slot: 1, name: 'b.png', size: 3, mime: 'image/png' },
       ],
     })
@@ -462,6 +464,51 @@ describe('submitForm — uploading attachments', () => {
     await submitForm({ formData: { a: '1' }, target: '/_submit', files: [fileOf('a.pdf')], fetchFn })
 
     expect(fetchFn.calls[1].url).toBe('https://r2/put/0')
+  })
+
+  /**
+   * The RECORD form, which is what the endpoint this client is built against
+   * actually returns: `{slot, name, uploadUrl}`, not a bare string.
+   *
+   * The string case above was written from this client's own idea of the shape
+   * and passed for exactly as long as nobody compared it to a real response. A
+   * record is truthy, so it went out as the URL and `fetch` stringified it to
+   * `[object Object]` — every upload requesting a path that cannot exist, after
+   * the submission row was already written. Not a degradation: a total failure
+   * of the file half, reported to the visitor as "your message arrived and your
+   * files did not".
+   */
+  it('reads the record form of uploadUrls that endpoints actually return', async () => {
+    const fetchFn = uploadFetch({
+      submissionId: 'sub-2b',
+      uploadUrls: [{ slot: 0, name: 'a.pdf', uploadUrl: '/_submit/upload' }],
+    })
+    await submitForm({ formData: { a: '1' }, target: '/_submit', files: [fileOf('a.pdf')], fetchFn })
+
+    expect(fetchFn.calls[1].url).toBe('/_submit/upload')
+  })
+
+  it('falls back to {target}/upload when an entry names no usable url', async () => {
+    const fetchFn = uploadFetch({ submissionId: 'sub-2c', uploadUrls: [{ slot: 0, name: 'a.pdf' }] })
+    await submitForm({ formData: { a: '1' }, target: '/_submit', files: [fileOf('a.pdf')], fetchFn })
+
+    // The documented path, rather than a stringified object.
+    expect(fetchFn.calls[1].url).toBe('/_submit/upload')
+  })
+
+  it('carries `field` in the finalize manifest, as it does at create', async () => {
+    const fetchFn = uploadFetch({ submissionId: 'sub-2d' })
+    await submitForm({
+      formData: { a: '1' },
+      target: '/_submit',
+      files: [{ file: fileOf('resume.pdf'), field: 'resume' }],
+      fetchFn,
+    })
+
+    const create = JSON.parse(fetchFn.calls[0].init.body)
+    const finalize = JSON.parse(fetchFn.calls[2].init.body)
+    expect(create.fileSlots[0]).toMatchObject({ name: 'resume.pdf', field: 'resume' })
+    expect(finalize.files[0]).toMatchObject({ slot: 0, name: 'resume.pdf', field: 'resume' })
   })
 
   it('skips both extra calls when there are no files', async () => {

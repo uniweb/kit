@@ -140,6 +140,35 @@ export async function submitForm({
 }
 
 /**
+ * One entry of an endpoint's `uploadUrls`, as a URL.
+ *
+ * Two shapes are in the wild and both mean the same thing: a bare URL string,
+ * or a **record** describing the slot — `{slot, name, uploadUrl}` is what the
+ * endpoint this client is built against actually returns. Reading only the
+ * string form does not degrade, it *breaks*: a record is truthy, so it was used
+ * as the URL directly and `fetch` stringified it to `[object Object]`, turning
+ * every upload into a request for a path that cannot exist. The submission row
+ * was already written by then, so the visitor's message arrived and their files
+ * did not.
+ *
+ * Anything that does not yield a non-empty string returns `''`, so the caller
+ * falls back to the documented `{target}/upload` — which is where the bytes were
+ * going anyway in every deployment seen so far.
+ *
+ * @param {*} entry
+ * @returns {string}
+ */
+function readUploadUrl(entry) {
+  if (typeof entry === 'string') return entry.trim()
+  if (entry && typeof entry === 'object') {
+    for (const key of ['uploadUrl', 'url', 'href']) {
+      if (typeof entry[key] === 'string' && entry[key].trim()) return entry[key].trim()
+    }
+  }
+  return ''
+}
+
+/**
  * Accept either bare `File`s or `{ file, field }` pairs, and drop anything that
  * is not a file. The pair form exists so a submission can say WHICH field an
  * attachment came from — a form may have more than one file input.
@@ -189,7 +218,7 @@ async function uploadFiles(entries, result, target, fetchFn) {
   const urls = Array.isArray(result?.uploadUrls) ? result.uploadUrls : []
 
   for (const [slot, { file }] of entries.entries()) {
-    const url = urls[slot] || `${base}/upload`
+    const url = readUploadUrl(urls[slot]) || `${base}/upload`
     let res
     try {
       res = await fetchFn(url, {
@@ -221,11 +250,18 @@ async function uploadFiles(entries, result, target, fetchFn) {
   // count is what a quota or an invoice would otherwise derive from. Sending it
   // costs a few bytes and satisfies the stricter reading of the contract, in
   // which `files` is required and its absence is a malformed call.
-  const manifest = entries.map(({ file }, slot) => ({
+  // Carries `field` for the same reason the create manifest does — which form
+  // control an attachment answers is the difference between a readable
+  // submission and two anonymous blobs. The two manifests describe the same
+  // files and now describe them with the same keys; a receiver that built its
+  // stored record from this one rather than from the create manifest would
+  // otherwise lose the association, silently and only for uploads.
+  const manifest = entries.map(({ file, field }, slot) => ({
     slot,
     name: file.name,
     size: file.size,
     mime: file.type || 'application/octet-stream',
+    ...(field ? { field } : {}),
   }))
 
   const done = await fetchFn(`${base}/finalize`, {
