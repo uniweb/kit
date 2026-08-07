@@ -32,7 +32,10 @@
  *                                                   when omitted
  * @param {object} [args.context]                  — where the submission came from:
  *                                                   formId, sectionType, sectionId,
- *                                                   pageId, pageLabel
+ *                                                   pageId, pageLabel. `formId` is
+ *                                                   sent at the top level of the
+ *                                                   body; the rest ride in
+ *                                                   `metadata` (see below)
  * @param {string} [args.verificationToken]        — bot-protection token, when the
  *                                                   endpoint verifies one
  * @param {Array<File|{file:File,field?:string}>} [args.files]
@@ -95,10 +98,20 @@ export async function submitForm({
       }))
     : fileSlots
 
+  // `formId` rides at the TOP LEVEL, not inside `metadata` with the rest of the
+  // context. It is the only part of a submission's origin an endpoint stores as
+  // its own field rather than in an opaque blob, because it is what submissions
+  // are grouped BY — every other origin key is decoration read back for display.
+  // Nesting it means the endpoint's own column is never filled, and nothing on
+  // either side reports that: the value is present, one level down, and the
+  // column is simply null forever.
+  const { formId, ...origin } = context || {}
+
   // ── API name → wire name. See the header before "correcting" these. ──
   const body = {
     formData,
-    metadata: { ...context, preview: summary || deriveSummary(formData) },
+    ...(formId ? { formId } : {}),
+    metadata: { ...origin, preview: summary || deriveSummary(formData) },
     ...(verificationToken ? { turnstileToken: verificationToken } : {}),
     ...(Array.isArray(slots) && slots.length ? { fileSlots: slots } : {}),
   }

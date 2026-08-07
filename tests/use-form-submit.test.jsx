@@ -94,14 +94,35 @@ describe('useFormSubmit', () => {
     await act(async () => { await result.current.submit({ Name: 'Ada' }) })
     await waitFor(() => expect(result.current.status).toBe('success'))
 
-    const { metadata } = JSON.parse(fetchFn.calls[0].init.body)
-    expect(metadata).toMatchObject({
-      formId: 'contact',
+    const body = JSON.parse(fetchFn.calls[0].init.body)
+
+    // `formId` is a TOP-LEVEL field, not part of `metadata`. An endpoint stores
+    // it as its own column and groups submissions by it; the rest of the origin
+    // is an opaque blob it reads back for display. This assertion used to read
+    // `metadata.formId` and passed — which is exactly how the column stayed
+    // empty on every row while both ends' tests were green.
+    expect(body.formId).toBe('contact')
+    expect(body.metadata).not.toHaveProperty('formId')
+
+    expect(body.metadata).toMatchObject({
       sectionType: 'ContactForm',
       sectionId: 'contact', // stableId, not the positional id
       pageId: 'about',
       pageLabel: 'Overridden',
     })
+  })
+
+  it('omits formId entirely when no component supplies one', async () => {
+    const fetchFn = fakeFetch()
+    setWebsite(makeWebsite({ submit: '/forms' }))
+
+    const { result } = renderHook(() => useFormSubmit({ fetchFn }))
+    await act(async () => { await result.current.submit({ Name: 'Ada' }) })
+    await waitFor(() => expect(result.current.status).toBe('success'))
+
+    // Absent rather than null or '' — an endpoint's column stays empty because
+    // nothing named the form, which is a different fact from "named as blank".
+    expect(JSON.parse(fetchFn.calls[0].init.body)).not.toHaveProperty('formId')
   })
 
   it('falls back to the positional id when a block has no stable one', async () => {

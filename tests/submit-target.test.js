@@ -213,8 +213,12 @@ describe('submitForm', () => {
 
     const body = JSON.parse(fetchFn.calls[0].init.body)
     expect(body.turnstileToken).toBe('token-123')
+
+    // `formId` is lifted OUT of the context and sent at the top level, because
+    // that is where the endpoint reads it into its own column. Everything else
+    // in the context stays inside `metadata`.
+    expect(body.formId).toBe('contact')
     expect(body.metadata).toEqual({
-      formId: 'contact',
       sectionType: 'ContactForm',
       preview: { title: 'Ada', subtitle: 'ada@example.com', tag: 'contact' },
     })
