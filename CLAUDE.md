@@ -36,9 +36,12 @@ src/components/Image/
 - `fuse.js` — Client-side search
 - `shiki` — Syntax highlighting
 - `@tailwindcss/typography` — the prose plugin behind `prose-tokens.css`
+- `temml` — **CSS only.** `math-tokens.css` does `@import "temml/dist/Temml-Local.css"`; kit never imports Temml's JS
 - React 19 as peer dependency
 
-**`fuse.js` and `shiki` are direct dependencies on purpose, not peers.** Kit is bundled *into* a foundation by that foundation's Vite build, so kit's own dynamic imports have to resolve from the foundation's `node_modules`. Declaring them as peers would leave them absent there. They stay lazy-loaded and code-split — direct just means resolvable. See the framework scope's gotcha on the foundation/site build architecture.
+**`fuse.js`, `shiki` and `temml` are direct dependencies on purpose, not peers.** Kit is bundled *into* a foundation by that foundation's Vite build, so kit's own imports have to resolve from the foundation's `node_modules`. Declaring them as peers would leave them absent there. They stay lazy-loaded and code-split — direct just means resolvable. See the framework scope's gotcha on the foundation/site build architecture.
+
+`temml` is the same rule applied to a stylesheet rather than a dynamic import, and the install-graph cost is not what reaches a bundle: the package is ~2.3 MB of JS kit never touches, while only `Temml-Local.css` (8.7 KB) and `Temml.woff2` (9.4 KB) ship, and only for foundations that import `math-tokens.css`. It is imported rather than vendored because the bundler resolves the font URL — a text copy breaks that and drifts from the Temml that produced the markup. The alternative considered and rejected was depending on `@uniweb/content-reader` (which owns the renderer): that inverts the layering — a runtime package taking a build-time one — and would drag `marked` and `js-yaml` into every foundation to obtain a stylesheet.
 
 ## Publishing
 

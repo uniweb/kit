@@ -5,85 +5,99 @@
  *
  *   @import "@uniweb/kit/math-tokens.css";
  *
- * `prose-tokens.css` already imports this, so a foundation using that needs
- * nothing further. This file exists separately because rendering math and
- * setting up prose typography are different decisions: the academic template
- * has 23 equations and no prose column, and while these rules lived inside
- * prose-tokens it shipped its maths unstyled — matrices with their rows
- * touching, `=` signs out of line, no equation numbers — with nothing to point
- * at. Correct metrics are not a typography opt-in.
+ * That single import is the whole contract: it pulls Temml's own stylesheet AND
+ * the two corrections below. `prose-tokens.css` does NOT pull it in — a
+ * foundation that renders equations imports both, and prose-tokens' own header
+ * says so. (`framework/_contracts/math-css-parity.test.js` fails if any kit
+ * stylesheet imports a sibling.) Rendering math and setting up prose typography
+ * are different decisions: the academic template has 23 equations and no prose
+ * column, and while these rules lived inside prose-tokens it shipped its maths
+ * unstyled. Correct metrics are not a typography opt-in.
  *
- * press emits the same declarations into its EPUB and Paged.js output, since
- * those lanes carry their own stylesheets and cannot import this one. The two
- * copies are pinned by `framework/_contracts/math-css-parity.test.js`.
+ * ── Why the @import, and why it is not a copy ──
+ *
+ * Temml renders LaTeX to MathML and expects its own stylesheet to be present.
+ * That sheet is not decoration: `<menclose>` is NOT a MathML-Core element, it is
+ * Temml's polyfill, and the rules that draw `\cancel`, `\overline` and `\sout`
+ * over it live only there. Without them those constructs render as the bare
+ * term — a formula that means something different from what the author wrote.
+ * It also carries the `@font-face` for `Temml.woff2` and the per-engine
+ * `@supports` arms for accents and stretchy glyphs.
+ *
+ * The font is load-bearing for more ordinary content than it looks. Two rules
+ * ask for it: `math .mathscr` (`\mathscr`, a clone of KaTeX_Script remapped onto
+ * Unicode 1D49C–1D4B5) and `mo.tml-prime` — so every `f'` and `f''` depends on
+ * it for vertical alignment. Note it is NOT what renders `\mathcal`: that goes
+ * through `*.mathcal { font-feature-settings: 'ss01' }`, a NotoSans stylistic
+ * set, and is unaffected by the font's presence.
+ *
+ * It is imported rather than vendored because the bundler resolves the font URL
+ * for us — Vite emits `Temml.woff2` as an asset and rewrites the `src`. A text
+ * copy breaks that, and drifts from the Temml that produced the markup.
+ *
+ * ⚠️ `temml` is therefore a DIRECT dependency of kit, for the same reason
+ * `shiki` and `fuse.js` are: kit is bundled into a foundation by that
+ * foundation's Vite build, so kit's own imports must resolve from the
+ * foundation's `node_modules`. Only this stylesheet and the font reach a bundle;
+ * kit never imports Temml's JS.
+ *
+ * ── Why only two rules below ──
+ *
+ * This file used to carry eight, and six of them were Temml's own restated —
+ * lifted individually, without the sheet that scopes them, which is what caused
+ * the gap this import closes. Restating them was worse than redundant:
+ *
+ *   .tml-right / .tml-left    Temml declares these TWICE — plain, then
+ *                             `text-align: -webkit-right` inside a Chromium
+ *                             `@supports` arm. An unconditional copy landing
+ *                             last defeated the arm in the browser it was for.
+ *   .tml-sml-pad              Temml scopes it to non-Firefox; ours did not.
+ *   mtable.tml-jot mtd        Temml has it, same values, plus a Firefox variant.
+ *   .tml-eqn::before          Temml has it, and `body { counter-reset }` too.
+ *
+ * Anything Temml already states correctly is now simply Temml's. What is left is
+ * what Temml genuinely does not have.
  */
+@import "temml/dist/Temml-Local.css";
 
-/* ─── Math (Temml → MathML) ────────────────────────────────────────────────────
-   Browsers render MathML natively, so it is easy to conclude math needs no CSS.
-   It needs these, for two separate reasons.
+/* ─── Correction 1: the mtd padding Temml assumes but does not set ──────────
+   Temml's sheet says "Default mtd top padding is 0.5ex per MathML-Core and
+   user-agent CSS" and only *adjusts* it for jot and small. Measured in Chrome
+   (2026-07), a pristine `mtd` gets 0px. A `pmatrix` or `cases` carries no
+   `tml-*` class at all, so nothing else covers it and its rows sit touching.
 
-   Temml emits class hooks and expects a stylesheet to define them: `tml-left`
-   and `tml-right` carry the `&` column alignment of an `aligned` environment,
-   `tml-jot` its extra row spacing. Undefined, a derivation's `=` signs drift
-   out of line and its rows sit flush. Those three declarations are Temml's own.
+   ⚠️ Guarded to exclude Firefox, and that is load-bearing rather than cautious.
+   Temml zeroes `mtd` padding deliberately inside `@-moz-document url-prefix()`
+   ("Adjust Firefox spacing between array rows"). An unguarded `math mtd` rule
+   outranks it on specificity (0,0,2 vs 0,0,1) regardless of the at-rule, so it
+   would silently undo that tuning in the one engine Temml had tuned. This is
+   the same mistake as the `.tml-right` copy above, which is why it is stated
+   here instead of being learned twice.
 
-   The `math mtd` rule is not. Temml's stylesheet only *adjusts* row spacing for
-   jot, on the stated assumption that mtd already gets 0.5ex of vertical padding
-   "per MathML-Core and user-agent CSS" — but a pristine mtd measures 0px in
-   Chrome (2026-07). A pmatrix or cases carries no tml-* class at all, so
-   Temml's stylesheet alone fixes the derivation and leaves the matrix touching.
-
-   These live here rather than in their own opt-in file because correct math
-   metrics are not a design choice the way callout colours are — a site that
-   sets its typography should not also have to know this.
-
-   press ships the same declarations to the EPUB and Paged.js lanes, which have
-   their own stylesheets and cannot import this one. That duplicate is pinned by
-   `framework/_contracts/math-css-parity.test.js`, not by trust. */
-.tml-right { text-align: right; }
-.tml-left { text-align: left; }
-.tml-sml-pad { padding-left: 0.05em; }
-math mtd { padding-top: 0.5ex; padding-bottom: 0.5ex; }
-math mtable.tml-jot mtd { padding-top: 0.7ex; padding-bottom: 0.7ex; }
-
-/* AMS auto-numbering, for lanes that keep our CSS counter.
-
-   Scoped to :empty because the document lanes cannot rely on it -- Paged.js
-   rewrites counters for its own pagination and strips counter-increment, so
-   every equation rendered as "(0)" (measured 2026-07-31; the declaration
-   survives intact without the polyfill). press therefore writes the numbers
-   into the spans as text, and a span carrying a number is no longer :empty, so
-   the two can never both fire.
-
-   AMS auto-numbering. Which equations number is the AUTHOR's choice, made in
-   LaTeX: `align` and `equation` number, `aligned` and the starred forms do not.
-   Without these two rules that choice was discarded -- `align` and `align*`
-   rendered identically, so an author who asked for numbers silently got none. */
-.tml-eqn:empty::before {
-  counter-increment: tmlEqnNo;
-  content: "(" counter(tmlEqnNo) ")";
+   `@supports (not (-moz-appearance: none))` is Temml's own idiom for
+   "everywhere but Firefox". */
+@supports (not (-moz-appearance: none)) {
+  math mtd { padding-top: 0.5ex; padding-bottom: 0.5ex; }
 }
-body {
-  counter-reset: tmlEqnNo;
-}
-/* Display math needs CSS block layout, not MathML layout, for an equation TAG
-   to reach the right margin: the tag rides in an mtable whose `width:100%`
+
+/* ─── Correction 2: let a numbered equation's TAG reach the margin ──────────
+   Display math needs CSS block layout, not MathML layout, for an equation tag
+   to sit at the right margin: the tag rides in an mtable whose `width: 100%`
    Chromium ignores under `display: block math`, collapsing the spacer cells so
-   "(1)" sits glued to the equation instead of at the margin.
+   "(1)" ends up glued to the equation.
 
-   `!important` is not decoration. Temml emits `style="display:block math"` on
-   every display formula unconditionally — no option turns it off — so an inline
-   style beats any rule we write, including Temml's own `math.tml-display
-   { display: block }`, which is exactly what this restores. Fixing it here
-   rather than in the generator also repairs math that was already built.
+   Temml already declares `math.tml-display { display: block; width: 100% }`,
+   and it cannot win: Temml emits `style="display:block math"` inline on every
+   display formula unconditionally, with no option to turn it off, and an inline
+   style beats any stylesheet rule. So this restores Temml's own intent with the
+   `!important` its own rule lacks.
 
-   Scoped with :has() to formulas that actually carry a tag. Switching every
-   display formula to CSS block layout would left-align the lot -- MathML layout
-   is what centres them -- so an unnumbered derivation or matrix keeps
-   `display: block math` and stays centred. Where :has() is unsupported the tag
-   simply does not reach the margin; nothing else changes. */
+   Scoped with `:has()` to formulas that actually carry a tag. Switching every
+   display formula to CSS block layout would left-align the lot — MathML layout
+   is what centres them — so an unnumbered derivation or matrix keeps
+   `display: block math` and stays centred. Where `:has()` is unsupported the
+   tag simply does not reach the margin; nothing else changes. */
 math.tml-display:has(.tml-eqn) {
   display: block !important;
   width: 100%;
 }
-
