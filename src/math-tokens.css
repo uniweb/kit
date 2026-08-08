@@ -31,6 +31,20 @@
  * through `*.mathcal { font-feature-settings: 'ss01' }`, a NotoSans stylistic
  * set, and is unaffected by the font's presence.
  *
+ * ⚠️ Do not read that `@font-face` as "math fonts are handled" — it is 9 KB of
+ * script capitals and primes, not a math font. The actual glyphs, stretchy
+ * brackets and radicals come from an OpenType MATH font on the READER's machine:
+ * Temml's stack ends in the generic `math` keyword, which is the CSS mechanism
+ * for "give me whatever math font you have". We ship none, deliberately — STIX
+ * Two Math is ~820 KB, which is a lot to put in every math-bearing foundation.
+ *
+ * As of 2026-08-08 that is fine on desktop (Windows ships Cambria Math, macOS
+ * ships STIXTwoMath.otf in /System/Library/Fonts/Supplemental) and is the weak
+ * spot on Linux and Android, which often have neither. To test any machine:
+ * render a `pmatrix` and see whether its parentheses stretch to the rows. If
+ * this ever needs solving, the missing lever is a `math` font role in
+ * `theme.yml` — the roles today are body / heading / code.
+ *
  * It is imported rather than vendored because the bundler resolves the font URL
  * for us — Vite emits `Temml.woff2` as an asset and rewrites the `src`. A text
  * copy breaks that, and drifts from the Temml that produced the markup.
