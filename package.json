@@ -42,9 +42,9 @@
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.20",
-    "@uniweb/core": "workspace:*",
-    "@uniweb/scene": "workspace:*",
-    "@uniweb/semantic-parser": "workspace:*",
+    "@uniweb/core": "workspace:^",
+    "@uniweb/scene": "workspace:^",
+    "@uniweb/semantic-parser": "workspace:^",
     "clsx": "^2.1.0",
     "fuse.js": "^7.0.0",
     "shiki": "^3.0.0",
