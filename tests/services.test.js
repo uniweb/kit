@@ -105,6 +105,54 @@ describe('resolveService — the registry is open, not an enum', () => {
   })
 })
 
+// A declaration may carry settings the resolver knows nothing about — a
+// persona, a model preference, whatever that service needs. `readEndpoint`
+// reads `.endpoint` and ignores the rest, so a block that CONFIGURES a service
+// without ADDRESSING it must still fall through to the host.
+//
+// That is what lets one key hold both an address (a deployment fact) and
+// authored settings (the site's own). Without it the two would need separate
+// keys, and an author who set only the settings would silently lose the host's
+// endpoint — turning a site that works into one whose service is "absent".
+//
+// ⚠️ `treats blank declarations as absent` above covers `{}`, which is NOT this
+// property: it proves an EMPTY object resolves to nothing, with no host in the
+// fixture. The regression guarded here is "a non-empty object means
+// configured" — a change that passes the `{}` case and breaks every one below.
+describe('resolveService — a declaration may configure without addressing', () => {
+  it('falls through to the host when the site block names no endpoint', () => {
+    const w = site({
+      assistant: { system: 'You are a support assistant.' },
+      services: { assistant: { endpoint: '/_ai/chat' } },
+    })
+    expect(resolveService(w, 'assistant')).toEqual({
+      url: '/_ai/chat',
+      reason: null,
+      source: 'host',
+    })
+  })
+
+  it('reaches the host decline when the site block names no endpoint', () => {
+    const w = site({
+      assistant: { system: 'You are a support assistant.' },
+      services: { assistant: { reason: 'Not offered here.' } },
+    })
+    expect(resolveService(w, 'assistant')).toEqual({
+      url: null,
+      reason: 'Not offered here.',
+      source: 'host',
+    })
+  })
+
+  it('still prefers the site when the block carries settings AND an endpoint', () => {
+    const w = site({
+      assistant: { system: 'You are a support assistant.', endpoint: '/mine' },
+      services: { assistant: { endpoint: '/_ai/chat' } },
+    })
+    expect(resolveService(w, 'assistant')).toMatchObject({ url: '/mine', source: 'site' })
+  })
+})
+
 describe('resolveServiceUrl — the join', () => {
   it('roots a bare relative endpoint', () => {
     // `endpoint: _search` is documented and in use. Left unrooted it would
