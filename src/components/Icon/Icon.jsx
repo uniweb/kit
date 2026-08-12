@@ -39,6 +39,28 @@ const BUILT_IN_ICONS = {
  * @returns {Object} { viewBox, content, width, height }
  */
 /**
+ * Coerce a size prop into a valid CSS length.
+ *
+ * React appends `px` to a NUMERIC style value but passes a string through
+ * verbatim — and this component's default is the string `'24'`, so it emitted
+ * `style="width:24;height:24"`. Both declarations are invalid CSS and the
+ * browser drops them, leaving the <svg> at its default replaced-element size.
+ *
+ * That stayed invisible for as long as every caller sized the icon with a class
+ * (`h-8 w-8`) or placed it where a stray size did not matter. It became visible
+ * when icons started rendering INLINE inside prose: with no valid width, the
+ * glyph could not share a line and broke the sentence across three lines.
+ *
+ * Only a bare number is touched, so `'2rem'`, `'1.5em'`, `'100%'` and a real
+ * number are all unchanged.
+ */
+function cssLength(value) {
+  return typeof value === 'string' && /^-?\d*\.?\d+$/.test(value.trim())
+    ? `${value.trim()}px`
+    : value
+}
+
+/**
  * Extract an attribute value from an SVG opening tag string
  */
 function getAttr(svgTag, name) {
@@ -253,7 +275,7 @@ export function Icon({
       loadingComponent || (
         <span
           className={cn('inline-flex items-center justify-center', className)}
-          style={{ width: size, height: size }}
+          style={{ width: cssLength(size), height: cssLength(size) }}
           role="img"
           aria-hidden="true"
         />
@@ -287,7 +309,7 @@ export function Icon({
       return (
         <span
           className={cn('inline-flex items-center justify-center', className)}
-          style={{ width: size, height: size }}
+          style={{ width: cssLength(size), height: cssLength(size) }}
           role="img"
           aria-hidden="true"
         />
@@ -298,8 +320,8 @@ export function Icon({
 
   // Build style
   const style = {
-    width: size,
-    height: size,
+    width: cssLength(size),
+    height: cssLength(size),
     ...(color && !preserveColors ? { color } : {})
   }
 

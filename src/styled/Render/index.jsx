@@ -60,6 +60,22 @@ import { Divider } from '../Section/renderers/Divider.jsx'
 const INLINE_INSET_RE = /<uniweb-inset data-ref-id="([^"]+)"><\/uniweb-inset>/g
 
 /**
+ * Inline atoms the parser leaves as markers in a paragraph's HTML, because each
+ * needs a React component rather than markup: an inset resolves to a Block, an
+ * icon to <Icon> (which fetches library+name from the icon CDN).
+ *
+ * One regex for both so a paragraph carrying a mix is split in a single pass and
+ * every fragment keeps its authored position.
+ */
+const INLINE_MARKER_RE =
+  /<uniweb-inset data-ref-id="([^"]+)"><\/uniweb-inset>|<uniweb-icon data-index="(\d+)"><\/uniweb-icon>/g
+
+/** Does this HTML string carry any inline marker needing component substitution? */
+function hasInlineMarkers(html) {
+  return typeof html === 'string' && /<uniweb-(?:inset|icon)\b/.test(html)
+}
+
+/**
  * Element types this engine knows about and deliberately renders NOTHING for.
  *
  * Listed rather than left to fall through `default:`, so a drop is a decision
@@ -130,22 +146,37 @@ function toSequence(content, block) {
  * positions via the framework's child-block renderer — the same path
  * block-level insets take, scoped to one inset.
  */
-function renderParagraphWithInsets(html, block) {
-  if (!block) return <SafeHtml value={html} as="span" />
+function renderParagraphWithInsets(html, block, element) {
+  // An icon needs no Block, so a paragraph carrying only icons still resolves
+  // without one — only insets require `block` for the getInset() lookup.
+  const icons = (element?.children || []).filter((c) => c?.type === 'icon')
+  if (!block && !icons.length) return <SafeHtml value={html} as="span" />
+
   const InsetRenderer = getChildBlockRenderer()
   const parts = []
   let lastIdx = 0
-  INLINE_INSET_RE.lastIndex = 0
+  INLINE_MARKER_RE.lastIndex = 0
   let match
-  while ((match = INLINE_INSET_RE.exec(html)) !== null) {
+  while ((match = INLINE_MARKER_RE.exec(html)) !== null) {
     if (match.index > lastIdx) {
       parts.push(<SafeHtml key={`t${lastIdx}`} value={html.slice(lastIdx, match.index)} as="span" />)
     }
+
     const refId = match[1]
-    const insetBlock = block.getInset?.(refId)
-    if (insetBlock && InsetRenderer) {
-      parts.push(<InsetRenderer key={`i${refId}`} blocks={[insetBlock]} />)
+    const iconIndex = match[2]
+
+    if (refId !== undefined) {
+      const insetBlock = block?.getInset?.(refId)
+      if (insetBlock && InsetRenderer) {
+        parts.push(<InsetRenderer key={`i${refId}`} blocks={[insetBlock]} />)
+      }
+    } else if (iconIndex !== undefined) {
+      // Ordinal into the icons of this element's `children`, in document order
+      // — the contract semantic-parser's getTextContent() emits the marker on.
+      const icon = icons[Number(iconIndex)]
+      if (icon) parts.push(<Icon key={`ic${iconIndex}`} {...icon.attrs} />)
     }
+
     lastIdx = match.index + match[0].length
   }
   if (lastIdx < html.length) {
@@ -187,8 +218,8 @@ function renderCell(cell, block, components) {
 
   if (only?.type === 'paragraph') {
     if (!only.text) return null
-    return /<uniweb-inset/.test(only.text) ? (
-      renderParagraphWithInsets(only.text, block)
+    return hasInlineMarkers(only.text) ? (
+      renderParagraphWithInsets(only.text, block, only)
     ) : (
       <SafeHtml value={only.text} as="span" />
     )
@@ -229,17 +260,23 @@ export function SequenceElement({ element, block, components }) {
       const Tag = `h${level}`
       // The id is the anchor `useHeadings()` and every in-page nav link
       // resolve against, so it is behaviour rather than decoration.
+      // headingId() runs stripTags() first, so a marker in the text does not
+      // change the anchor — an icon in a heading keeps the id the TOC links to.
       return (
         <Tag id={authoredId(element) || headingId(element.text || '')}>
-          <SafeHtml value={element.text} as="span" />
+          {hasInlineMarkers(element.text) ? (
+            renderParagraphWithInsets(element.text, block, element)
+          ) : (
+            <SafeHtml value={element.text} as="span" />
+          )}
         </Tag>
       )
     }
 
     case 'paragraph': {
       if (!element.text) return null
-      if (/<uniweb-inset/.test(element.text)) {
-        return <p>{renderParagraphWithInsets(element.text, block)}</p>
+      if (hasInlineMarkers(element.text)) {
+        return <p>{renderParagraphWithInsets(element.text, block, element)}</p>
       }
       return (
         <p>
