@@ -51,7 +51,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
  * It lists the paths of `required` controls that are still empty. It does not
  * block anything: whether an incomplete form disables the button, shows a
  * message, or submits anyway is a design decision. `useFormSubmit` draws the
- * same line with `canSubmit` / `unavailableReason` — the kit works out the
+ * same line with `canSubmit` — the kit works out the
  * fact, the foundation decides what it looks like.
  *
  * Empty means `undefined`, `null`, `''`, or `[]`. A `false` boolean is a VALUE,

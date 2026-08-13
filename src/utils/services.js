@@ -17,8 +17,8 @@ import { applyBasePath } from './href.js'
  *   2. **The host**, served — `config.services.<name>` in the payload. What the
  *      deployment offers, which the site never had to know about.
  *
- * Absent from both means the site has no such service, and the component says so
- * rather than guessing an address. That is the same rule for every service, and
+ * Absent from both means the site has no such service, and the component renders
+ * for that rather than guessing an address. That is the same rule for every service, and
  * it is why this module exists: it was previously implemented three times — the
  * search provider, the submit resolver, and a hand-rolled copy inside a
  * foundation — with three slightly different base-joining rules between them.
@@ -37,11 +37,33 @@ import { applyBasePath } from './href.js'
  *
  * ## What this deliberately does not model
  *
- * **Entitlement.** A host that will not serve a service either omits it or
- * supplies a `reason`, which is relayed to the UI verbatim. The framework never
- * learns why — no plan names, no tiers, no "paid" anywhere. That is not
- * squeamishness: `@uniweb/kit` is public, and a framework that encodes which
- * capabilities cost money ships the business model into open source.
+ * **Entitlement.** A host that will not serve a service omits it, or declares
+ * the name with no address. The framework never learns why — no plan names, no
+ * tiers, no "paid" anywhere. That is not squeamishness: `@uniweb/kit` is
+ * public, and a framework that encodes which capabilities cost money ships the
+ * business model into open source.
+ *
+ * ⛔ **There is deliberately no explanatory string, and there was one — it was
+ * a mistake.** Until 2026-08-13 a declining host could supply a `reason` that
+ * this module relayed "to the UI verbatim", with an English default
+ * (`NO_SERVICE_REASON`) when nothing did. Removed, on two counts:
+ *
+ *   1. **Wrong audience.** A visitor has no stake in which services an operator
+ *      provisioned. "Submissions are not enabled for this site" reports someone's
+ *      billing state to the public and reads like a breakage. It is neither — it
+ *      is a service that was not bought, and **a generic component is supposed to
+ *      be smart about that.**
+ *   2. **Wrong language, unfixably.** Sites here are multilingual, or unilingual
+ *      and not English. A host-supplied sentence bypasses the site's entire
+ *      localization pipeline, and a canned constant in a public package cannot
+ *      be translated at all. Any text a visitor should read is *site content*,
+ *      which is authored and localized — never a string a service layer invents.
+ *
+ * ⇒ **`url` is the whole answer, and absence is a rendering decision rather
+ * than a message.** No submit endpoint → render no form, or degrade to
+ * something that still serves the visitor: a `mailto:` or a number the site
+ * already carries in its content. No assistant → render no Ask-AI affordance.
+ * Nobody is told why, because nobody visiting needs to know.
  *
  * **The site's own base.** `config.base` is where the site *lives*, not a
  * service it consumes — it is load-bearing for routing and asset URLs too. It
@@ -50,9 +72,6 @@ import { applyBasePath } from './href.js'
 
 /** Anything with a scheme, or protocol-relative — never joined to a base. */
 const ABSOLUTE_URL_RE = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i
-
-/** Shown when nothing supplies a service and the caller gives no wording. */
-export const NO_SERVICE_REASON = 'This site has no such service configured.'
 
 /**
  * Read an endpoint out of either declaration form.
@@ -108,19 +127,19 @@ export function resolveServiceUrl(endpoint, basePath = '') {
  * Resolve where a named service lives for this site.
  *
  * ```js
- * const { url, reason } = resolveService(website, 'submit')
- * if (!url) return renderDisabled(reason)
+ * const { url } = resolveService(website, 'submit')
+ * if (!url) return null          // no endpoint — render no form, or degrade
  * ```
  *
  * @param {object} website - the active Website
  * @param {string} name - service name, e.g. 'submit' · 'search' · 'assistant'
- * @param {object} [options]
- * @param {string} [options.reason] - wording when nothing supplies it
- * @returns {{ url: string|null, reason: string|null, source: 'site'|'host'|null }}
- *   `source` says which declaration answered — useful in diagnostics, and the
- *   thing to check when a host's value appears not to be taking effect.
+ * @returns {{ url: string|null, source: 'site'|'host'|null }}
+ *   `url` is the whole answer for rendering. `source` says which declaration
+ *   answered — a diagnostic, and the thing to check when a host's value appears
+ *   not to be taking effect. `'host'` with a null `url` means the host answered
+ *   and offered no address; `null` means nothing declared the service at all.
  */
-export function resolveService(website, name, options = {}) {
+export function resolveService(website, name) {
   const config = website?.config
   const basePath = website?.basePath
 
@@ -128,21 +147,22 @@ export function resolveService(website, name, options = {}) {
   // means it, including on a host that offers one.
   const authored = readEndpoint(config?.[name])
   if (authored) {
-    return { url: resolveServiceUrl(authored, basePath), reason: null, source: 'site' }
+    return { url: resolveServiceUrl(authored, basePath), source: 'site' }
   }
 
   // 2 — what the host says it offers.
   const hostDeclaration = config?.services?.[name]
   const hostEndpoint = readEndpoint(hostDeclaration)
   if (hostEndpoint) {
-    return { url: resolveServiceUrl(hostEndpoint, basePath), reason: null, source: 'host' }
+    return { url: resolveServiceUrl(hostEndpoint, basePath), source: 'host' }
   }
 
-  // A host that declines may say why, and that reaches the visitor unaltered.
-  const hostReason =
-    typeof hostDeclaration?.reason === 'string' ? hostDeclaration.reason.trim() : ''
-  if (hostReason) return { url: null, reason: hostReason, source: 'host' }
+  // A host may declare the name while offering no address — a decline. It is
+  // still the host answering, which is all a caller can use: any *wording* for
+  // that state would be ours to invent, in one language, for a visitor who has
+  // no stake in it. See the entitlement note above.
+  if (hostDeclaration !== undefined) return { url: null, source: 'host' }
 
   // 3 — nobody supplied one.
-  return { url: null, reason: options.reason || NO_SERVICE_REASON, source: null }
+  return { url: null, source: null }
 }

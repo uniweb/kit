@@ -9,18 +9,26 @@ import { useWebsite } from './useWebsite.js'
  *
  * The hook resolves *where* to submit from the site's configuration (`submit:`
  * in site.yml) or from its host, so a component never names an endpoint. When
- * neither supplies one, `canSubmit` is false and `unavailableReason` says why —
- * render the control disabled rather than letting someone fill in a form whose
+ * neither supplies one, `canSubmit` is false — don't render a form whose
  * contents have nowhere to go. See `resolveSubmitTarget` for the precedence.
  *
  * ```jsx
- * const { submit, status, error, canSubmit, unavailableReason } =
+ * const { submit, status, error, canSubmit } =
  *   useFormSubmit({ block, context: { formId: 'contact' } })
  *
- * <button type="submit" disabled={!canSubmit || status === 'submitting'}>
- *   {canSubmit ? 'Send' : unavailableReason}
- * </button>
+ * if (!canSubmit) return null      // or fall back to contact details the
+ *                                  // site already carries in its content
+ *
+ * <button type="submit" disabled={status === 'submitting'}>Send</button>
  * ```
+ *
+ * ⛔ **There is no `unavailableReason`, and there was one — it was a mistake.**
+ * It carried a canned English sentence and this very example rendered it as
+ * button copy. A visitor has no stake in which services the operator bought,
+ * the string reads like a breakage when nothing is broken, and it cannot be
+ * translated on a framework whose sites are usually multilingual and often not
+ * English. Text a visitor reads is *site content*. `canSubmit` is the whole
+ * signal.
  *
  * Pass `block` and the submission carries where it came from — section type,
  * section id, page id and label — without every component assembling that by
@@ -39,7 +47,6 @@ import { useWebsite } from './useWebsite.js'
  *   error: Error | null,
  *   response: object | null,
  *   canSubmit: boolean,
- *   unavailableReason: string | null,
  *   submit: (formData: object, overrides?: object) => Promise<object>,
  *   reset: () => void,
  * }}
@@ -50,7 +57,7 @@ export function useFormSubmit(defaults = {}) {
   const [response, setResponse] = useState(null)
 
   const { website } = useWebsite()
-  const { url: target, reason: unavailableReason } = resolveSubmitTarget(website)
+  const { url: target } = resolveSubmitTarget(website)
 
   // `defaults` is a fresh object every render, so listing it as a dependency
   // would rebuild the callback on each one. A ref is what actually makes "the
@@ -103,7 +110,6 @@ export function useFormSubmit(defaults = {}) {
     error,
     response,
     canSubmit: !!target,
-    unavailableReason,
     // Whether attachments can be delivered. True once there is a target: the
     // client sends the manifest, then the bytes, then finalizes.
     //

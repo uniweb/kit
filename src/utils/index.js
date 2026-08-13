@@ -248,11 +248,10 @@ export function detectMediaType(url) {
 // ─────────────────────────────────────────────────────────────────
 
 export { submitForm, deriveSummary } from './submitForm.js'
-export { resolveSubmitTarget, NO_SUBMIT_TARGET_REASON } from './submitTarget.js'
+export { resolveSubmitTarget } from './submitTarget.js'
 export {
   resolveService,
-  resolveServiceUrl,
-  NO_SERVICE_REASON
+  resolveServiceUrl
 } from './services.js'
 
 /**

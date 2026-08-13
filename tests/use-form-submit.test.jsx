@@ -52,7 +52,6 @@ describe('useFormSubmit', () => {
     const { result } = renderHook(() => useFormSubmit())
 
     expect(result.current.canSubmit).toBe(true)
-    expect(result.current.unavailableReason).toBeNull()
     expect(result.current.status).toBe('idle')
   })
 
@@ -64,7 +63,8 @@ describe('useFormSubmit', () => {
     const { result } = renderHook(() => useFormSubmit())
 
     expect(result.current.canSubmit).toBe(false)
-    expect(result.current.unavailableReason).toMatch(/no form submission endpoint/i)
+    // No wording accompanies it — `canSubmit` is the whole signal.
+    expect(result.current.unavailableReason).toBeUndefined()
   })
 
   it('submits to the base-resolved target', async () => {

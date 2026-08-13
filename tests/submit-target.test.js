@@ -46,9 +46,8 @@ function fakeFetch(body = { submissionId: 'abc' }, { ok = true, status = 200 } =
 
 describe('resolveSubmitTarget', () => {
   it('resolves the shorthand string form', () => {
-    const { url, reason, source } = resolveSubmitTarget(makeWebsite({ submit: '/forms' }))
+    const { url, source } = resolveSubmitTarget(makeWebsite({ submit: '/forms' }))
     expect(url).toBe('/forms')
-    expect(reason).toBeNull()
     expect(source).toBe('site')
   })
 
@@ -63,9 +62,9 @@ describe('resolveSubmitTarget', () => {
   })
 
   it('reports no target when the site declares none', () => {
-    const { url, reason } = resolveSubmitTarget(makeWebsite())
+    const { url, source } = resolveSubmitTarget(makeWebsite())
     expect(url).toBeNull()
-    expect(reason).toBe(NO_SUBMIT_TARGET_REASON)
+    expect(source).toBeNull()
   })
 
   it('treats an empty or blank declaration as no target', () => {
@@ -100,7 +99,7 @@ describe('resolveSubmitTarget', () => {
 describe('resolveSubmitTarget — a host-supplied destination', () => {
   it('uses the host endpoint when the site declares none', () => {
     const site = makeWebsite({ forms: { endpoint: '/_submit' } })
-    expect(resolveSubmitTarget(site)).toMatchObject({ url: '/_submit', reason: null, source: 'host' })
+    expect(resolveSubmitTarget(site)).toMatchObject({ url: '/_submit', source: 'host' })
   })
 
   it('resolves the host endpoint against the base too', () => {
@@ -116,28 +115,28 @@ describe('resolveSubmitTarget — a host-supplied destination', () => {
   })
 
   /**
-   * A host that declines says why, and that string reaches the visitor
-   * unaltered. The framework has no standing to judge or reword the reason, and
-   * inventing one in public code would mean encoding someone else's policy here.
+   * A host that declines yields NO wording, deliberately. Whatever it might say
+   * would be one language on a site that is usually multilingual and often not
+   * English, aimed at a visitor with no stake in which services the operator
+   * bought. Text a visitor reads is site content, authored and localized.
    */
-  it('relays the host reason verbatim when it supplies no endpoint', () => {
+  it('a declining host yields a url of null and no wording at all', () => {
     const site = makeWebsite({ forms: { reason: 'Submissions are turned off for this site.' } })
-    expect(resolveSubmitTarget(site)).toMatchObject({
-      url: null,
-      reason: 'Submissions are turned off for this site.',
-      source: 'host',
-    })
+    const target = resolveSubmitTarget(site)
+
+    expect(target).toEqual({ url: null, source: 'host' })
+    expect(JSON.stringify(target)).not.toContain('turned off')
   })
 
-  it('falls back to the generic reason when the host says nothing useful', () => {
+  it('reports no url however uselessly the host declares it', () => {
     for (const forms of [undefined, {}, { endpoint: '' }, { reason: '   ' }, null]) {
-      expect(resolveSubmitTarget(makeWebsite({ forms })).reason).toBe(NO_SUBMIT_TARGET_REASON)
+      expect(resolveSubmitTarget(makeWebsite({ forms })).url).toBeNull()
     }
   })
 
-  it('prefers a host endpoint over a host reason when both are present', () => {
+  it('prefers a host endpoint over anything else on the declaration', () => {
     const site = makeWebsite({ forms: { endpoint: '/_submit', reason: 'ignored' } })
-    expect(resolveSubmitTarget(site)).toMatchObject({ url: '/_submit', reason: null, source: 'host' })
+    expect(resolveSubmitTarget(site)).toMatchObject({ url: '/_submit', source: 'host' })
   })
 })
 

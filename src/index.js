@@ -130,11 +130,9 @@ export {
   submitForm,
   deriveSummary,
   resolveSubmitTarget,
-  NO_SUBMIT_TARGET_REASON,
   // Site services (search / submit / assistant / anything a host offers)
   resolveService,
-  resolveServiceUrl,
-  NO_SERVICE_REASON
+  resolveServiceUrl
 } from './utils/index.js'
 
 // ============================================================================

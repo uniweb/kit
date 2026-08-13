@@ -32,23 +32,15 @@ import { resolveService, resolveServiceUrl } from './services.js'
  */
 
 /**
- * Shown when a site declares no endpoint and no host offers one. English, and a
- * foundation is free to ignore it and render its own copy — check `url` for the
- * yes/no and treat this as a default rather than a string to translate.
- */
-export const NO_SUBMIT_TARGET_REASON =
-  'This site has no form submission endpoint configured.'
-
-/**
  * Resolve the submission target for a site.
  *
  * @param {object} website - The active Website instance
- * @returns {{ url: string|null, reason: string|null, source: 'site'|'host'|null }}
- *   `url` is the resolved endpoint, or null when nothing supplies one. `reason`
- *   is set exactly when `url` is null.
+ * @returns {{ url: string|null, source: 'site'|'host'|null }}
+ *   `url` is the resolved endpoint, or null when nothing supplies one — in which
+ *   case render no form, or degrade to contact details the site already carries.
  */
 export function resolveSubmitTarget(website) {
-  return resolveService(website, 'submit', { reason: NO_SUBMIT_TARGET_REASON })
+  return resolveService(website, 'submit')
 }
 
 /**

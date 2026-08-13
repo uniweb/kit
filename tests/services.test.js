@@ -14,7 +14,6 @@
 import {
   resolveService,
   resolveServiceUrl,
-  NO_SERVICE_REASON,
 } from '../src/utils/services.js'
 
 const site = (config, basePath = '') => ({ basePath, config })
@@ -23,7 +22,6 @@ describe('resolveService — precedence', () => {
   it('uses the site declaration', () => {
     expect(resolveService(site({ submit: '/forms' }), 'submit')).toEqual({
       url: '/forms',
-      reason: null,
       source: 'site',
     })
   })
@@ -31,7 +29,7 @@ describe('resolveService — precedence', () => {
   it('uses the host when the site is silent', () => {
     expect(
       resolveService(site({ services: { submit: { endpoint: '/_submit' } } }), 'submit'),
-    ).toEqual({ url: '/_submit', reason: null, source: 'host' })
+    ).toEqual({ url: '/_submit', source: 'host' })
   })
 
   // An operator who named an endpoint means it — a host offering one does not
@@ -41,31 +39,28 @@ describe('resolveService — precedence', () => {
     expect(resolveService(w, 'submit')).toMatchObject({ url: '/mine', source: 'site' })
   })
 
-  it('relays a host reason verbatim when it offers no endpoint', () => {
+  // A host may name the service while offering no address. That is still the
+  // host answering — but it yields no WORDING, deliberately: any sentence would
+  // be ours to invent, in one language, for a visitor with no stake in it.
+  it('a host declining with no address still reads as the host answering', () => {
+    const w = site({ services: { submit: {} } })
+    expect(resolveService(w, 'submit')).toEqual({ url: null, source: 'host' })
+  })
+
+  it('ignores a stray reason a host still sends', () => {
     const w = site({ services: { submit: { reason: 'Not enabled for this site.' } } })
-    expect(resolveService(w, 'submit')).toEqual({
-      url: null,
-      reason: 'Not enabled for this site.',
-      source: 'host',
-    })
+    expect(resolveService(w, 'submit')).toEqual({ url: null, source: 'host' })
   })
 
-  it('prefers a host endpoint over a host reason', () => {
+  it('prefers a host endpoint over anything else on the declaration', () => {
     const w = site({ services: { submit: { endpoint: '/x', reason: 'ignored' } } })
-    expect(resolveService(w, 'submit')).toMatchObject({ url: '/x', reason: null })
+    expect(resolveService(w, 'submit')).toEqual({ url: '/x', source: 'host' })
   })
 
-  it('reports absence with a default reason and no source', () => {
-    expect(resolveService(site({}), 'submit')).toEqual({
-      url: null,
-      reason: NO_SERVICE_REASON,
-      source: null,
-    })
-  })
-
-  it('lets the caller supply the wording for absence', () => {
-    const { reason } = resolveService(site({}), 'submit', { reason: 'Nowhere to send.' })
-    expect(reason).toBe('Nowhere to send.')
+  // The two absences a caller can distinguish: nobody declared it at all,
+  // versus the host declared it and offered nothing.
+  it('reports absence with no source when nothing declares the service', () => {
+    expect(resolveService(site({}), 'submit')).toEqual({ url: null, source: null })
   })
 
   it('survives a website with no config at all', () => {
@@ -127,7 +122,6 @@ describe('resolveService — a declaration may configure without addressing', ()
     })
     expect(resolveService(w, 'assistant')).toEqual({
       url: '/_agent/chat',
-      reason: null,
       source: 'host',
     })
   })
@@ -135,13 +129,9 @@ describe('resolveService — a declaration may configure without addressing', ()
   it('reaches the host decline when the site block names no endpoint', () => {
     const w = site({
       assistant: { system: 'You are a support assistant.' },
-      services: { assistant: { reason: 'Not offered here.' } },
+      services: { assistant: {} },
     })
-    expect(resolveService(w, 'assistant')).toEqual({
-      url: null,
-      reason: 'Not offered here.',
-      source: 'host',
-    })
+    expect(resolveService(w, 'assistant')).toEqual({ url: null, source: 'host' })
   })
 
   it('still prefers the site when the block carries settings AND an endpoint', () => {
