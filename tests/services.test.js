@@ -123,10 +123,10 @@ describe('resolveService — a declaration may configure without addressing', ()
   it('falls through to the host when the site block names no endpoint', () => {
     const w = site({
       assistant: { system: 'You are a support assistant.' },
-      services: { assistant: { endpoint: '/_ai/chat' } },
+      services: { assistant: { endpoint: '/_agent/chat' } },
     })
     expect(resolveService(w, 'assistant')).toEqual({
-      url: '/_ai/chat',
+      url: '/_agent/chat',
       reason: null,
       source: 'host',
     })
@@ -147,7 +147,7 @@ describe('resolveService — a declaration may configure without addressing', ()
   it('still prefers the site when the block carries settings AND an endpoint', () => {
     const w = site({
       assistant: { system: 'You are a support assistant.', endpoint: '/mine' },
-      services: { assistant: { endpoint: '/_ai/chat' } },
+      services: { assistant: { endpoint: '/_agent/chat' } },
     })
     expect(resolveService(w, 'assistant')).toMatchObject({ url: '/mine', source: 'site' })
   })

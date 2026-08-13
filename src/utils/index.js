@@ -249,7 +249,12 @@ export function detectMediaType(url) {
 
 export { submitForm, deriveSummary } from './submitForm.js'
 export { resolveSubmitTarget, NO_SUBMIT_TARGET_REASON } from './submitTarget.js'
-export { resolveService, resolveServiceUrl, NO_SERVICE_REASON } from './services.js'
+export {
+  resolveService,
+  resolveServiceUrl,
+  NO_SERVICE_REASON,
+  AGENT_SERVICE_PATH
+} from './services.js'
 
 /**
  * The text of a ProseMirror node, flattened.

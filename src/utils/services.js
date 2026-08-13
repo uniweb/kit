@@ -55,6 +55,29 @@ const ABSOLUTE_URL_RE = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i
 export const NO_SERVICE_REASON = 'This site has no such service configured.'
 
 /**
+ * The conventional path a host serves a site's own agent on.
+ *
+ * ⛔ **This is a documented convention, NOT a fallback — do not `fetch` it when
+ * {@link resolveService} came back empty.** The rule above still holds: absent
+ * from both declarations means the site has no such service, and a component
+ * says so rather than guessing an address. An agent endpoint exists only where
+ * a host runs one; guessing it turns "this site has no assistant" into a 404
+ * the component cannot distinguish from a broken one, on every static host.
+ *
+ * What it is for: a host that offers an agent will normally declare
+ * *this* value, so a foundation component knows the shape it is resolving to,
+ * and anyone documenting or configuring the pair has one spelling to use.
+ *
+ * It lives here — once — for the reason `INDEX_FILENAME` lives in
+ * `@uniweb/projections/config`: it is somebody else's naming convention passing
+ * through our surface, and a convention that may not survive belongs at exactly
+ * one point. *(It has already moved once: `/_ai/` → `/_agent/`, 2026-08-13,
+ * because a route named for its upstream names the thing most likely to change
+ * — the model or provider behind it — while the caller does not.)*
+ */
+export const AGENT_SERVICE_PATH = '/_agent'
+
+/**
  * Read an endpoint out of either declaration form.
  *
  * A site may write the shorthand (`submit: /forms`) or the object
