@@ -252,8 +252,7 @@ export { resolveSubmitTarget, NO_SUBMIT_TARGET_REASON } from './submitTarget.js'
 export {
   resolveService,
   resolveServiceUrl,
-  NO_SERVICE_REASON,
-  AGENT_SERVICE_PATH
+  NO_SERVICE_REASON
 } from './services.js'
 
 /**

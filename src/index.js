@@ -134,8 +134,7 @@ export {
   // Site services (search / submit / assistant / anything a host offers)
   resolveService,
   resolveServiceUrl,
-  NO_SERVICE_REASON,
-  AGENT_SERVICE_PATH
+  NO_SERVICE_REASON
 } from './utils/index.js'
 
 // ============================================================================
