@@ -38,3 +38,10 @@ export {
 // Form submission lifecycle for foundation Form components
 export { useFormSubmit } from './useFormSubmit.js'
 export { useFormValues, valueAt } from './useFormValues.js'
+
+// Site tracking — one event stream (`kb/framework/plans/tracking.md`).
+// `block.track(name, data)` is the common case and needs no hook; these cover
+// events with no block in hand, the consent gate, and opt-in scroll reporting.
+export { useTracker } from './useTracker.js'
+export { useTrackingConsent } from './useTrackingConsent.js'
+export { useScrollDepth } from './useScrollDepth.js'

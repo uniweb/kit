@@ -186,6 +186,11 @@ function PlayButton({ onClick, className }) {
  * @param {string} [props.className] - Additional CSS classes
  * @param {Function} [props.onProgress] - Progress callback for tracking
  * @param {Object} [props.block] - Block object for event tracking
+ * @param {boolean} [props.track=true] - Report `video_milestone` events to the
+ *   site's tracking destination (requires `block`). On by default because the
+ *   point of the capability is that a foundation should not have to wire it,
+ *   and it is inert on a site with no destination configured. Pass `false` to
+ *   keep video out of the event stream on a site that does track.
  *
  * @example
  * // YouTube video
@@ -239,6 +244,7 @@ export function Media({
   className,
   onProgress,
   block,
+  track = true,
   ...props
 }) {
   const [showVideo, setShowVideo] = useState(!facade)
@@ -263,14 +269,19 @@ export function Media({
   const handleProgress = useCallback((data) => {
     onProgress?.(data)
 
-    // Track via block if available
-    if (block?.trackEvent && typeof window !== 'undefined' && window.uniweb?.analytics?.initialized) {
-      block.trackEvent(`video_milestone_${data.milestone}`, {
-        milestone: `${data.milestone}%`,
-        src: videoSrc
-      })
+    // Report the milestone through the site's tracking destination, if it has
+    // one. `block.track` attaches the section type and page path itself, and is
+    // a silent no-op when nothing is configured — which is the default and the
+    // majority — so no guard belongs here.
+    //
+    // ⭐ The milestone is DATA, not part of the event name. This used to emit
+    // `video_milestone_25` / `_50` / `_75` / `_100`, which makes four names out
+    // of one event and turns any consumer's event dimension into a cardinality
+    // problem. One name, one field.
+    if (track) {
+      block?.track?.('video_milestone', { milestone: data.milestone, src: videoSrc })
     }
-  }, [onProgress, block, videoSrc])
+  }, [onProgress, block, videoSrc, track])
 
   // Render facade (thumbnail with play button)
   if (facade && !showVideo && thumbnailSrc) {

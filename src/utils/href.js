@@ -36,6 +36,9 @@
  */
 
 import { isFileUrl } from './url.js'
+// Imported rather than only re-exported: `resolveHref` below calls it, and a
+// bare `export … from` creates no local binding.
+import { applyBasePath } from '@uniweb/core/base-path'
 
 // An <a> tag's href attribute. Captures the prefix, the quote style, and the
 // value, so the replacement can preserve the original quoting.
@@ -48,24 +51,15 @@ const NON_ROUTE_HREF_RE = /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i
 /**
  * Prefix a site-root-relative href with the deployment base path.
  *
- * The invariant this encodes — a base is only ever joined to a path that
- * starts at the site root — is the whole point of routing every caller
- * through here. A bare `basePath + href` concatenation produces garbage the
- * moment href turns out to be absolute (`/basehttps://example.com/x`), and
- * whether it is absolute depends on a classification that has been wrong
- * before. Guarding at the join makes the failure impossible rather than
- * unlikely.
- *
- * @param {string} href - Href to prefix
- * @param {string} basePath - Deployment base (no trailing slash), '' for root
- * @returns {string} Href with the base applied, or unchanged if not applicable
+ * ⛔ **Implementation moved to `@uniweb/core/base-path`; edit it there.**
+ * Re-exported here because this is where every caller reaches it and should
+ * keep reaching it. It came down one layer because `@uniweb/core/services`
+ * needs it and **`@uniweb/runtime` does not depend on kit** — so a service
+ * address resolved in the runtime could not have reached this copy. The
+ * invariant it encodes, and why the join is guarded rather than concatenated,
+ * are in the module header there.
  */
-export function applyBasePath(href, basePath) {
-  if (!href || typeof href !== 'string' || !basePath) return href
-  if (!href.startsWith('/') || href.startsWith('//')) return href
-  if (href === basePath || href.startsWith(basePath + '/')) return href // already based
-  return basePath + href
-}
+export { applyBasePath }
 
 /**
  * Translate a route slug and prefix the active locale, when the site is

@@ -93,7 +93,13 @@ export {
   // The state of an AUTHORED form — seeds defaults, tracks edits, keeps Files
   // out of the JSON payload. The foundation writes the controls and nothing else.
   useFormValues,
-  valueAt
+  valueAt,
+  // Site tracking. `block.track(name, data)` is the common case and needs no
+  // hook — these are for events with no block in hand, the consent gate a
+  // banner sets, and opt-in scroll reporting.
+  useTracker,
+  useTrackingConsent,
+  useScrollDepth
 } from './hooks/index.js'
 
 // ============================================================================

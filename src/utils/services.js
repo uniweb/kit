@@ -1,168 +1,27 @@
-import { applyBasePath } from './href.js'
-
 /**
- * Site services — where a site's search, form submissions, assistant, or
- * anything else of that shape actually go.
+ * Site services — re-export shim.
  *
- * ## The one idea
+ * ⛔ **The implementation moved to `@uniweb/core/services`. Edit it there, not
+ * here.** This file exists so that no foundation's import had to change:
+ * `import { resolveService } from '@uniweb/kit'` is still the way a foundation
+ * reaches it, and still should be.
  *
- * A component must never name a host. Whether this site's search is answered by
- * a prebuilt index, a server endpoint, or a vendor API is a *deployment* fact,
- * and a foundation that hardcodes it is coupled to one deployment. So the
- * address comes from configuration, and there are exactly two places it can
- * come from:
+ * **Why it moved:** `@uniweb/runtime` resolves a service address itself (for
+ * `tracking`) and **does not depend on `@uniweb/kit`** — only on core and
+ * theming. The alternative was a second resolver with the same job and its own
+ * base-joining rules, which is precisely the defect `@uniweb/core/route-match`
+ * was created to end after one matcher was implemented twice and the copies
+ * diverged by one character.
  *
- *   1. **The site**, authored — `search:`, `submit:`, `assistant:` in site.yml.
- *      The operator's own declaration, and it wins.
- *   2. **The host**, served — `config.services.<name>` in the payload. What the
- *      deployment offers, which the site never had to know about.
+ * The full contract — two tiers, site-outranks-host, open registry,
+ * absent-means-absent, and why entitlement and decline strings are deliberately
+ * unmodelled — lives in the module header there.
  *
- * Absent from both means the site has no such service, and the component renders
- * for that rather than guessing an address. That is the same rule for every service, and
- * it is why this module exists: it was previously implemented three times — the
- * search provider, the submit resolver, and a hand-rolled copy inside a
- * foundation — with three slightly different base-joining rules between them.
- *
- * ## The registry is open, not an enum
- *
- * `resolveService(website, name)` takes a *name*, and the framework has no list
- * of permitted ones. It ships **clients** only for what it already implements
- * (search, form submission); it ships **resolution** for anything. A foundation
- * that invents `assistant`, `booking` or `translate` gets the same precedence,
- * the same base handling and the same absent-means-absent behaviour, and a host
- * can fill the slot without a framework change.
- *
- * This is deliberate and it is the same shape as `fetcher.transports`: the
- * framework owns the seam, not the catalogue.
- *
- * ## What this deliberately does not model
- *
- * **Entitlement.** A host that will not serve a service omits it, or declares
- * the name with no address. The framework never learns why — no plan names, no
- * tiers, no "paid" anywhere. That is not squeamishness: `@uniweb/kit` is
- * public, and a framework that encodes which capabilities cost money ships the
- * business model into open source.
- *
- * ⛔ **There is deliberately no explanatory string, and there was one — it was
- * a mistake.** Until 2026-08-13 a declining host could supply a `reason` that
- * this module relayed "to the UI verbatim", with an English default
- * (`NO_SERVICE_REASON`) when nothing did. Removed, on two counts:
- *
- *   1. **Wrong audience.** A visitor has no stake in which services an operator
- *      provisioned. "Submissions are not enabled for this site" reports someone's
- *      billing state to the public and reads like a breakage. It is neither — it
- *      is a service that was not bought, and **a generic component is supposed to
- *      be smart about that.**
- *   2. **Wrong language, unfixably.** Sites here are multilingual, or unilingual
- *      and not English. A host-supplied sentence bypasses the site's entire
- *      localization pipeline, and a canned constant in a public package cannot
- *      be translated at all. Any text a visitor should read is *site content*,
- *      which is authored and localized — never a string a service layer invents.
- *
- * ⇒ **`url` is the whole answer, and absence is a rendering decision rather
- * than a message.** No submit endpoint → render no form, or degrade to
- * something that still serves the visitor: a `mailto:` or a number the site
- * already carries in its content. No assistant → render no Ask-AI affordance.
- * Nobody is told why, because nobody visiting needs to know.
- *
- * **The site's own base.** `config.base` is where the site *lives*, not a
- * service it consumes — it is load-bearing for routing and asset URLs too. It
- * stays where it is and is an input here, not an entry.
+ * @module @uniweb/kit/utils/services
  */
 
-/** Anything with a scheme, or protocol-relative — never joined to a base. */
-const ABSOLUTE_URL_RE = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i
-
-/**
- * Read an endpoint out of either declaration form.
- *
- * A site may write the shorthand (`submit: /forms`) or the object
- * (`submit: { endpoint: /forms }`); a host emits JSON and normally writes the
- * object. Both are accepted from both sides — one reader, no per-side rules to
- * remember.
- *
- * @param {*} declaration
- * @returns {string} the endpoint, or '' when there is none
- */
-function readEndpoint(declaration) {
-  if (typeof declaration === 'string') return declaration.trim()
-  if (typeof declaration?.endpoint === 'string') return declaration.endpoint.trim()
-  return ''
-}
-
-/**
- * Join a service endpoint to the site's base path.
- *
- * Three cases, and the middle one is why this is not simply `applyBasePath`:
- *
- *   - **Absolute** (`https://…`, `//host/…`, any scheme) — passed through. A
- *     service on another origin is not the site's to relocate.
- *   - **Bare relative** (`_search`) — rooted first. This spelling is documented
- *     and in use, and `applyBasePath` alone would leave it untouched, silently
- *     producing a request relative to whatever page the visitor is on.
- *   - **Root-relative** (`/forms`) — the ordinary case.
- *
- * The join itself goes through `applyBasePath` rather than concatenation,
- * because that is where the invariant "a base is only ever joined to a path that
- * starts at the site root" is enforced, and it is idempotent — an
- * already-based path is not based twice.
- *
- * @param {string} endpoint
- * @param {string} [basePath] - `website.basePath`
- * @returns {string}
- */
-export function resolveServiceUrl(endpoint, basePath = '') {
-  if (!endpoint) return ''
-  if (ABSOLUTE_URL_RE.test(endpoint)) return endpoint
-
-  const rooted = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
-  // `applyBasePath` concatenates and documents its input as carrying no
-  // trailing slash, so normalizing is the caller's job — skip it and
-  // `base: /docs/` yields `/docs//forms`.
-  const base = (basePath || '').replace(/\/+$/, '')
-  return applyBasePath(rooted, base)
-}
-
-/**
- * Resolve where a named service lives for this site.
- *
- * ```js
- * const { url } = resolveService(website, 'submit')
- * if (!url) return null          // no endpoint — render no form, or degrade
- * ```
- *
- * @param {object} website - the active Website
- * @param {string} name - service name, e.g. 'submit' · 'search' · 'assistant'
- * @returns {{ url: string|null, source: 'site'|'host'|null }}
- *   `url` is the whole answer for rendering. `source` says which declaration
- *   answered — a diagnostic, and the thing to check when a host's value appears
- *   not to be taking effect. `'host'` with a null `url` means the host answered
- *   and offered no address; `null` means nothing declared the service at all.
- */
-export function resolveService(website, name) {
-  const config = website?.config
-  const basePath = website?.basePath
-
-  // 1 — the site's own declaration wins. An operator who named an endpoint
-  // means it, including on a host that offers one.
-  const authored = readEndpoint(config?.[name])
-  if (authored) {
-    return { url: resolveServiceUrl(authored, basePath), source: 'site' }
-  }
-
-  // 2 — what the host says it offers.
-  const hostDeclaration = config?.services?.[name]
-  const hostEndpoint = readEndpoint(hostDeclaration)
-  if (hostEndpoint) {
-    return { url: resolveServiceUrl(hostEndpoint, basePath), source: 'host' }
-  }
-
-  // A host may declare the name while offering no address — a decline. It is
-  // still the host answering, which is all a caller can use: any *wording* for
-  // that state would be ours to invent, in one language, for a visitor who has
-  // no stake in it. See the entitlement note above.
-  if (hostDeclaration !== undefined) return { url: null, source: 'host' }
-
-  // 3 — nobody supplied one.
-  return { url: null, source: null }
-}
+export {
+  resolveService,
+  resolveServiceUrl,
+  readServiceOptions
+} from '@uniweb/core/services'
