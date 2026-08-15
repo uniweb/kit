@@ -50,8 +50,12 @@ export function useTrackingConsent() {
 
   const set = useCallback((granted) => {
     getUniweb()?.tracking?.setConsent(granted)
-    // Read back rather than assuming: a tracker with no destination stays
-    // 'granted' and never moves, and the banner should not claim otherwise.
+    // Read back rather than assuming. The tracker is the authority on its own
+    // state, and a site that never asked for a gate starts — and stays —
+    // 'granted', so a banner following the pattern above never renders and this
+    // never runs. Recording a decision is independent of whether the tracker
+    // has anywhere to send: it works in the editor preview, where the tracker
+    // is framed and disabled, so a banner can be built by looking at it.
     setStatus(readStatus())
   }, [])
 
