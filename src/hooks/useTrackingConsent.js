@@ -53,9 +53,9 @@ export function useTrackingConsent() {
     // Read back rather than assuming. The tracker is the authority on its own
     // state, and a site that never asked for a gate starts — and stays —
     // 'granted', so a banner following the pattern above never renders and this
-    // never runs. Recording a decision is independent of whether the tracker
-    // has anywhere to send: it works in the editor preview, where the tracker
-    // is framed and disabled, so a banner can be built by looking at it.
+    // never runs. Recording a decision does not depend on the tracker having
+    // anywhere to send, so the status moves in a framed document too — where
+    // the tracker is disabled and nothing is transmitted either way.
     setStatus(readStatus())
   }, [])
 
