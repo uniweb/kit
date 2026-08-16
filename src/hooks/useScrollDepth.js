@@ -24,6 +24,7 @@
 
 import { useEffect, useRef } from 'react'
 import { getUniweb } from '@uniweb/core'
+import { useRouting } from './useRouting.js'
 
 const MILESTONES = [25, 50, 75, 100]
 
@@ -47,6 +48,21 @@ export function useScrollDepth(options = {}) {
   const lastCheck = useRef(0)
   const reported = useRef(new Set())
 
+  // ⛔ **Keyed on the path, or "once each per page" is not true.** The milestone
+  // set lives in a ref, so without this the effect runs once at mount and the
+  // set is never cleared again — a second page reports nothing at all. That bites
+  // exactly where this hook is most naturally called: once, in a layout
+  // component, which persists across SPA navigation (`PageRenderer` does not
+  // remount — the router declares a single catch-all route). Calling it in every
+  // section would have hidden the bug and multiplied the events instead.
+  //
+  // ⭐ `pathname` rather than a route object, deliberately: it is the same
+  // boundary `usePageView` emits on, so a `scroll_depth` always pairs with the
+  // `page_view` it belongs to. `useRouting` returns a default location when there
+  // is no Router, so this stays SSG-safe.
+  const { useLocation } = useRouting()
+  const { pathname } = useLocation()
+
   useEffect(() => {
     const tracking = getUniweb()?.tracking
     // Skip the listener entirely when there is nowhere to report — the calls
@@ -54,6 +70,9 @@ export function useScrollDepth(options = {}) {
     if (!enabled || !tracking?.isEnabled?.()) return
 
     reported.current.clear()
+    // Reset the throttle too: a navigation within the throttle window would
+    // otherwise make the immediate check below return early and miss the fold.
+    lastCheck.current = 0
 
     const handleScroll = () => {
       const now = Date.now()
@@ -72,7 +91,7 @@ export function useScrollDepth(options = {}) {
     handleScroll() // a page that fits the viewport is already at 100
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [enabled, throttleMs, event])
+  }, [enabled, throttleMs, event, pathname])
 }
 
 export default useScrollDepth
