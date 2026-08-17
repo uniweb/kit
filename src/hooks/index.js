@@ -39,7 +39,7 @@ export {
 export { useFormSubmit } from './useFormSubmit.js'
 export { useFormValues, valueAt } from './useFormValues.js'
 
-// Site tracking — one event stream (`kb/framework/plans/tracking.md`).
+// Site tracking — one event stream.
 // `block.track(name, data)` is the common case and needs no hook; these cover
 // events with no block in hand, the consent gate, and opt-in scroll reporting.
 export { useTracker } from './useTracker.js'
