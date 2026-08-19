@@ -95,11 +95,11 @@ export {
   useFormValues,
   valueAt,
   // Site tracking. `block.track(name, data)` is the common case and needs no
-  // hook — these are for events with no block in hand, the consent gate a
-  // banner sets, and opt-in scroll reporting.
+  // hook — these are for events with no block in hand and the consent gate a
+  // banner sets. Scroll depth is the runtime's now; see hooks/index.js.
   useTracker,
   useTrackingConsent,
-  useScrollDepth
+  useReadingDepth
 } from './hooks/index.js'
 
 // ============================================================================

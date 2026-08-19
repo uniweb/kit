@@ -41,7 +41,16 @@ export { useFormValues, valueAt } from './useFormValues.js'
 
 // Site tracking — one event stream.
 // `block.track(name, data)` is the common case and needs no hook; these cover
-// events with no block in hand, the consent gate, and opt-in scroll reporting.
+// events with no block in hand, and the consent gate a banner sets.
+//
+// ⛔ `useScrollDepth` was here until 2026-08-19 and is RETIRED, not moved. It
+// measured the DOCUMENT, so two long sections on one page reported the same
+// number and any section added above silently rebased the series — and it had
+// zero callers, so it never emitted anywhere. On pages composed of sections,
+// `section_view` is the same signal with names attached. The case it looked
+// like it served is `useReadingDepth` below, which measures one element.
 export { useTracker } from './useTracker.js'
 export { useTrackingConsent } from './useTrackingConsent.js'
-export { useScrollDepth } from './useScrollDepth.js'
+// Reading depth through ONE long section — the foundation is the only party
+// that knows a section is long-form, which is why it is opt-in and lives here.
+export { useReadingDepth } from './useReadingDepth.js'
