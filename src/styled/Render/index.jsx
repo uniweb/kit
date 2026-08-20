@@ -256,6 +256,21 @@ export function SequenceElement({ element, block, components }) {
 
   switch (element.type) {
     case 'heading': {
+      // A `#>` label line (role: "pretitle") is not a document heading: no
+      // anchor id, no h-tag — it would pollute outlines and tables of
+      // contents. It renders as a paragraph the design targets via
+      // [data-role="pretitle"]; its hash count means nothing.
+      if (element.attrs?.role === 'pretitle') {
+        return (
+          <p data-role="pretitle">
+            {hasInlineMarkers(element.text) ? (
+              renderParagraphWithInsets(element.text, block, element)
+            ) : (
+              <SafeHtml value={element.text} as="span" />
+            )}
+          </p>
+        )
+      }
       const level = Math.min(element.level || 1, 6)
       const Tag = `h${level}`
       // The id is the anchor `useHeadings()` and every in-page nav link
