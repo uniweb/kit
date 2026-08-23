@@ -15,47 +15,23 @@ export { twMerge, twJoin }
 // ─────────────────────────────────────────────────────────────────
 
 /**
- * Common locale display names (native language names)
- * Used as fallback when site.yml doesn't specify labels.
- * Tree-shakeable: only included if foundation uses getLocaleLabel().
+ * Locale display names and label resolution now live in `@uniweb/core`, because
+ * core is what BUILDS the locale objects a foundation reads (`getLocales()`,
+ * `website.langs`) and could not resolve a label from over here. Re-exported so
+ * `import { LOCALE_DISPLAY_NAMES } from '@uniweb/kit'` keeps working.
+ *
+ * Imported by leaf subpath, not bare `@uniweb/core`, to keep the graph kit drags
+ * into every foundation bundle small — the same reason `@uniweb/projections`
+ * reaches for `@uniweb/core/locale-config`.
  */
-export const LOCALE_DISPLAY_NAMES = {
-  en: 'English',
-  es: 'Español',
-  fr: 'Français',
-  de: 'Deutsch',
-  it: 'Italiano',
-  pt: 'Português',
-  nl: 'Nederlands',
-  pl: 'Polski',
-  ru: 'Русский',
-  ja: '日本語',
-  ko: '한국어',
-  zh: '中文',
-  'zh-CN': '简体中文',
-  'zh-TW': '繁體中文',
-  ar: 'العربية',
-  he: 'עברית',
-  hi: 'हिन्दी',
-  th: 'ไทย',
-  vi: 'Tiếng Việt',
-  tr: 'Türkçe',
-  uk: 'Українська',
-  cs: 'Čeština',
-  el: 'Ελληνικά',
-  hu: 'Magyar',
-  ro: 'Română',
-  sv: 'Svenska',
-  da: 'Dansk',
-  fi: 'Suomi',
-  no: 'Norsk',
-  id: 'Bahasa Indonesia',
-  ms: 'Bahasa Melayu'
-}
+export { LOCALE_DISPLAY_NAMES } from '@uniweb/core/locale-config'
 
 /**
- * Get display label for a locale
- * Priority: locale.label (from site config) → LOCALE_DISPLAY_NAMES → code.toUpperCase()
+ * Get display label for a locale.
+ * Priority: locale.label (from site config) -> LOCALE_DISPLAY_NAMES -> code.toUpperCase()
+ *
+ * Thin alias for core's `localeLabel` — kept so the kit-facing name and the
+ * existing foundation call sites do not move.
  *
  * @param {Object|string} locale - Locale object {code, label?} or locale code string
  * @returns {string} Display label for the locale
@@ -66,18 +42,7 @@ export const LOCALE_DISPLAY_NAMES = {
  * getLocaleLabel('es')                             // 'Español'
  * getLocaleLabel({ code: 'xx' })                   // 'XX'
  */
-export function getLocaleLabel(locale) {
-  // Handle string input (just a code)
-  if (typeof locale === 'string') {
-    return LOCALE_DISPLAY_NAMES[locale] || locale.toUpperCase()
-  }
-
-  // Handle object input
-  if (!locale || !locale.code) return ''
-
-  // Priority: explicit label → known display name → uppercase code
-  return locale.label || LOCALE_DISPLAY_NAMES[locale.code] || locale.code.toUpperCase()
-}
+export { localeLabel as getLocaleLabel } from '@uniweb/core/locale-config'
 
 // ─────────────────────────────────────────────────────────────────
 // Icon Utilities
