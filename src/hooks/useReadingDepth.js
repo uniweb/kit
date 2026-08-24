@@ -47,6 +47,14 @@ const THROTTLE_MS = 200
  * bottom of the viewport, 100 once its bottom has. An element shorter than the
  * viewport reports 100 as soon as it is fully on screen, which is correct —
  * there was nothing further to read.
+ *
+ * ⛔ **So `100` is TWO different claims, and a consumer labelling a panel needs
+ * to know which.** Taller than the viewport: the visitor scrolled all the way
+ * through it. Shorter: it was entirely on screen, with no scrolling through it
+ * at all. The ratio that decides is not on the wire, so a collector cannot tell
+ * them apart — and `100` never means *"saw the whole page"*, which is what the
+ * retired document-scoped hook's `100` meant. Asserted by three cases in
+ * `tests/use-reading-depth.test.jsx`.
  */
 function depthOf(el) {
   const rect = el.getBoundingClientRect()

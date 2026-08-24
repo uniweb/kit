@@ -87,6 +87,65 @@ describe('useReadingDepth', () => {
     expect(long.sent.map((s) => s.data.depth)).toEqual([])
   })
 
+  // ⛔ The question a consumer of this event has to ask about the rewrite: the
+  // RETIRED page-level hook returned 100 whenever the document
+  // was shorter than the viewport — unconditionally, at mount, because a page
+  // with nothing to scroll has no scroll depth. This one measures an element, so
+  // "shorter than the viewport" is no longer sufficient: the element also has to
+  // be ON SCREEN. Both halves are asserted, because only the pair shows the
+  // behaviour is position-dependent where the old one was not.
+  it('emits all four at mount for a short element that is already fully visible', () => {
+    const tracking = enabledTracker()
+    // 300px tall, sitting at 100 — bottom at 400, well inside the 800px fold.
+    setup({ top: 100, height: 300, tracking })
+    expect(tracking.sent.map((s) => s.data.depth)).toEqual([25, 50, 75, 100])
+  })
+
+  it('emits NOTHING at mount for an equally short element below the fold', () => {
+    const tracking = enabledTracker()
+    const { el } = setup({ top: 900, height: 300, tracking })
+    expect(tracking.sent).toHaveLength(0)
+
+    // …and all four the moment it is fully on screen. So for a short section
+    // `100` means "it was entirely in the viewport", never "it was read".
+    el.getBoundingClientRect = () => ({ top: 400, height: 300, bottom: 700 })
+    scrollPast(() => window.dispatchEvent(new Event('scroll')))
+    expect(tracking.sent.map((s) => s.data.depth)).toEqual([25, 50, 75, 100])
+  })
+
+  // ⭐ The consumer-facing consequence: `100` is not one claim. A section TALLER
+  // than the viewport reaches it only once its bottom edge arrives, i.e. the
+  // visitor scrolled through the whole thing; a SHORTER one reaches it without
+  // any scrolling through it at all. Same milestone, two meanings, decided by a
+  // ratio the collector cannot see.
+  it('reaches 100 only at the bottom edge for an element taller than the viewport', () => {
+    const tracking = enabledTracker()
+    const { el } = setup({ top: 0, height: 2000, tracking })
+    expect(tracking.sent.map((s) => s.data.depth)).toEqual([25])
+
+    // Bottom still below the fold at 900 — not yet 100.
+    el.getBoundingClientRect = () => ({ top: -1100, height: 2000, bottom: 900 })
+    scrollPast(() => window.dispatchEvent(new Event('scroll')))
+    expect(tracking.sent.map((s) => s.data.depth)).toEqual([25, 50, 75])
+
+    // Bottom reaches the fold — now, and only now, 100.
+    el.getBoundingClientRect = () => ({ top: -1200, height: 2000, bottom: 800 })
+    scrollPast(() => window.dispatchEvent(new Event('scroll')))
+    expect(tracking.sent.map((s) => s.data.depth)).toEqual([25, 50, 75, 100])
+  })
+
+  // Hosting stamps `exactness.scroll_milestones = 'cumulative'` on the strength
+  // of this: one pass reports EVERY milestone at or below the depth reached, so
+  // n(25) >= n(50) >= n(75) >= n(100) holds by construction. Asserted here so
+  // the guarantee has a home in the emitter, not only in the collector's doc.
+  it('reports every milestone at or below the depth reached, in one pass', () => {
+    const tracking = enabledTracker()
+    // seen = 800 - (-1000) = 1800 of 2400 = depth 75, with 25 and 50 never
+    // having been reported by an earlier check.
+    setup({ top: -1000, height: 2400, tracking })
+    expect(tracking.sent.map((s) => s.data.depth)).toEqual([25, 50, 75])
+  })
+
   it('reports each milestone once as the reader descends', () => {
     const tracking = enabledTracker()
     const { el } = setup({ top: 0, height: 1600, tracking })
