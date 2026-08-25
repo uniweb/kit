@@ -1,10 +1,23 @@
 import { createEndpointProvider } from '../src/search/providers/endpoint-provider.js'
 
 /**
- * A declining search endpoint explains itself in words meant for a visitor.
- * Dropping that on the floor and reporting a status code is the same mistake
- * the submission path made: the host wrote a sentence for a person, and the
- * client showed them a number.
+ * A declining search endpoint's message is a DIAGNOSTIC, not visitor copy.
+ *
+ * ⛔ This docblock argued the opposite until 2026-08-25 — that the host "wrote
+ * a sentence for a person" and kit should carry it up to be rendered. Ruled
+ * against: a control for a service the site does not have must not be drawn,
+ * so a visitor never reaches this path and there is nothing to apologise for.
+ * A host-supplied sentence would also report the operator's provisioning state
+ * to the public, in one language, outside the site's localization.
+ *
+ * ⭐ Worth keeping as a lesson, not just a fix: the code that consumed this
+ * shape was deleted when it was ruled against, and THIS COMMENT — the argument
+ * FOR it — survived, in a test, and read as current intent to everyone who
+ * opened the file afterwards. A deletion that removes the mechanism and leaves
+ * the reasoning behind has kept the part that regrows.
+ *
+ * What the assertions below pin is unchanged and still right: the message that
+ * reaches a DEVELOPER's console should say more than "403".
  */
 const website = {
   basePath: '',

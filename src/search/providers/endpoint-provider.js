@@ -16,7 +16,29 @@
 import { emptyResult } from './result.js'
 import { resolveServiceUrl } from '../../utils/services.js'
 
-/** Path used when a site declares `provider: endpoint` without an `endpoint:`. */
+/**
+ * Path used when a site declares `provider: endpoint` without an `endpoint:`.
+ *
+ * ⛔ THIS COVERS THE AUTHORED TIER ONLY — it is unreachable for a HOST-declared
+ * service, and it must stay that way.
+ *
+ * A host that declares the service name while offering no address is a
+ * **decline** (`@uniweb/core/services`), and `client.js` short-circuits on it
+ * before any provider is selected. So `{ "search": {} }` from a host means
+ * "draw nothing", never "use the default".
+ *
+ * ⇒ **The contract, settled with a host implementation 2026-08-25: a host that
+ * OFFERS a service must declare it WITH an address.** Offered is `{endpoint}`;
+ * declined is `{}`. The two are one byte apart and the failure is silent — an
+ * entitled site drawing no search box.
+ *
+ * ⚠️ **The saving that looks available from either side, and is not.** From
+ * here: *"a host need not send an address, kit defaults to `_search` anyway."*
+ * From the emitter: *"why emit `/_search` when kit defaults to it?"* **Both
+ * collapse the two states into one.** It was proposed and withdrawn the day
+ * this was written, by the lane that had just shipped the decline branch — the
+ * hazard does not look like a hazard while you are authoring it.
+ */
 const DEFAULT_ENDPOINT = '_search'
 
 /**
@@ -126,16 +148,30 @@ export function createEndpointProvider(website, options = {}) {
       })
 
       if (!response.ok) {
-        // An endpoint that declines usually explains why, in words meant for a
-        // visitor rather than a status code — "Search is not available on this
-        // site." Read it and carry it, the same way `submitForm` does with a
-        // rejected submission.
+        // ⛔ A HOST'S DECLINE TEXT IS A DIAGNOSTIC, NEVER VISITOR COPY.
         //
-        // This does not change the degradation: a failed search still falls
-        // back to the local index, because a failed READ should degrade and
-        // that guarantee is older than this. What changes is that when there is
-        // no index to fall back to, the error a foundation can surface says
-        // something a person understands instead of a number.
+        // This block used to argue the opposite — that an endpoint "explains
+        // why, in words meant for a visitor", so kit should carry that sentence
+        // up for a foundation to render. That is wrong, and it was ruled
+        // against on 2026-08-25: a control for a service the site does not have
+        // must not be DRAWN in the first place, so there is no place for an
+        // apology and nothing for a visitor to read. A site with no search is
+        // not broken; it simply has no search, the same way it has no contact
+        // form when submissions are not enabled.
+        //
+        // Two reasons it cannot be visitor copy even if one wanted it to be:
+        // it reports the operator's provisioning state to the public, and it
+        // arrives in one language from a service layer, bypassing the site's
+        // localization entirely. Any text a visitor reads is site content.
+        //
+        // ⇒ The message is kept because a developer reading a console needs
+        // more than "403". `isEnabled()` is what a foundation asks, and it is
+        // false long before this line runs.
+        //
+        // ⚠️ Ordering, if the local-index fallback in `client.js` is ever
+        // removed: that fallback is currently what stops this string
+        // propagating, so removing it would surface this message where nothing
+        // renders one today. Settle where a provider error may surface FIRST.
         let declined
         try {
           declined = (await response.json())?.error
