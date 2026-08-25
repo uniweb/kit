@@ -10,12 +10,28 @@
  *
  * Resolution order:
  *   1. `site.yml  search.provider`  — the author's explicit choice
- *   2. `'index'`                    — the free default, works on any host
+ *   2. the HOST's offer             — `config.services.search` in the payload,
+ *                                     read through `resolveService` → `endpoint`
+ *   3. `'index'`                    — the free default, works on any host
  *
- * A future tier sits between them: a host that serves search declaring it in
- * the payload it already sends, the way `config.base` already tells the runtime
- * where the site is being served from. That wire key is the host's to specify,
- * so it is deliberately not invented here.
+ * ⛔ Tier 2 SHIPPED. This block described it as "a future tier … deliberately
+ * not invented here" until 2026-08-25, while `resolveService` was imported at
+ * the top of this file and read ~100 lines below. The wire key is
+ * `config.services.search`, resolved by `@uniweb/core/services` on the same
+ * two-tier rule every site service uses (site-authored wins, host fills gaps).
+ *
+ * ⚠️ That stale sentence had a cost outside this repo. The hosting lane could
+ * not tell from reading whether kit consumed the block, asked in a collab
+ * channel, and the answer mattered: on the sync/link lane the framework emits
+ * NO search index at all (removed 2026-08-01, `@uniweb/build`
+ * `site/build-site-data.js`), so tier 3 requests a `search-index.json` that
+ * nothing on that lane writes. A reader of this comment concluded the host tier
+ * did not exist and the block was decoration; both halves were wrong.
+ *
+ * ⭐ So tier 3 is "the free default" only where something EMITS the index —
+ * the bundle lane and any static host. It is not a universal fallback, and a
+ * host that answers search at its own address must be declared for kit to
+ * reach it.
  *
  * Provider contract (duck-typed, matching how the FetcherDispatcher treats
  * transports):
@@ -126,6 +142,35 @@ export function createSearchClient(website, options = {}) {
   // host serves none.
   const authoredProvider = website?.config?.search?.provider
 
+  // ⛔ THE HOST ANSWERED AND DECLINED. `resolveService` returns
+  // `{ url: null, source: 'host' }` when a host declares the service NAME
+  // while offering no address — the decline shape `@uniweb/core/services`
+  // documents ("absence is a behavioural decision rather than a message").
+  //
+  // Falling through to `'index'` here would be wrong twice: the host has said
+  // it does not serve search, and on a host-served lane the framework emits no
+  // index to fall back to, so the fallback resolves to a 404. Draw nothing
+  // instead — `isEnabled()` reports false and `query()` returns empty without
+  // a request.
+  //
+  // ⚠️ Only a DECLINE does this. `source: null` — nobody declared the service
+  // at all — still means `'index'`, which is correct and is the static-host
+  // path: there the build DOES emit the index.
+  //
+  // ⛔ DO NOT ADD A FALLBACK THAT FIRES ON THIS SHAPE. The contract, settled
+  // with a host implementation 2026-08-25: **a host that OFFERS a service must
+  // declare it WITH an address** — offered is `{endpoint}`, declined is `{}`.
+  // Routing `{}` to `endpoint-provider`'s `DEFAULT_ENDPOINT` looks like a free
+  // saving and makes an offered service indistinguishable from a declined one:
+  // no search box, no error, nothing to grep for.
+  //
+  // ⭐ A site's OWN declaration still wins — `resolveService` answers tier 1
+  // with `source: 'site'`, so an operator running self-hosted search on a host
+  // that does not sell it is untouched. Pinned in
+  // `tests/search-host-decline.test.js`; that is the case worth re-running if
+  // this branch is ever edited, because the headline case never breaks.
+  const hostDeclined = service.source === 'host' && !service.url
+
   const declared =
     providerOverride ||
     authoredProvider ||
@@ -193,11 +238,21 @@ export function createSearchClient(website, options = {}) {
 
   return {
     /**
-     * Check if search is enabled
+     * Check if search is enabled.
+     *
+     * Two independent ways it is off, and a caller needs neither to tell them
+     * apart: the SITE disabled it (`search: false` / `search: { enabled:
+     * false }`), or the HOST declared the service and offered no address —
+     * see `hostDeclined` above. Either way a foundation draws no search UI.
+     *
+     * ⛔ Deliberately no reason string. Which services a site is provisioned
+     * for is not a visitor's business and could not be localized from a public
+     * package anyway — the rule `@uniweb/core/services` states at length.
+     *
      * @returns {boolean}
      */
     isEnabled() {
-      return website.isSearchEnabled()
+      return website.isSearchEnabled() && !hostDeclined
     },
 
     /**
@@ -272,6 +327,13 @@ export function createSearchClient(website, options = {}) {
         console.warn('Search is not enabled for this site')
         return { results: [], total: 0 }
       }
+
+      // The host declared the service and offered no address. Return empty
+      // rather than requesting anything — the alternative is a fetch we
+      // already know the answer to. Silent: a foundation that checked
+      // `isEnabled()` never reaches this, and one that did not should not fill
+      // a visitor's console over a service the site was never provisioned for.
+      if (hostDeclined) return { results: [], total: 0 }
 
       const opts = { limit, type, route, signal }
 
