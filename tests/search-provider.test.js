@@ -193,11 +193,25 @@ describe('result contract', () => {
  * uses for every other service. Resolution is the one documented in
  * site-derived-artifacts.md: site.yml → served payload → the local index.
  *
- * The case worth being careful about is the third test here. Core defaults
- * `provider` to 'index' before kit sees it, so reading the derived value would
- * make an author's explicit `provider: index` indistinguishable from silence —
- * and a host would then quietly override an author who chose the local index on
- * purpose.
+ * ⚠️ The third test INVERTED on 2026-08-25, and the original concern is worth
+ * keeping because it was correct and is now answered rather than discarded:
+ *
+ *   "Core defaults `provider` to 'index' before kit sees it, so reading the
+ *    derived value would make an author's explicit `provider: index`
+ *    indistinguishable from silence — and a host would then quietly override an
+ *    author who chose the local index on purpose."
+ *
+ * ⭐ That is still why kit reads `website.config.search.provider` RAW rather
+ * than `getSearchConfig().provider`. What changed is what we do with the
+ * distinction, not whether we can see it: an authored `index` no longer VETOES
+ * a host's offer, because `index` is the value core fills in for silence and
+ * `docs/authoring/search.md` prints it in an options block labelled "default".
+ * Copying that block to set `include:` is not choosing a provider.
+ *
+ * ⛔ And the override the old test protected was protecting a 404: on a
+ * host-served site there is no local index to keep, so "keeping" it meant an
+ * ENTITLED site drawing a search box over a `search-index.json` that nothing
+ * writes on that lane.
  */
 describe('client provider resolution — a host that serves search', () => {
   test('uses the host endpoint when the site declares no provider', async () => {
@@ -225,10 +239,28 @@ describe('client provider resolution — a host that serves search', () => {
     expect(fetchMock.mock.calls[0][0]).toContain('/docs/_search')
   })
 
-  test('an author who chose the local index keeps it, host or no host', () => {
+  test('an authored `index` does NOT veto a host that offers search', () => {
+    // Inverted 2026-08-25 — see the block above. `index` is the default
+    // spelled out, and on a host-served lane keeping it means a guaranteed 404.
     const client = createSearchClient(
       makeWebsite({ provider: 'index', services: { search: { endpoint: '/_search' } } })
     )
+    expect(client.getProviderName()).toBe('endpoint')
+  })
+
+  test('CONTROL: an authored `index` still wins when NO host offers search', () => {
+    // The static-host path, where the build really does emit the index. The
+    // fix must not reach this case — `service.source` is never 'host' here.
+    const client = createSearchClient(makeWebsite({ provider: 'index' }))
+
+    expect(client.getProviderName()).toBe('index')
+  })
+
+  test('CONTROL: silence also resolves to the local index with no host', () => {
+    // Authored-`index` and silence are now identical in outcome. Pinned so the
+    // equivalence is deliberate rather than incidental.
+    const client = createSearchClient(makeWebsite({}))
+
     expect(client.getProviderName()).toBe('index')
   })
 

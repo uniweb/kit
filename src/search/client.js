@@ -142,6 +142,37 @@ export function createSearchClient(website, options = {}) {
   // host serves none.
   const authoredProvider = website?.config?.search?.provider
 
+  // ⛔ …BUT AN AUTHORED `index` IS NOT A CHOICE, IT IS THE DEFAULT SPELLED OUT.
+  // `getSearchConfig()` fills `provider: 'index'` when the author said nothing,
+  // and `docs/authoring/search.md` shows it in its options block labelled
+  // "default" — so a site that copied that block to set `include:` or
+  // `exclude:` carries it without having decided anything.
+  //
+  // Treating it as a veto pinned exactly those sites to the local index. On a
+  // host-served site that index does not exist (the build stops emitting one on
+  // that lane), so an ENTITLED site — one whose host does offer search — drew a
+  // box, queried `search-index.json`, and got a 404. They had bought the
+  // feature and could not use it.
+  //
+  // ⇒ An authored `index` no longer outranks a host's offer. Any OTHER authored
+  // provider still does: `endpoint` and a foundation transport are real choices
+  // and the comment above still applies to them.
+  //
+  // ⚠️ This removes one thing an author could previously express — "use the
+  // local index even though my host offers search". On a host-served lane that
+  // preference resolves to a 404 either way, and on a static host `source` is
+  // never 'host' so this branch cannot fire and the local index is untouched.
+  //
+  // ⛔ REACHES NEW AND REBUILT FOUNDATIONS ONLY. A foundation bundles its own
+  // frozen copy of this file, so an already-published one keeps the old
+  // precedence. Unlike the host-decline check — which lives in `@uniweb/core`
+  // precisely so the runtime carries it to every foundation regardless of age —
+  // provider selection is kit's, and frozen kit reads `website.config` directly.
+  // There is no honest core-side fix: it would mean rewriting authored config
+  // to steer a consumer's branch.
+  const authoredVeto =
+    authoredProvider && authoredProvider !== 'index' ? authoredProvider : null
+
   // ⛔ THE HOST ANSWERED AND DECLINED. `resolveService` returns
   // `{ url: null, source: 'host' }` when a host declares the service NAME
   // while offering no address — the decline shape `@uniweb/core/services`
@@ -173,7 +204,7 @@ export function createSearchClient(website, options = {}) {
 
   const declared =
     providerOverride ||
-    authoredProvider ||
+    authoredVeto ||
     (service.source === 'host' ? 'endpoint' : 'index')
 
   // One in-flight resolution shared by every caller.
