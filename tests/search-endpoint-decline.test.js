@@ -36,14 +36,43 @@ function declining(status, body) {
   })
 }
 
-describe('endpoint provider — a decline carries the endpoint’s own words', () => {
+describe('endpoint provider — a decline reaches the CONSOLE, never the throw', () => {
   const original = globalThis.fetch
   afterEach(() => { globalThis.fetch = original })
 
-  it("throws with the endpoint's `error` string, not its status", async () => {
+  it("logs the endpoint's own words for a developer and throws the STATUS", async () => {
+    // ⛔ Inverted 2026-08-25. This asserted the opposite — that the host's
+    // sentence became the Error message — and `useSearch` exposes `error`, so
+    // a foundation rendering it would have shown a visitor a host-authored
+    // English sentence about someone's provisioning state.
+    //
+    // The two registers are now split: the console gets the detail (a
+    // developer needs more than a number), the throw carries only
+    // framework-authored text. That removes the ordering hazard rather than
+    // documenting it — `client.js`'s index fallback was the only thing
+    // stopping the sentence propagating, and it exists to degrade, not to
+    // censor.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     globalThis.fetch = declining(403, { error: 'Search is not available on this site.', results: [] })
     const p = createEndpointProvider(website, { endpoint: '/_search' })
-    await expect(p.query('anything')).rejects.toThrow('Search is not available on this site.')
+
+    await expect(p.query('anything')).rejects.toThrow('Search endpoint returned 403')
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('Search is not available on this site.'),
+    )
+    warn.mockRestore()
+  })
+
+  it('CONTROL: says nothing to the console when the body carries no words', async () => {
+    // The log fires on the host's sentence, not on every failure — otherwise
+    // "the console is quiet" would stop meaning anything.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    globalThis.fetch = declining(503, {})
+    const p = createEndpointProvider(website, { endpoint: '/_search' })
+
+    await expect(p.query('anything')).rejects.toThrow('Search endpoint returned 503')
+    expect(warn).not.toHaveBeenCalled()
+    warn.mockRestore()
   })
 
   it('falls back to the status when the body carries no explanation', async () => {

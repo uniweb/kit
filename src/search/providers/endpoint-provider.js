@@ -168,21 +168,32 @@ export function createEndpointProvider(website, options = {}) {
         // more than "403". `isEnabled()` is what a foundation asks, and it is
         // false long before this line runs.
         //
-        // ⚠️ Ordering, if the local-index fallback in `client.js` is ever
-        // removed: that fallback is currently what stops this string
-        // propagating, so removing it would surface this message where nothing
-        // renders one today. Settle where a provider error may surface FIRST.
+        // ⛔ THE HOST'S SENTENCE GOES TO THE CONSOLE, NEVER INTO THE THROW.
+        //
+        // It used to become the Error's message, and `useSearch` exposes
+        // `error` — so a foundation rendering it would have shown a visitor a
+        // host-authored English sentence about someone's provisioning state.
+        // The only thing preventing that was `client.js`'s local-index
+        // fallback swallowing the throw, which is incidental: that fallback
+        // exists to DEGRADE, and removing it (reasonable — on a host-served
+        // lane there is no index to fall back to) would have surfaced the
+        // sentence as its first act.
+        //
+        // ⇒ Splitting the two registers removes the ordering hazard entirely
+        // rather than documenting it: whatever reaches `error` is now
+        // framework-authored and carries no host prose, so the fallback can be
+        // removed on its own merits whenever someone wants to.
         let declined
         try {
           declined = (await response.json())?.error
         } catch {
           /* not JSON — the status is all there is */
         }
-        throw new Error(
-          typeof declined === 'string' && declined.trim()
-            ? declined.trim()
-            : `Search endpoint returned ${response.status}`
-        )
+        if (typeof declined === 'string' && declined.trim()) {
+          // Developer register: a console reader needs more than a number.
+          console.warn(`[uniweb] search endpoint declined: ${declined.trim()}`)
+        }
+        throw new Error(`Search endpoint returned ${response.status}`)
       }
 
       const payload = await response.json()
