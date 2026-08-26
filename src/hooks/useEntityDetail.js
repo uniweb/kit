@@ -44,7 +44,7 @@
  * }
  */
 
-import { getUniweb, recordDataUrl } from '@uniweb/core'
+import { getUniweb, resolveFetchConfigs, buildDetailConfig } from '@uniweb/core'
 import { useFetched } from './useFetched.js'
 
 /**
@@ -60,46 +60,68 @@ import { useFetched } from './useFetched.js'
 export function useEntityDetail(record, options = {}) {
   const collection = options?.collection
   const request = buildDetailRequest(record, collection)
-  return useFetched(request)
+  const result = useFetched(request)
+
+  // No separate detail source for this collection — nothing was stripped from
+  // the cascade, so the record the caller already holds IS the whole record.
+  // Returning it beats both alternatives: `null` makes every caller null-check
+  // a case that cannot fail, and requesting the per-record file anyway is a
+  // guaranteed 404, because that file is only written for a `deferred:`
+  // collection. `useFetched` is still called above — unconditionally, as the
+  // rules of hooks require — and simply skips on a null request.
+  if (record && collection && !request) {
+    return { data: record, error: null, loading: false }
+  }
+  return result
 }
 
 /**
  * Build the fetch request for one record's full payload.
  *
- * Exported for tests only — not re-exported from the package index. The
- * static-file branch has to resolve to the same URL the build writes and the
- * same URL core's dynamic-route auto-detail injects; a test can only assert
- * that if it can call this without a React tree.
+ * ⛔ THIS MUST NOT DECIDE THE ADDRESS ITSELF, and it used to. It read
+ * `config.collections[name].detailUrl` directly and otherwise composed
+ * `/data/<name>/<slug>.json` by hand, which was wrong three ways: it 404'd on
+ * any collection without `deferred:` (that file is only written for one), it
+ * could not see a host's live record lane at all, and its hand-rolled `{slug}`
+ * replace ignored a route whose param is named anything else.
+ *
+ * Every one of those is already solved once, in the resolution the runtime and
+ * the prerenderer share. So this hands the collection to that resolution and
+ * asks it the same question they ask: `resolveFetchConfigs` decides where the
+ * collection lives (a host's lane, or the compiled artifact) and what its
+ * per-record source is, then `buildDetailConfig` turns that plus a param into a
+ * request. A fourth answer computed here is a fourth thing to drift.
+ *
+ * Returns null when the collection has no separate detail source — the common
+ * case, and not a failure. The caller's record is already whole.
+ *
+ * Exported for tests only — not re-exported from the package index.
  *
  * @param {Object|null} record
  * @param {string} collection
- * @returns {{path?: string, url?: string, schema: string}|null}
+ * @returns {{path?: string, url?: string, endpoint?: string, schema: string}|null}
  */
 export function buildDetailRequest(record, collection) {
   const slug = record?.slug
   if (!slug || !collection) return null
 
-  // Look up the collection's per-record source pattern. Authors with
-  // API-backed collections declare `detailUrl:` in site.yml; markdown
-  // collections leave it null and use the static-file default.
   const website = getUniweb()?.activeWebsite
-  const collConfig = website?.config?.collections?.[collection]
-  const detailUrl = (collConfig && typeof collConfig.detailUrl === 'string')
-    ? collConfig.detailUrl
-    : null
+  const config = website?.config
 
-  if (detailUrl) {
-    // Substitute {slug} into the author-declared pattern and use url:
-    // (the source is remote).
-    const url = detailUrl.replace(/\{slug\}/g, encodeURIComponent(slug))
-    return { url, schema: collection }
-  }
+  // One synthetic source, resolved by the shared rule — same inputs the
+  // EntityStore passes, so the hook cannot disagree with the page it sits on.
+  const resolved = resolveFetchConfigs([{ collection, schema: collection }], {
+    collections: config?.collections ?? null,
+    records: config?.records ?? null,
+    locale: website?.getActiveLocale?.() ?? null,
+    defaultLocale: website?.getDefaultLocale?.() ?? null,
+  }).get(collection)
 
-  // Static-file default — the build emitted per-record JSON files. Shares
-  // `recordDataUrl` with the build that writes them and with core's
-  // dynamic-route auto-detail injection, which is the other half of this
-  // same feature: the three must resolve one record to one URL.
-  return { path: recordDataUrl(collection, slug), schema: collection }
+  if (!resolved) return null
+
+  // `slug` is this hook's contract with its caller (the record must carry one).
+  // The `{param}` alias means a host-written record pattern resolves too.
+  return buildDetailConfig(resolved, { paramName: 'slug', paramValue: slug })
 }
 
 export default useEntityDetail
