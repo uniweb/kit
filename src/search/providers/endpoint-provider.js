@@ -113,7 +113,14 @@ function normalize(raw) {
     component: raw?.component ?? null,
     snippetText: raw?.snippetText ?? null,
     matches: raw?.matches ?? null,
-    collection: raw?.collection ?? null,
+    // ⭐ `group` — the named set a record came from, renamed from `collection`
+    // 2026-08-27 with @uniweb/projections. "Collection" is framework's BUILD
+    // concept; a hosted site's records come from a folder and have no collection,
+    // so the word did not survive the lane it was travelling into.
+    // ⚠️ `collection` is still read as a fallback: a search index is a PUBLISHED
+    // ARTIFACT, and a site that has not rebuilt since the rename is still serving
+    // the old key. Dropping it would blank the field for every such site.
+    group: raw?.group ?? raw?.collection ?? null,
     item: raw?.item ?? null
   }
 }

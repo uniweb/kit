@@ -58,7 +58,7 @@ export function emptyResult() {
     // Match ranges, when the provider scores locally and can report them.
     matches: null,
     // Collection provenance, when the hit is a record rather than a page.
-    collection: null,
+    group: null,
     item: null
   }
 }

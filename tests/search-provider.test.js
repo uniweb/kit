@@ -98,9 +98,9 @@ describe('endpoint provider', () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
       results: [
         {
-          id: 'collection:articles:hello',
-          type: 'collection',
-          collection: 'articles',
+          id: 'record:articles:hello',
+          type: 'record',
+          group: 'articles',
           route: '/blog/hello',
           title: 'Hello',
           snippetHtml: 'a <mark>hello</mark> world',
@@ -121,7 +121,7 @@ describe('endpoint provider', () => {
     expect(url.searchParams.get('limit')).toBe('5')
 
     expect(results).toHaveLength(1)
-    expect(results[0].collection).toBe('articles')
+    expect(results[0].group).toBe('articles')
     expect(results[0].item).toEqual({ slug: 'hello' })
   })
 
@@ -170,7 +170,7 @@ describe('result contract', () => {
 
   test('every optional field is null rather than undefined', () => {
     const result = emptyResult()
-    for (const key of ['sectionId', 'anchor', 'description', 'component', 'snippetText', 'matches', 'collection', 'item']) {
+    for (const key of ['sectionId', 'anchor', 'description', 'component', 'snippetText', 'matches', 'group', 'item']) {
       expect(result[key]).toBeNull()
     }
   })
@@ -487,5 +487,24 @@ describe('match totals', () => {
     const results = await client.query('x')
     expect(Array.isArray(results)).toBe(true)
     expect(results).toHaveLength(1)
+  })
+})
+
+// ⛔ A SEARCH INDEX IS A PUBLISHED ARTIFACT, so the rename cannot be a clean swap:
+// a site that has not rebuilt since 2026-08-27 is still serving `collection`, and
+// dropping the read would blank the field for every one of them. The fallback is
+// not politeness — it is the difference between a rename and an outage.
+describe('the `collection` → `group` rename', () => {
+  test('reads a pre-rename index that still says `collection`', async () => {
+    // ⛔ A search index is a PUBLISHED ARTIFACT: a site that has not rebuilt since
+    // 2026-08-27 still serves `collection`, and dropping the read would blank the
+    // field for every one of them. The fallback is the difference between a rename
+    // and an outage.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({
+      results: [{ id: 'collection:articles:hello', collection: 'articles' }]
+    })))
+    const provider = createEndpointProvider(makeWebsite({ provider: 'endpoint' }), {})
+    const { results } = await provider.query('hello')
+    expect(results[0].group).toBe('articles')
   })
 })
