@@ -69,7 +69,7 @@ describe('useEntityDetail request building', () => {
 
   it('reaches a host\'s live record lane, which it previously could not see', () => {
     const request = withConfig(
-      { records: { list: '/_d/{collection}', record: '/_d/{collection}/{param}' } },
+      { records: { list: '/_d/{path}', record: '/_d/{path}/{param}' } },
       () => buildDetailRequest({ slug: 'design-tips' }, 'articles')
     )
     // `endpoint`, not `path`: the detail request keeps the collection's address
