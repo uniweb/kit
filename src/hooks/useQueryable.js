@@ -1,7 +1,7 @@
 /**
  * useQueryable — read the queryable-surface metadata for a named query.
  *
- * ⛔ RENAMED FROM `useCollectionQueryable`. An earlier pass kept the old name to
+ * ⛔ RENAMED FROM `useQueryable`. An earlier pass kept the old name to
  * avoid breaking foundations — but nothing is published yet, and the word was
  * hiding the conflation this whole change removes: `queryable:` is declared on a
  * QUERY, and a query is not a set of files.
@@ -57,7 +57,7 @@
  *
  * Returns null when the collection has no `queryable:` declared.
  *
- * @param {string} collectionName - Name of the collection to read queryable
+ * @param {string} queryName - Name of the collection to read queryable
  *   metadata for. Pass null/undefined to skip (returns null).
  * @returns {Object|null} The queryable metadata object, or null.
  */
