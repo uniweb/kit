@@ -1,10 +1,10 @@
 /**
- * useCollectionQueryable — read the queryable-surface metadata for a
- * collection.
+ * useQueryable — read the queryable-surface metadata for a named query.
  *
- * ⚠️ THE HOOK KEEPS ITS NAME. `collection` stays an identifier in our own code —
- * renaming a published kit hook would break every foundation that calls it, for
- * no author-facing benefit. What an AUTHOR writes is what moved.
+ * ⛔ RENAMED FROM `useCollectionQueryable`. An earlier pass kept the old name to
+ * avoid breaking foundations — but nothing is published yet, and the word was
+ * hiding the conflation this whole change removes: `queryable:` is declared on a
+ * QUERY, and a query is not a set of files.
  *
  * Authors declare the queryable surface on a named QUERY, in `queries.yml`
  * (or under `queries:` in `site.yml`):
@@ -33,7 +33,7 @@
  *
  * @example
  * function MemberFilters({ onChange }) {
- *   const queryable = useCollectionQueryable('members')
+ *   const queryable = useQueryable('members')
  *   const [values, setValues] = useState({})
  *   if (!queryable) return null
  *   return (
@@ -64,7 +64,7 @@
 
 import { getUniweb } from '@uniweb/core'
 
-export function useCollectionQueryable(queryName) {
+export function useQueryable(queryName) {
   if (!queryName) return null
   const website = getUniweb()?.activeWebsite
   if (!website) return null
@@ -75,4 +75,4 @@ export function useCollectionQueryable(queryName) {
   return queryable
 }
 
-export default useCollectionQueryable
+export default useQueryable

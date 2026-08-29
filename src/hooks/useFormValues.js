@@ -14,7 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
  *
  * What it deliberately does NOT own is the rendering. Which control a `type`
  * maps to, how it looks, how an error reads — that is the foundation's design
- * and its whole reason for existing. Same split as `useCollectionQueryable`:
+ * and its whole reason for existing. Same split as `useQueryable`:
  * the kit hands over the metadata and the state, the foundation builds the
  * controls against them.
  *

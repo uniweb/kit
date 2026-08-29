@@ -58,7 +58,7 @@ export {
   useFetched,
   useCacheEntry,
   useEntityDetail,
-  useCollectionQueryable,
+  useQueryable,
   useRouting,
   useActiveRoute,
   useVersion,
