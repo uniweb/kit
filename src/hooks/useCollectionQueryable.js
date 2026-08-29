@@ -2,24 +2,28 @@
  * useCollectionQueryable — read the queryable-surface metadata for a
  * collection.
  *
- * Authors declare the queryable surface of an entity in `site.yml`:
+ * ⚠️ THE HOOK KEEPS ITS NAME. `collection` stays an identifier in our own code —
+ * renaming a published kit hook would break every foundation that calls it, for
+ * no author-facing benefit. What an AUTHOR writes is what moved.
  *
- *   collections:
- *     members:
- *       path: collections/members
- *       queryable:
- *         department:
- *           type: enum
- *           label: Department
- *           options: [biology, physics, chemistry, geology]
- *         tenured:
- *           type: boolean
- *           label: Tenured
- *         start_year:
- *           type: range
- *           label: Start year
- *           min: 1800
- *           max: 2025
+ * Authors declare the queryable surface on a named QUERY, in `queries.yml`
+ * (or under `queries:` in `site.yml`):
+ *
+ *   members:
+ *     schema: '@std/person'
+ *     queryable:
+ *       department:
+ *         type: enum
+ *         label: Department
+ *         options: [biology, physics, chemistry, geology]
+ *       tenured:
+ *         type: boolean
+ *         label: Tenured
+ *       start_year:
+ *         type: range
+ *         label: Start year
+ *         min: 1800
+ *         max: 2025
  *
  * Foundations consume this hook to render filter UIs and compose
  * where-objects from user interactions. The kit doesn't ship UI
