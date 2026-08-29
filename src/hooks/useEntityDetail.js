@@ -1,20 +1,20 @@
 /**
- * useEntityDetail — fetch the full record for a deferred-field collection.
+ * useEntityDetail — fetch the full record for a query with deferred fields.
  *
- * When a collection declares `deferred: [...]` in `site.yml`, the cascade
+ * When a query declares `deferred: [...]`, the cascade
  * payload omits the deferred fields. The full record (with deferred
  * fields included) lives somewhere — either at a per-record file the
  * build emits, or at an author-declared API endpoint. This hook fetches
  * that full record on demand.
  *
- * Two source patterns, picked automatically from the collection's
+ * Two source patterns, picked automatically from the query's
  * declaration:
  *
- *   - Markdown-backed collections (declared with `path:` in site.yml).
- *     The build emits `/data/<collection>/<slug>.json` per record. The
+ *   - File-backed records (a query over `entities/{schema}/`).
+ *     The build emits `/data/<query>/<slug>.json` per record. The
  *     hook fetches that path.
  *
- *   - API-backed collections (declared with `url:` in site.yml plus a
+ *   - Remote sources (a query declaring `url:` plus a
  *     `detailUrl:` pattern). The hook substitutes `{slug}` in the
  *     pattern and fetches that URL.
  *
@@ -31,7 +31,7 @@
  * function ArticleCard({ article }) {
  *   const [open, setOpen] = useState(false)
  *   const { data: full, loading } = useEntityDetail(open ? article : null, {
- *     collection: 'articles',
+ *     query: 'articles',
  *   })
  *   return (
  *     <div>
@@ -48,18 +48,18 @@ import { getUniweb, resolveFetchConfigs, buildDetailConfig } from '@uniweb/core'
 import { useFetched } from './useFetched.js'
 
 /**
- * @param {Object|null} record - A record from a cascade-delivered collection.
+ * @param {Object|null} record - A record from a cascade-delivered query.
  *   Must have a `slug` field. Pass null/undefined to skip the fetch.
  * @param {Object} [options]
- * @param {string} options.collection - The collection name (e.g., 'articles').
- *   Required when record is non-null. Used to look up the collection's
+ * @param {string} options.query - The query name (e.g., 'articles').
+ *   Required when record is non-null. Used to look up the query's
  *   `detailUrl:` (if declared) or fall back to the static-file default
  *   `/data/<collection>/<slug>.json`.
  * @returns {{ data: any, error: string|null, loading: boolean }}
  */
 export function useEntityDetail(record, options = {}) {
-  const collection = options?.collection
-  const request = buildDetailRequest(record, collection)
+  const query = options?.query
+  const request = buildDetailRequest(record, query)
   const result = useFetched(request)
 
   // No separate detail source for this collection — nothing was stripped from
@@ -69,7 +69,7 @@ export function useEntityDetail(record, options = {}) {
   // guaranteed 404, because that file is only written for a `deferred:`
   // collection. `useFetched` is still called above — unconditionally, as the
   // rules of hooks require — and simply skips on a null request.
-  if (record && collection && !request) {
+  if (record && query && !request) {
     return { data: record, error: null, loading: false }
   }
   return result
@@ -79,7 +79,7 @@ export function useEntityDetail(record, options = {}) {
  * Build the fetch request for one record's full payload.
  *
  * ⛔ THIS MUST NOT DECIDE THE ADDRESS ITSELF, and it used to. It read
- * `config.collections[name].detailUrl` directly and otherwise composed
+ * `config.queries[name].detailUrl` directly and otherwise composed
  * `/data/<name>/<slug>.json` by hand, which was wrong three ways: it 404'd on
  * any collection without `deferred:` (that file is only written for one), it
  * could not see a host's live record lane at all, and its hand-rolled `{slug}`
@@ -98,24 +98,24 @@ export function useEntityDetail(record, options = {}) {
  * Exported for tests only — not re-exported from the package index.
  *
  * @param {Object|null} record
- * @param {string} collection
+ * @param {string} query
  * @returns {{path?: string, url?: string, endpoint?: string, schema: string}|null}
  */
-export function buildDetailRequest(record, collection) {
+export function buildDetailRequest(record, query) {
   const slug = record?.slug
-  if (!slug || !collection) return null
+  if (!slug || !query) return null
 
   const website = getUniweb()?.activeWebsite
   const config = website?.config
 
   // One synthetic source, resolved by the shared rule — same inputs the
   // EntityStore passes, so the hook cannot disagree with the page it sits on.
-  const resolved = resolveFetchConfigs([{ collection, schema: collection }], {
-    collections: config?.collections ?? null,
+  const resolved = resolveFetchConfigs([{ query, schema: query }], {
+    queries: config?.queries ?? null,
     records: config?.records ?? null,
     locale: website?.getActiveLocale?.() ?? null,
     defaultLocale: website?.getDefaultLocale?.() ?? null,
-  }).get(collection)
+  }).get(query)
 
   if (!resolved) return null
 

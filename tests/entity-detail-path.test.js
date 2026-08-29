@@ -41,13 +41,13 @@ describe('useEntityDetail request building', () => {
     // per-record file here — which is what this hook used to do — is a
     // guaranteed 404, because that file is only written for a `deferred:`
     // collection.
-    expect(withConfig({ collections: { articles: {} } }, () =>
+    expect(withConfig({ queries: { articles: {} } }, () =>
       buildDetailRequest({ slug: 'design-tips' }, 'articles')
     )).toBeNull()
   })
 
   it('resolves a deferred collection to the per-record file the build wrote', () => {
-    const request = withConfig({ collections: { articles: { deferred: ['body'] } } }, () =>
+    const request = withConfig({ queries: { articles: { deferred: ['body'] } } }, () =>
       buildDetailRequest({ slug: 'design-tips' }, 'articles')
     )
     // Compared against the shared helper, never a literal: renaming the
@@ -61,7 +61,7 @@ describe('useEntityDetail request building', () => {
 
   it('honours an author-declared detailUrl on an API-backed collection', () => {
     const request = withConfig(
-      { collections: { articles: { deferred: ['body'], detailUrl: '/api/a/{slug}' } } },
+      { queries: { articles: { deferred: ['body'], detailUrl: '/api/a/{slug}' } } },
       () => buildDetailRequest({ slug: 'design-tips' }, 'articles')
     )
     expect(request.path ?? request.url).toBe('/api/a/design-tips')
@@ -78,7 +78,7 @@ describe('useEntityDetail request building', () => {
   })
 
   it('carries the collection name as the schema, so it shares the cache key', () => {
-    const request = withConfig({ collections: { articles: { deferred: ['body'] } } }, () =>
+    const request = withConfig({ queries: { articles: { deferred: ['body'] } } }, () =>
       buildDetailRequest({ slug: 'x' }, 'articles')
     )
     expect(request.schema).toBe('articles')
