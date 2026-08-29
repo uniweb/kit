@@ -93,7 +93,7 @@ export const NOT_RENDERED = {
     'carry a component NAME and no refId, so there is nothing here to look up — ' +
     'and kit answering for the name is the shadowing the inset_block case ' +
     'refuses. Consequence worth knowing: a document rendered straight from ' +
-    'markdown without that build step (a collection record body, say) loses its ' +
+    'markdown without that build step (a record body, say) loses its ' +
     'inline component references.',
   form: 'an editor node; its data reaches components as content.data[schemaId]',
   'card-group': 'an editor node, deprecated — maps to content.data[cardType]',
