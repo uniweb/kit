@@ -64,11 +64,11 @@
 
 import { getUniweb } from '@uniweb/core'
 
-export function useCollectionQueryable(collectionName) {
-  if (!collectionName) return null
+export function useCollectionQueryable(queryName) {
+  if (!queryName) return null
   const website = getUniweb()?.activeWebsite
   if (!website) return null
-  const config = website.config?.collections?.[collectionName]
+  const config = website.config?.queries?.[queryName]
   if (!config || typeof config !== 'object') return null
   const queryable = config.queryable
   if (!queryable || typeof queryable !== 'object') return null
