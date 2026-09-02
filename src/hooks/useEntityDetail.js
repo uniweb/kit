@@ -99,7 +99,7 @@ export function useEntityDetail(record, options = {}) {
  *
  * @param {Object|null} record
  * @param {string} query
- * @returns {{path?: string, url?: string, endpoint?: string, schema: string}|null}
+ * @returns {{path?: string, url?: string, endpoint?: string, as: string}|null}
  */
 export function buildDetailRequest(record, query) {
   const slug = record?.slug
@@ -110,7 +110,7 @@ export function buildDetailRequest(record, query) {
 
   // One synthetic source, resolved by the shared rule — same inputs the
   // EntityStore passes, so the hook cannot disagree with the page it sits on.
-  const resolved = resolveFetchConfigs([{ query, schema: query }], {
+  const resolved = resolveFetchConfigs([{ query, as: query }], {
     queries: config?.queries ?? null,
     records: config?.records ?? null,
     locale: website?.getActiveLocale?.() ?? null,

@@ -55,7 +55,7 @@ describe('useEntityDetail request building', () => {
     // here must fail it.
     expect(request).toEqual({
       path: recordDataUrl('articles', 'design-tips'),
-      schema: 'articles',
+      as: 'articles',
     })
   })
 
@@ -74,14 +74,14 @@ describe('useEntityDetail request building', () => {
     )
     // `endpoint`, not `path`: the detail request keeps the collection's address
     // kind, so it retains the remote semantics the fetcher decides on.
-    expect(request).toEqual({ endpoint: '/_d/articles/design-tips', schema: 'articles' })
+    expect(request).toEqual({ endpoint: '/_d/articles/design-tips', as: 'articles' })
   })
 
-  it('carries the collection name as the schema, so it shares the cache key', () => {
+  it('carries the query name as the binding key, so it shares the cache key', () => {
     const request = withConfig({ queries: { articles: { deferred: ['body'] } } }, () =>
       buildDetailRequest({ slug: 'x' }, 'articles')
     )
-    expect(request.schema).toBe('articles')
+    expect(request.as).toBe('articles')
   })
 
   it('skips without a record, a slug, or a collection', () => {
