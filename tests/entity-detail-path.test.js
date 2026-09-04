@@ -104,3 +104,52 @@ describe('useEntityDetail request building', () => {
     expect(code).not.toContain('recordDataUrl')
   })
 })
+
+describe('the param is the SITE\'s, not the hook\'s', () => {
+  const deferredCfg = { queries: { articles: { deferred: ['body'] } } }
+  const withSite = (extra, fn) => {
+    const prev = globalThis.uniweb
+    globalThis.uniweb = { activeWebsite: { config: deferredCfg, ...extra } }
+    try { return fn() } finally { globalThis.uniweb = prev }
+  }
+
+  it('reads the field the site\'s own [param] template routes by', () => {
+    // A site routing `[id]`: the hook must address the record the way the page
+    // it links to does — by `id` — while the per-record FILE is still named by
+    // the record's slug.
+    const request = withSite(
+      { detailTemplateFor: (key) => (key === 'articles' ? { route: '/blog/:id', paramName: 'id' } : null) },
+      () => buildDetailRequest({ id: 7, slug: 'design-tips' }, 'articles')
+    )
+    expect(request).toEqual({ path: recordDataUrl('articles', 'design-tips'), as: 'articles' })
+  })
+
+  it('an explicit options.param wins over the site\'s template', () => {
+    const request = withSite(
+      { detailTemplateFor: () => ({ route: '/blog/:id', paramName: 'id' }), records: undefined },
+      () => buildDetailRequest({ id: 7, slug: 'design-tips', code: 'X1' }, 'articles', { param: 'code' })
+    )
+    expect(request).toEqual({ path: recordDataUrl('articles', 'design-tips'), as: 'articles' })
+  })
+
+  it('on a live lane the route field fills the {param} slot', () => {
+    const request = withConfig(
+      { records: { list: '/_d/{path}', record: '/_d/{path}/{param}' } },
+      () => buildDetailRequest({ id: 7, slug: 'design-tips' }, 'articles', { param: 'id' })
+    )
+    expect(request).toEqual({ endpoint: '/_d/articles/7', as: 'articles' })
+  })
+
+  it('a record without the routed field is skipped, as a record without a slug was', () => {
+    const request = withSite(
+      { detailTemplateFor: () => ({ route: '/blog/:id', paramName: 'id' }) },
+      () => buildDetailRequest({ slug: 'design-tips' }, 'articles')
+    )
+    expect(request).toBeNull()
+  })
+
+  it('CONTROL — with no template and no option the default is still slug', () => {
+    const request = withConfig(deferredCfg, () => buildDetailRequest({ slug: 'design-tips' }, 'articles'))
+    expect(request).toEqual({ path: recordDataUrl('articles', 'design-tips'), as: 'articles' })
+  })
+})

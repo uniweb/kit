@@ -49,17 +49,22 @@ import { useFetched } from './useFetched.js'
 
 /**
  * @param {Object|null} record - A record from a cascade-delivered query.
- *   Must have a `slug` field. Pass null/undefined to skip the fetch.
+ *   Must carry the field the site routes this query's records by — `slug`
+ *   unless the site's `[param]` folder or `options.param` says otherwise.
+ *   Pass null/undefined to skip the fetch.
  * @param {Object} [options]
  * @param {string} options.query - The query name (e.g., 'articles').
  *   Required when record is non-null. Used to look up the query's
  *   `detailUrl:` (if declared) or fall back to the static-file default
  *   `/data/<collection>/<slug>.json`.
+ * @param {string} [options.param] - The record field a detail address is
+ *   built on. Defaults to the param of the site's own `[param]` template for
+ *   this query (`website.detailTemplateFor`), else `slug`.
  * @returns {{ data: any, error: string|null, loading: boolean }}
  */
 export function useEntityDetail(record, options = {}) {
   const query = options?.query
-  const request = buildDetailRequest(record, query)
+  const request = buildDetailRequest(record, query, { param: options?.param })
   const result = useFetched(request)
 
   // No separate detail source for this collection — nothing was stripped from
@@ -101,12 +106,21 @@ export function useEntityDetail(record, options = {}) {
  * @param {string} query
  * @returns {{path?: string, url?: string, endpoint?: string, as: string}|null}
  */
-export function buildDetailRequest(record, query) {
-  const slug = record?.slug
-  if (!slug || !query) return null
+export function buildDetailRequest(record, query, { param = null } = {}) {
+  if (!record || typeof record !== 'object' || !query) return null
 
   const website = getUniweb()?.activeWebsite
   const config = website?.config
+
+  // ⛔ THE PARAM IS THE SITE'S, NOT THIS HOOK'S. It hardcoded `slug` until
+  // 2026-09-04, so on a site routing `[id]` a hover card addressed a record by a
+  // field the page it links to never uses (open-work U5). The order: the
+  // caller's explicit `param`, else the param of the site's own template page
+  // for this query — the same field `entity-store` matches on — else `slug`,
+  // which is the file lane's per-record key and the documented default.
+  const paramName = param || website?.detailTemplateFor?.(query)?.paramName || 'slug'
+  const paramValue = record[paramName]
+  if (paramValue === undefined || paramValue === null || paramValue === '') return null
 
   // One synthetic source, resolved by the shared rule — same inputs the
   // EntityStore passes, so the hook cannot disagree with the page it sits on.
@@ -119,9 +133,10 @@ export function buildDetailRequest(record, query) {
 
   if (!resolved) return null
 
-  // `slug` is this hook's contract with its caller (the record must carry one).
-  // The `{param}` alias means a host-written record pattern resolves too.
-  return buildDetailConfig(resolved, { paramName: 'slug', paramValue: slug })
+  // The record is in hand, so `{slug}` in a per-record file pattern resolves to
+  // ITS slug whatever the route's param is; `{param}` means a host-written
+  // record pattern resolves too.
+  return buildDetailConfig(resolved, { paramName, paramValue: String(paramValue), record })
 }
 
 export default useEntityDetail
