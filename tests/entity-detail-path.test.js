@@ -53,10 +53,16 @@ describe('useEntityDetail request building', () => {
     // Compared against the shared helper, never a literal: renaming the
     // convention in one place must keep this passing, and re-inlining a copy
     // here must fail it.
-    expect(request).toEqual({
+    expect(request).toMatchObject({
       path: recordDataUrl('articles', 'design-tips'),
       as: 'articles',
     })
+    // and what every detail request now carries beside its address: what it asks
+    // for (the full record, for the record index) and the route context the
+    // fetcher keys a single-record response on
+    expect(request.depth).toBe('full')
+    expect(request.dynamicContext).toEqual({ paramName: 'slug', paramValue: 'design-tips' })
+    expect(request.query).toBe('articles')
   })
 
   it('honours an author-declared detailUrl on an API-backed collection', () => {
@@ -74,7 +80,7 @@ describe('useEntityDetail request building', () => {
     )
     // `endpoint`, not `path`: the detail request keeps the collection's address
     // kind, so it retains the remote semantics the fetcher decides on.
-    expect(request).toEqual({ endpoint: '/_d/articles/design-tips', as: 'articles' })
+    expect(request).toMatchObject({ endpoint: '/_d/articles/design-tips', as: 'articles' })
   })
 
   it('carries the query name as the binding key, so it shares the cache key', () => {
@@ -121,7 +127,8 @@ describe('the param is the SITE\'s, not the hook\'s', () => {
       { detailTemplateFor: (key) => (key === 'articles' ? { route: '/blog/:id', paramName: 'id' } : null) },
       () => buildDetailRequest({ id: 7, slug: 'design-tips' }, 'articles')
     )
-    expect(request).toEqual({ path: recordDataUrl('articles', 'design-tips'), as: 'articles' })
+    expect(request).toMatchObject({ path: recordDataUrl('articles', 'design-tips'), as: 'articles' })
+    expect(request.dynamicContext).toEqual({ paramName: 'id', paramValue: '7' })
   })
 
   it('an explicit options.param wins over the site\'s template', () => {
@@ -129,7 +136,8 @@ describe('the param is the SITE\'s, not the hook\'s', () => {
       { detailTemplateFor: () => ({ route: '/blog/:id', paramName: 'id' }), records: undefined },
       () => buildDetailRequest({ id: 7, slug: 'design-tips', code: 'X1' }, 'articles', { param: 'code' })
     )
-    expect(request).toEqual({ path: recordDataUrl('articles', 'design-tips'), as: 'articles' })
+    expect(request).toMatchObject({ path: recordDataUrl('articles', 'design-tips'), as: 'articles' })
+    expect(request.dynamicContext).toEqual({ paramName: 'code', paramValue: 'X1' })
   })
 
   it('on a live lane the route field fills the {param} slot', () => {
@@ -137,7 +145,7 @@ describe('the param is the SITE\'s, not the hook\'s', () => {
       { records: { list: '/_d/{path}', record: '/_d/{path}/{param}' } },
       () => buildDetailRequest({ id: 7, slug: 'design-tips' }, 'articles', { param: 'id' })
     )
-    expect(request).toEqual({ endpoint: '/_d/articles/7', as: 'articles' })
+    expect(request).toMatchObject({ endpoint: '/_d/articles/7', as: 'articles' })
   })
 
   it('a record without the routed field is skipped, as a record without a slug was', () => {
@@ -150,6 +158,6 @@ describe('the param is the SITE\'s, not the hook\'s', () => {
 
   it('CONTROL — with no template and no option the default is still slug', () => {
     const request = withConfig(deferredCfg, () => buildDetailRequest({ slug: 'design-tips' }, 'articles'))
-    expect(request).toEqual({ path: recordDataUrl('articles', 'design-tips'), as: 'articles' })
+    expect(request).toMatchObject({ path: recordDataUrl('articles', 'design-tips'), as: 'articles' })
   })
 })
