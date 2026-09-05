@@ -161,3 +161,19 @@ describe('the param is the SITE\'s, not the hook\'s', () => {
     expect(request).toMatchObject({ path: recordDataUrl('articles', 'design-tips'), as: 'articles' })
   })
 })
+
+
+describe('the handle on a live record is `$name`', () => {
+  const doorCfg = {
+    queries: { articles: { schema: '@std/article' } },
+    records: { list: '/_records/{path}', record: '/_records/{path}/{param}', query: '/_records/_query/{locale}' },
+  }
+  it('addresses a door record by its $name, which is what a [slug] page matches', () => {
+    const request = withConfig(doorCfg, () => buildDetailRequest({ $name: 'ada', $uuid: 'u1' }, 'articles'))
+    expect(request).not.toBeNull()
+    expect(request.dynamicContext).toMatchObject({ paramName: 'slug', paramValue: 'ada' })
+  })
+  it('CONTROL — a record with neither $name nor slug is skipped', () => {
+    expect(withConfig(doorCfg, () => buildDetailRequest({ $uuid: 'u1', title: 'x' }, 'articles'))).toBeNull()
+  })
+})
