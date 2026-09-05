@@ -73,14 +73,19 @@ describe('useEntityDetail request building', () => {
     expect(request.path ?? request.url).toBe('/api/a/design-tips')
   })
 
-  it('reaches a host\'s live record lane, which it previously could not see', () => {
-    const request = withConfig(
-      { records: { list: '/_d/{path}', record: '/_d/{path}/{param}' } },
-      () => buildDetailRequest({ slug: 'design-tips' }, 'articles')
-    )
-    // `endpoint`, not `path`: the detail request keeps the collection's address
-    // kind, so it retains the remote semantics the fetcher decides on.
-    expect(request).toMatchObject({ endpoint: '/_d/articles/design-tips', as: 'articles' })
+  it('reaches a host\'s question door, which it previously could not see', () => {
+    // The door needs a locale to be asked in; the page's website supplies it.
+    const prev = globalThis.uniweb
+    globalThis.uniweb = { activeWebsite: {
+      config: { records: { query: '/_records/_query/{locale}' }, queries: { articles: { schema: '@std/article' } } },
+      getActiveLocale: () => 'en',
+    } }
+    try {
+      const request = buildDetailRequest({ $name: 'design-tips' }, 'articles')
+      // the record is the list's own question, narrowed by the handle, asked in full
+      expect(request).toMatchObject({ door: '/_records/_query/en', schema: '@std/article', as: 'articles', depth: 'full', where: { $name: 'design-tips' } })
+      expect(request).not.toHaveProperty('endpoint')
+    } finally { globalThis.uniweb = prev }
   })
 
   it('carries the query name as the binding key, so it shares the cache key', () => {
@@ -140,12 +145,16 @@ describe('the param is the SITE\'s, not the hook\'s', () => {
     expect(request.dynamicContext).toEqual({ paramName: 'code', paramValue: 'X1' })
   })
 
-  it('on a live lane the route field fills the {param} slot', () => {
-    const request = withConfig(
-      { records: { list: '/_d/{path}', record: '/_d/{path}/{param}' } },
-      () => buildDetailRequest({ id: 7, slug: 'design-tips' }, 'articles', { param: 'id' })
-    )
-    expect(request).toMatchObject({ endpoint: '/_d/articles/7', as: 'articles' })
+  it('on the door the routed field\'s value is what narrows the question', () => {
+    const prev = globalThis.uniweb
+    globalThis.uniweb = { activeWebsite: {
+      config: { records: { query: '/_records/_query/{locale}' }, queries: { articles: { schema: '@std/article' } } },
+      getActiveLocale: () => 'en',
+    } }
+    try {
+      const request = buildDetailRequest({ id: 7, $name: 'design-tips' }, 'articles', { param: 'id' })
+      expect(request).toMatchObject({ door: '/_records/_query/en', where: { $name: '7' }, dynamicContext: { paramName: 'id', paramValue: '7' } })
+    } finally { globalThis.uniweb = prev }
   })
 
   it('a record without the routed field is skipped, as a record without a slug was', () => {
@@ -166,14 +175,20 @@ describe('the param is the SITE\'s, not the hook\'s', () => {
 describe('the handle on a live record is `$name`', () => {
   const doorCfg = {
     queries: { articles: { schema: '@std/article' } },
-    records: { list: '/_records/{path}', record: '/_records/{path}/{param}', query: '/_records/_query/{locale}' },
+    records: { query: '/_records/_query/{locale}' },
+  }
+  const withDoor = (fn) => {
+    const prev = globalThis.uniweb
+    globalThis.uniweb = { activeWebsite: { config: doorCfg, getActiveLocale: () => 'en' } }
+    try { return fn() } finally { globalThis.uniweb = prev }
   }
   it('addresses a door record by its $name, which is what a [slug] page matches', () => {
-    const request = withConfig(doorCfg, () => buildDetailRequest({ $name: 'ada', $uuid: 'u1' }, 'articles'))
+    const request = withDoor(() => buildDetailRequest({ $name: 'ada', $uuid: 'u1' }, 'articles'))
     expect(request).not.toBeNull()
     expect(request.dynamicContext).toMatchObject({ paramName: 'slug', paramValue: 'ada' })
+    expect(request.where).toEqual({ $name: 'ada' })
   })
   it('CONTROL — a record with neither $name nor slug is skipped', () => {
-    expect(withConfig(doorCfg, () => buildDetailRequest({ $uuid: 'u1', title: 'x' }, 'articles'))).toBeNull()
+    expect(withDoor(() => buildDetailRequest({ $uuid: 'u1', title: 'x' }, 'articles'))).toBeNull()
   })
 })
