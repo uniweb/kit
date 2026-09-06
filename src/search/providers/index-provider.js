@@ -7,11 +7,34 @@
  *
  * Its limit is structural rather than a quality gap: the index is built from
  * what existed at build time, so content that arrives from an API afterwards
- * cannot be in it. Fuzzy matching is the thing it does *better* than a server
- * scorer — Fuse tolerates typos.
+ * cannot be in it.
  *
- * Fuse is imported dynamically so a site using a different provider never
- * bundles it.
+ * ## ⭐ IT RANKS WITH THE SHARED ENGINE — 2026-09-06
+ *
+ * `@uniweb/projections/search` scores this, and it is the same engine a server
+ * that answers search runs. **One site therefore ranks the same wherever it is
+ * served**, which it did not before: this provider used Fuse.js and a server
+ * lane used BM25F, so the same query over the same content came back in a
+ * different order depending on who answered it. A reader experiences that as
+ * the product being inconsistent, not as two implementations.
+ *
+ * What changes for a visitor, stated rather than implied:
+ *
+ * | | before (Fuse) | now |
+ * |---|---|---|
+ * | ranking | approximate score, with a literal-containment tier bolted on top to stop near-misses outranking real matches | BM25F with tf and IDF — a word on every page ranks itself down, so the tier is unnecessary rather than patched |
+ * | typos | tolerated everywhere, competing with exact matches | tolerated as a FALLBACK that runs only when nothing matched, so a near-miss can never outrank a real hit |
+ * | CJK, diacritics | whitespace tokenization; `café` ≠ `cafe`, and an unspaced script is one token | bigrams for unspaced scripts, NFKC/NFD folding — a global product's defaults |
+ * | dependency | `fuse.js`, dynamically imported | none; the engine is a leaf of a package already in the graph |
+ *
+ * ⛔ **What it does NOT change is the download.** The whole entry set still
+ * crosses the wire, because the entries are what a result renders from — title,
+ * route, excerpt. On a site large enough for that to hurt, the answer is a host
+ * that answers search (the `endpoint` provider), not a better client scorer.
+ * Saying otherwise would be selling a scaling fix this is not.
+ *
+ * The engine is imported dynamically, as Fuse was, so a site on another provider
+ * never loads it.
  */
 
 import { buildSnippet } from '../snippets.js'
@@ -20,7 +43,7 @@ import { emptyResult } from './result.js'
 // In-memory caches, keyed by index URL. Module-scope is correct here: this
 // only ever runs in one browser tab, unlike the edge's per-PoP isolates.
 const indexCache = new Map()
-const fuseCache = new Map()
+const structureCache = new Map()
 
 // Bumped to v2 when stored entries gained a validator. The version is part of
 // the key, so every v1 entry — which had no way to be revalidated and could
@@ -30,52 +53,35 @@ const STORAGE_PREFIX = 'uniweb:search:'
 const STORAGE_KEY = (cacheKey) => `${STORAGE_PREFIX}${STORAGE_VERSION}:${cacheKey}`
 
 /**
- * Default Fuse.js options optimized for site search
+ * Where in the ORIGINAL text a query term first appears, in the shape
+ * `buildSnippet` reads.
+ *
+ * ⛔ **THE ENGINE CANNOT SUPPLY THIS, AND SHOULD NOT.** It scores a whole corpus;
+ * computing highlight offsets for every candidate would be exactly the work that
+ * inverting the index exists to avoid. This runs for the handful of results
+ * actually shown.
+ *
+ * ⚠️ **Deliberately matched against the RAW text, case-insensitively, not against
+ * the engine's folded form.** Folding changes lengths — a `ﬁ` ligature becomes
+ * two characters — so an offset computed on folded text points at the wrong span
+ * in the string being highlighted. A term that only matches after folding (a
+ * diacritic difference, or a fuzzy correction) therefore finds no offset, and the
+ * snippet falls back to a plain truncation — which is what it already did when
+ * nothing matched. **Degrading to the existing behaviour is the right failure**;
+ * the alternative is a highlight on the wrong characters.
  */
-const DEFAULT_FUSE_OPTIONS = {
-  keys: [
-    { name: 'title', weight: 0.6 },
-    { name: 'content', weight: 0.4 },
-    { name: 'excerpt', weight: 0.3 },
-    { name: 'pageTitle', weight: 0.2 }
-  ],
-  threshold: 0.35,
-  includeMatches: true,
-  // Exposed so ranking is inspectable, and so a foundation that wants its own
-  // ordering has something to order by. Fuse omits `score` entirely without it,
-  // which is why nothing could be ranked on relevance before.
-  includeScore: true,
-  ignoreLocation: true,
-  minMatchCharLength: 2
-}
-
-/**
- * Does this entry literally contain every word of the query?
- *
- * Fuse is approximate by design, and on fields the size of a whole page that
- * turns into a real problem: searching "inset" on a documentation site
- * returned 68 hits of which 4 contained the word, and all four ranked below
- * the tenth result — so every result the reader saw was a near-miss on a page
- * that never mentions the term.
- *
- * Fuzzy is the right FALLBACK — it is what tolerates a typo — but it must not
- * outrank an exact match. Checking containment directly is the cheap, honest
- * signal Fuse's score does not provide here.
- *
- * Every token must appear, so "Inset Components" does not match a page that
- * merely says "components". Matching is substring-based rather than
- * word-boundary so that "inset" still finds "insets".
- */
-function literalTier(item, tokens) {
-  if (!tokens.length) return 2
-
-  const title = `${item.title || ''} ${item.pageTitle || ''}`.toLowerCase()
-  if (tokens.every((t) => title.includes(t))) return 0
-
-  const body = `${title} ${item.content || ''} ${item.excerpt || ''}`.toLowerCase()
-  if (tokens.every((t) => body.includes(t))) return 1
-
-  return 2
+function matchIndices(item, tokens) {
+  const text = String(item?.content ?? '')
+  if (!text || !tokens.length) return undefined
+  const hay = text.toLowerCase()
+  const indices = []
+  for (const t of tokens) {
+    const at = hay.indexOf(t)
+    if (at >= 0) indices.push([at, at + t.length - 1])
+  }
+  if (!indices.length) return undefined
+  indices.sort((a, b) => a[0] - b[0])
+  return [{ key: 'content', indices }]
 }
 
 /**
@@ -248,14 +254,14 @@ export async function loadSearchIndex(indexUrl, options = {}) {
 export function clearSearchCache(cacheKey) {
   if (cacheKey) {
     indexCache.delete(cacheKey)
-    fuseCache.delete(cacheKey)
+    structureCache.delete(cacheKey)
     const storage = getStorage()
     if (storage) {
       storage.removeItem(STORAGE_KEY(cacheKey))
     }
   } else {
     indexCache.clear()
-    fuseCache.clear()
+    structureCache.clear()
     const storage = getStorage()
     if (storage) {
       // Clear all search-related storage
@@ -276,47 +282,50 @@ export function clearSearchCache(cacheKey) {
  *
  * @param {Object} website - Website instance from @uniweb/core
  * @param {Object} [options]
- * @param {Object} [options.fuseOptions] - Custom Fuse.js options
  * @param {boolean} [options.useStorage=true] - Use localStorage caching
  * @returns {{query: Function, preload: Function, clearCache: Function}}
  */
 export function createIndexProvider(website, options = {}) {
-  const { fuseOptions = {}, useStorage = true } = options
-  const mergedFuseOptions = { ...DEFAULT_FUSE_OPTIONS, ...fuseOptions }
+  const { useStorage = true } = options
 
-  async function getFuse() {
+  async function getEngine() {
     // Read the URL per call rather than closing over it: the active locale can
     // change without the client being rebuilt, and each locale has its own index.
     const indexUrl = website.getSearchIndexUrl()
     const cacheKey = indexUrl
 
-    if (fuseCache.has(cacheKey)) {
-      return fuseCache.get(cacheKey)
+    if (structureCache.has(cacheKey)) {
+      return structureCache.get(cacheKey)
     }
 
     const index = await loadSearchIndex(indexUrl, { cacheKey, useStorage })
 
-    let Fuse
-    try {
-      const fuseMod = await import('fuse.js')
-      Fuse = fuseMod.default || fuseMod
-    } catch {
-      throw new Error(
-        'Fuse.js is required for the `index` search provider. ' +
-        'Install it with: npm install fuse.js'
-      )
-    }
+    const entries = index.entries || []
+    // ⛔ THE LEAF, NOT THE BARREL. `@uniweb/projections/search` re-exports the
+    // build-time generators too, and `extract.js` reaches `insets.js` and
+    // `pages.js` — site-content extraction a browser search box has no use for.
+    // `engine.js` imports nothing at all, which is what makes it safe here.
+    // (Same reasoning as `search/generate.js` importing `@uniweb/core/locale-config`
+    // rather than the package root, and for the same kind of reason.)
+    //
+    // Dynamic, as Fuse's import was: a site on another provider never loads it.
+    const engine = await import('@uniweb/projections/search/engine')
+    const built = { engine, entries, structure: engine.buildSearchStructure(entries) }
+    structureCache.set(cacheKey, built)
 
-    const fuse = new Fuse(index.entries || [], mergedFuseOptions)
-    fuseCache.set(cacheKey, fuse)
-
-    return fuse
+    return built
   }
 
   return {
     async query(text, { limit = 10, type, route } = {}) {
-      const fuse = await getFuse()
-      let results = fuse.search(text)
+      const { engine, entries, structure } = await getEngine()
+
+      // ⛔ RANK FIRST, FILTER SECOND, AND DO NOT PASS `limit` DOWN. `type` and
+      // `route` are applied here, so a limit applied inside the engine would cut
+      // the ranking before this filter sees it, and a filtered search would come
+      // back short of results that exist.
+      const ranked = engine.rankSearchEntries(structure, text, entries)
+      let results = ranked.hits.map((h) => ({ item: entries[h.doc] }))
 
       if (type) {
         results = results.filter(({ item }) => item.type === type)
@@ -325,22 +334,12 @@ export function createIndexProvider(website, options = {}) {
         results = results.filter(({ item }) => item.route?.startsWith(route))
       }
 
-      // Rank pages that actually contain the words above Fuse's near-misses.
-      //
-      // Fuse sorts by its own score, which on page-sized content fields rates
-      // an approximate match as highly as an exact one — so a page containing
-      // the search term could sit below ten pages that never mention it, and
-      // the reader concludes the site has nothing on the subject.
-      //
-      // A stable sort by tier keeps Fuse's ordering *within* each tier, so
-      // relevance still decides among equals and the fuzzy tail is preserved
-      // rather than discarded. Applied before `limit`, because the cutoff is
-      // exactly where the problem showed up.
-      const tokens = String(text || '').toLowerCase().split(/\s+/).filter(Boolean)
-      results = results
-        .map((r, i) => ({ r, i, tier: literalTier(r.item, tokens) }))
-        .sort((a, b) => a.tier - b.tier || a.i - b.i)
-        .map(({ r }) => r)
+      // ⭐ NO LITERAL TIER. There was one, sorting pages that contain the words
+      // above the scorer's near-misses, because Fuse rated an approximate match
+      // as highly as an exact one — a page containing the term could sit below
+      // ten that never mention it. The engine's IDF, and its rule that the fuzzy
+      // fallback runs only on a total miss, make that unrepresentable rather than
+      // corrected — so the tier is deleted rather than ported.
 
       // Exact here, unlike the endpoint provider: the whole corpus is local, so
       // this counts every match after filtering and before the cut — the number
@@ -348,7 +347,9 @@ export function createIndexProvider(website, options = {}) {
       // slice.
       const total = results.length
 
-      const page = results.slice(0, limit).map(({ item, matches }) => {
+      const tokens = engine.tokenize(text)
+      const page = results.slice(0, limit).map(({ item }) => {
+        const matches = matchIndices(item, tokens)
         const snippet = buildSnippet(item.content, matches, { key: 'content' })
 
         return {
@@ -374,7 +375,7 @@ export function createIndexProvider(website, options = {}) {
     },
 
     async preload() {
-      await getFuse()
+      await getEngine()
     },
 
     clearCache() {
