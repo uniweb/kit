@@ -60,7 +60,7 @@ describe('useEntityDetail request building', () => {
     // and what every detail request now carries beside its address: what it asks
     // for (the full record, for the record index) and the route context the
     // fetcher keys a single-record response on
-    expect(request.depth).toBe('full')
+    expect(request.whole).toBe(true)
     expect(request.dynamicContext).toEqual({ paramName: 'slug', paramValue: 'design-tips' })
     expect(request.query).toBe('articles')
   })
@@ -83,7 +83,7 @@ describe('useEntityDetail request building', () => {
     try {
       const request = buildDetailRequest({ $name: 'design-tips' }, 'articles')
       // the record is the list's own question, narrowed by the handle, asked in full
-      expect(request).toMatchObject({ ask: '/_records/_query/en', schema: '@std/article', as: 'articles', depth: 'full', where: { $name: 'design-tips' } })
+      expect(request).toMatchObject({ ask: '/_records/_query/en', schema: '@std/article', as: 'articles', whole: true, where: { $name: 'design-tips' } })
       expect(request).not.toHaveProperty('endpoint')
     } finally { globalThis.uniweb = prev }
   })
