@@ -89,7 +89,10 @@ describe('resolveEndpointUrl — base-relative resolution', () => {
   })
 
   test('defaults the path when none is declared', () => {
-    expect(resolveEndpointUrl(undefined, '')).toBe('/_search')
+    // ⛔ NO DEFAULT — removed 2026-09-06. Nothing declared resolves to nothing;
+    // a `/_` path is the host's to name, never a framework constant.
+    expect(resolveEndpointUrl(undefined, '')).toBe('')
+    expect(resolveEndpointUrl('', '/docs')).toBe('')
   })
 })
 
@@ -110,7 +113,7 @@ describe('endpoint provider', () => {
     }))
     vi.stubGlobal('fetch', fetchMock)
 
-    const website = makeWebsite({ provider: 'endpoint', basePath: '/docs', locale: 'fr' })
+    const website = makeWebsite({ provider: 'endpoint', endpoint: '_search', basePath: '/docs', locale: 'fr' })
     const provider = createEndpointProvider(website, { endpoint: '_search' })
     const { results } = await provider.query('hello', { limit: 5 })
 
@@ -130,7 +133,7 @@ describe('endpoint provider', () => {
       results: [{ id: 'x', type: 'section', route: '/about', anchor: 'Section2' }]
     })))
 
-    const provider = createEndpointProvider(makeWebsite({ provider: 'endpoint' }), {})
+    const provider = createEndpointProvider(makeWebsite({ provider: 'endpoint' }), { endpoint: '_search' })
     const { results: [result] } = await provider.query('x')
 
     expect(result.href).toBe('/about#Section2')
@@ -145,7 +148,7 @@ describe('endpoint provider', () => {
 
     for (const body of shapes) {
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(body)))
-      const provider = createEndpointProvider(makeWebsite({ provider: 'endpoint' }), {})
+      const provider = createEndpointProvider(makeWebsite({ provider: 'endpoint' }), { endpoint: '_search' })
       const { results } = await provider.query('a')
       expect(results).toHaveLength(1)
       expect(results[0].id).toBe('a')
@@ -154,7 +157,7 @@ describe('endpoint provider', () => {
 
   test('throws on a non-ok response so the client can fall back', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(null, false, 404)))
-    const provider = createEndpointProvider(makeWebsite({ provider: 'endpoint' }), {})
+    const provider = createEndpointProvider(makeWebsite({ provider: 'endpoint' }), { endpoint: '_search' })
 
     await expect(provider.query('x')).rejects.toThrow(/404/)
   })
@@ -180,7 +183,7 @@ describe('result contract', () => {
       results: [{ id: 'a', route: '/a' }]
     })))
 
-    const provider = createEndpointProvider(makeWebsite({ provider: 'endpoint' }), {})
+    const provider = createEndpointProvider(makeWebsite({ provider: 'endpoint' }), { endpoint: '_search' })
     const { results: [result] } = await provider.query('a')
 
     // A component may read any contract key without guarding for undefined.
@@ -294,7 +297,7 @@ describe('client provider resolution', () => {
 
   test('honors a declared endpoint provider', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ results: [] })))
-    const client = createSearchClient(makeWebsite({ provider: 'endpoint' }))
+    const client = createSearchClient(makeWebsite({ provider: 'endpoint', endpoint: '_search' }))
     await client.query('x')
     expect(client.getProviderName()).toBe('endpoint')
   })
@@ -347,7 +350,7 @@ describe('degradation', () => {
     // Endpoint 500s, and the index fetch fails too (no index on this host).
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(null, false, 500)))
 
-    const client = createSearchClient(makeWebsite({ provider: 'endpoint' }))
+    const client = createSearchClient(makeWebsite({ provider: 'endpoint', endpoint: '_search' }))
     await expect(client.query('x')).resolves.toEqual([])
   })
 
@@ -361,7 +364,7 @@ describe('degradation', () => {
       }))
     vi.stubGlobal('fetch', fetchMock)
 
-    const client = createSearchClient(makeWebsite({ provider: 'endpoint' }), { useStorage: false })
+    const client = createSearchClient(makeWebsite({ provider: 'endpoint', endpoint: '_search' }), { useStorage: false })
     const results = await client.query('alpha')
 
     expect(client.getProviderName()).toBe('index')
@@ -373,7 +376,7 @@ describe('degradation', () => {
     const abortErr = Object.assign(new Error('aborted'), { name: 'AbortError' })
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(abortErr))
 
-    const client = createSearchClient(makeWebsite({ provider: 'endpoint' }))
+    const client = createSearchClient(makeWebsite({ provider: 'endpoint', endpoint: '_search' }))
     await expect(client.query('x')).rejects.toThrow('aborted')
   })
 
@@ -381,7 +384,7 @@ describe('degradation', () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
 
-    const client = createSearchClient(makeWebsite({ provider: 'endpoint' }))
+    const client = createSearchClient(makeWebsite({ provider: 'endpoint', endpoint: '_search' }))
     expect(await client.query('   ')).toEqual([])
     expect(fetchMock).not.toHaveBeenCalled()
   })
@@ -390,7 +393,7 @@ describe('degradation', () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
 
-    const client = createSearchClient(makeWebsite({ provider: 'endpoint', enabled: false }))
+    const client = createSearchClient(makeWebsite({ provider: 'endpoint', endpoint: '_search', enabled: false }))
     expect(await client.query('x')).toEqual([])
     expect(fetchMock).not.toHaveBeenCalled()
   })
@@ -483,7 +486,7 @@ describe('match totals', () => {
       'fetch',
       vi.fn(async () => jsonResponse({ total: 47, results: [{ id: 'a', route: '/a' }] }))
     )
-    const client = createSearchClient(makeWebsite({ provider: 'endpoint' }))
+    const client = createSearchClient(makeWebsite({ provider: 'endpoint', endpoint: '_search' }))
     const results = await client.query('x')
     expect(Array.isArray(results)).toBe(true)
     expect(results).toHaveLength(1)
@@ -503,7 +506,7 @@ describe('the `collection` → `group` rename', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({
       results: [{ id: 'collection:articles:hello', collection: 'articles' }]
     })))
-    const provider = createEndpointProvider(makeWebsite({ provider: 'endpoint' }), {})
+    const provider = createEndpointProvider(makeWebsite({ provider: 'endpoint' }), { endpoint: '_search' })
     const { results } = await provider.query('hello')
     expect(results[0].group).toBe('articles')
   })

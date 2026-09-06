@@ -17,54 +17,41 @@ import { emptyResult } from './result.js'
 import { resolveServiceUrl } from '../../utils/services.js'
 
 /**
- * Path used when a site declares `provider: endpoint` without an `endpoint:`.
+ * Resolve a declared endpoint against the site's base path.
  *
- * ⛔ THIS COVERS THE AUTHORED TIER ONLY — it is unreachable for a HOST-declared
- * service, and it must stay that way.
- *
- * A host that declares the service name while offering no address is a
- * **decline** (`@uniweb/core/services`), and `client.js` short-circuits on it
- * before any provider is selected. So `{ "search": {} }` from a host means
- * "draw nothing", never "use the default".
- *
- * ⇒ **The contract, settled with a host implementation 2026-08-25: a host that
- * OFFERS a service must declare it WITH an address.** Offered is `{endpoint}`;
- * declined is `{}`. The two are one byte apart and the failure is silent — an
- * entitled site drawing no search box.
- *
- * ⚠️ **The saving that looks available from either side, and is not.** From
- * here: *"a host need not send an address, kit defaults to `_search` anyway."*
- * From the emitter: *"why emit `/_search` when kit defaults to it?"* **Both
- * collapse the two states into one.** It was proposed and withdrawn the day
- * this was written, by the lane that had just shipped the decline branch — the
- * hazard does not look like a hazard while you are authoring it.
- */
-const DEFAULT_ENDPOINT = '_search'
-
-/**
- * Resolve the endpoint against the site's base path.
- *
- * This is the whole reason the endpoint is declared base-RELATIVE. One spelling
- * — `_search` — has to work when the site is served from the root, from a
+ * A declared endpoint is base-RELATIVE, and that is the whole point: one
+ * spelling has to work when the site is served from the root, from a
  * subdirectory (`base: /docs/`), and from a backend subpath. It mirrors how the
  * runtime's default fetcher resolves its base rather than assuming the origin
- * root, and it is what lets a backend expose search as a subroute of the path
- * it already serves the site from, with no framework change.
+ * root, and it is what lets a host expose search as a subroute of the path it
+ * already serves the site from, with no framework change.
  *
  * An absolute URL is passed through untouched, for a search service on another
- * origin.
+ * origin. Nothing declared yields `''` — see below.
  *
- * The join itself is the shared one every site service uses — this function is
- * now only the *default*, which is the one thing search has that the others must
- * not: a form submission with no declared target has nowhere to go, whereas
- * search with no declared endpoint has a conventional one.
+ * ## ⛔ THERE IS NO DEFAULT ENDPOINT — removed 2026-09-06
+ *
+ * This returned `'_search'` when nothing was declared, and it was the ONE
+ * site-visible service path the framework constructed rather than read. It is
+ * gone, and search now behaves like every other service: **a declared target or
+ * nothing.** *[Diego, 2026-09-06: "I doubt we need an exception for `/_`."]*
+ *
+ * ⭐ **Why the default was a liability, not a convenience.** A `/_` path is the
+ * host's to name and to switch on or off per site; a framework constant
+ * competes with that, and the two can disagree with nothing failing. The
+ * docblock that used to sit here spent twenty lines explaining that the default
+ * must never be reachable from the host tier, because collapsing *offered*
+ * (`{endpoint}`) into *declined* (`{}`) is silent — an entitled site drawing no
+ * search box. Deleting the constant deletes the hazard and the explanation.
+ * `client.js`'s decline branch is unchanged and still pinned by
+ * `tests/search-host-decline.test.js`.
  *
  * @param {string} endpoint - Declared endpoint (relative or absolute)
  * @param {string} basePath - `website.basePath`, normalized without a trailing slash
- * @returns {string}
+ * @returns {string} the resolved URL, or `''` when nothing is declared
  */
 export function resolveEndpointUrl(endpoint, basePath = '') {
-  return resolveServiceUrl(endpoint || DEFAULT_ENDPOINT, basePath)
+  return resolveServiceUrl(endpoint, basePath)
 }
 
 /**
@@ -138,8 +125,19 @@ export function createEndpointProvider(website, options = {}) {
 
   return {
     async query(text, { limit = 10, type, route, signal } = {}) {
+      // ⛔ No declared target, nowhere to go. With no default endpoint (see
+      // `resolveEndpointUrl`) an empty resolution would otherwise become a
+      // request to the site's own root, which answers HTML and parses as no
+      // results — a misconfiguration wearing the shape of an empty index.
+      const resolved = resolveEndpointUrl(endpoint, website.basePath)
+      if (!resolved) {
+        throw new Error(
+          'search provider "endpoint" has no endpoint: declare one in the site config, ' +
+            'or let the host offer the service.'
+        )
+      }
       const url = new URL(
-        resolveEndpointUrl(endpoint, website.basePath),
+        resolved,
         // A base is required to parse a relative path; in a non-browser context
         // (tests, SSR) there is no location, so use a placeholder we strip below.
         typeof window !== 'undefined' ? window.location.origin : 'http://localhost'

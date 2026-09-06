@@ -74,16 +74,16 @@ describe('useEntityDetail request building', () => {
   })
 
   it('reaches a host\'s question door, which it previously could not see', () => {
-    // The door needs a locale to be asked in; the page's website supplies it.
+    // The service needs a locale to be asked in; the page's website supplies it.
     const prev = globalThis.uniweb
     globalThis.uniweb = { activeWebsite: {
-      config: { records: { query: '/_records/_query/{locale}' }, queries: { articles: { schema: '@std/article' } } },
+      config: { services: { records: '/_records/_query/{locale}' }, queries: { articles: { schema: '@std/article' } } },
       getActiveLocale: () => 'en',
     } }
     try {
       const request = buildDetailRequest({ $name: 'design-tips' }, 'articles')
       // the record is the list's own question, narrowed by the handle, asked in full
-      expect(request).toMatchObject({ door: '/_records/_query/en', schema: '@std/article', as: 'articles', depth: 'full', where: { $name: 'design-tips' } })
+      expect(request).toMatchObject({ ask: '/_records/_query/en', schema: '@std/article', as: 'articles', depth: 'full', where: { $name: 'design-tips' } })
       expect(request).not.toHaveProperty('endpoint')
     } finally { globalThis.uniweb = prev }
   })
@@ -138,7 +138,7 @@ describe('the param is the SITE\'s, not the hook\'s', () => {
 
   it('an explicit options.param wins over the site\'s template', () => {
     const request = withSite(
-      { detailTemplateFor: () => ({ route: '/blog/:id', paramName: 'id' }), records: undefined },
+      { detailTemplateFor: () => ({ route: '/blog/:id', paramName: 'id' }), services: undefined },
       () => buildDetailRequest({ id: 7, slug: 'design-tips', code: 'X1' }, 'articles', { param: 'code' })
     )
     expect(request).toMatchObject({ path: recordDataUrl('articles', 'design-tips'), as: 'articles' })
@@ -148,12 +148,12 @@ describe('the param is the SITE\'s, not the hook\'s', () => {
   it('on the door the routed field\'s value is what narrows the question', () => {
     const prev = globalThis.uniweb
     globalThis.uniweb = { activeWebsite: {
-      config: { records: { query: '/_records/_query/{locale}' }, queries: { articles: { schema: '@std/article' } } },
+      config: { services: { records: '/_records/_query/{locale}' }, queries: { articles: { schema: '@std/article' } } },
       getActiveLocale: () => 'en',
     } }
     try {
       const request = buildDetailRequest({ id: 7, $name: 'design-tips' }, 'articles', { param: 'id' })
-      expect(request).toMatchObject({ door: '/_records/_query/en', where: { $name: '7' }, dynamicContext: { paramName: 'id', paramValue: '7' } })
+      expect(request).toMatchObject({ ask: '/_records/_query/en', where: { $name: '7' }, dynamicContext: { paramName: 'id', paramValue: '7' } })
     } finally { globalThis.uniweb = prev }
   })
 
@@ -173,16 +173,16 @@ describe('the param is the SITE\'s, not the hook\'s', () => {
 
 
 describe('the handle on a live record is `$name`', () => {
-  const doorCfg = {
+  const askCfg = {
     queries: { articles: { schema: '@std/article' } },
-    records: { query: '/_records/_query/{locale}' },
+    services: { records: '/_records/_query/{locale}' },
   }
   const withDoor = (fn) => {
     const prev = globalThis.uniweb
-    globalThis.uniweb = { activeWebsite: { config: doorCfg, getActiveLocale: () => 'en' } }
+    globalThis.uniweb = { activeWebsite: { config: askCfg, getActiveLocale: () => 'en' } }
     try { return fn() } finally { globalThis.uniweb = prev }
   }
-  it('addresses a door record by its $name, which is what a [slug] page matches', () => {
+  it('addresses an asked record by its $name, which is what a [slug] page matches', () => {
     const request = withDoor(() => buildDetailRequest({ $name: 'ada', $uuid: 'u1' }, 'articles'))
     expect(request).not.toBeNull()
     expect(request.dynamicContext).toMatchObject({ paramName: 'slug', paramValue: 'ada' })

@@ -126,7 +126,7 @@ export function buildDetailRequest(record, query, { param = null } = {}) {
   // EntityStore passes, so the hook cannot disagree with the page it sits on.
   const resolved = resolveFetchConfigs([{ query, as: query }], {
     queries: config?.queries ?? null,
-    records: config?.records ?? null,
+    services: config?.services ?? null,
     locale: website?.getActiveLocale?.() ?? null,
     defaultLocale: website?.getDefaultLocale?.() ?? null,
   }).get(query)
