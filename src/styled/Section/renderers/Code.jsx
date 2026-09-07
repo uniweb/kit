@@ -10,6 +10,7 @@
  */
 
 import React, { useEffect, useState, useMemo } from 'react'
+import { loadGrammar, loadThemeByName } from './shiki-corpus.js'
 import { cn } from '../../../utils/index.js'
 import { getUniweb } from '@uniweb/core'
 
@@ -153,27 +154,31 @@ async function loadShiki() {
 
   shikiLoadPromise = (async () => {
     try {
-      // Use shiki/bundle/full for access to all themes
-      const { createHighlighter } = await import('shiki/bundle/full')
+      // ⭐ THE CORE, NOT A BUNDLE. `shiki/bundle/full` carried 332 languages and
+      // 65 themes into the artifact so that a rare language could be lazily
+      // highlighted; the core carries none and `shiki-corpus.js` fetches what a
+      // page turns out to need. Both are dynamic imports, so a site with no code
+      // block still downloads nothing.
+      //
+      // The JavaScript regex engine replaces the Oniguruma WASM build — 32 KB
+      // against 640 KB, and no WASM asset to serve. ⚠️ It does not implement
+      // every Oniguruma construct, so a grammar can fail to compile; that lands
+      // in the same fallback a missing language does, and the block renders as
+      // plaintext rather than not at all.
+      const [{ createHighlighterCore }, { createJavaScriptRegexEngine }] = await Promise.all([
+        import('shiki/core'),
+        import('shiki/engine/javascript'),
+      ])
 
-      // Create highlighter with github-dark theme (bundled, looks good for code)
-      // Only load common languages initially, others load on-demand
-      shikiInstance = await createHighlighter({
-        themes: ['github-dark'],
-        langs: [
-          'javascript',
-          'typescript',
-          'jsx',
-          'tsx',
-          'json',
-          'html',
-          'css',
-          'markdown',
-          'yaml',
-          'bash',
-          'shell',
-          'python',
-        ],
+      // Languages are registered on demand. The DEFAULT theme is not: it is what
+      // `resolveThemeOptions` falls back to when a site's `theme.code` cannot be
+      // applied, and `codeToHtml` throws on a theme name it has not loaded — so
+      // the fallback would fail exactly when it is needed. One small fetch, and
+      // only once a code block has already asked for a highlighter.
+      shikiInstance = await createHighlighterCore({
+        themes: [await loadThemeByName(DEFAULT_THEME)],
+        langs: [],
+        engine: createJavaScriptRegexEngine(),
       })
 
       return shikiInstance
@@ -229,7 +234,8 @@ export function parseCodeConfig(code) {
  */
 async function registerSide(highlighter, side, name) {
   if (!highlighter.getLoadedThemes().includes(side.base)) {
-    await highlighter.loadTheme(side.base)
+    // A name, not a theme: the core bundles none, so fetch it.
+    await highlighter.loadTheme(await loadThemeByName(side.base))
   }
   if (Object.keys(side.overrides).length === 0) return side.base
 
@@ -282,9 +288,10 @@ async function highlightCode(code, language, highlighter, codeTheme) {
 
     if (!loadedLangs.includes(lang) && lang !== 'plaintext') {
       try {
-        await highlighter.loadLanguage(lang)
+        await highlighter.loadLanguage(await loadGrammar(lang))
       } catch {
-        // Language not available, fall back to plaintext
+        // Not in the corpus, not reachable, or not compilable by the JS engine —
+        // all three are "cannot highlight this", and a readable block beats none.
         return highlighter.codeToHtml(code, { lang: 'plaintext', ...themeOptions })
       }
     }
