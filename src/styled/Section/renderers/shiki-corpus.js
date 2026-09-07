@@ -51,10 +51,31 @@
  */
 
 import { getUniweb } from '@uniweb/core'
-import shikiPkg from 'shiki/package.json'
 
-/** The exact release whose grammars match the engine kit loads. */
-export const SHIKI_VERSION = shikiPkg.version
+/**
+ * The exact release whose grammars match the engine kit loads.
+ *
+ * ⛔ **RESOLVED LAZILY, AND THAT IS LOAD-BEARING — NOT A STYLE CHOICE.** This
+ * was `import shikiPkg from 'shiki/package.json'` at module scope, which put a
+ * STATIC `import … from "shiki/package.json"` into `dist/entry-ssr.js`. The
+ * foundation SSR bundle externalizes everything under `shiki/`
+ * (`isSSRExternal`), on the stated ground that Shiki appears there only as
+ * DORMANT dynamic imports an isolate never awaits — so no shim entry is needed
+ * for it edge-side. A static import breaks that: the isolate has to resolve the
+ * specifier at load time, before rendering anything, and if it cannot then the
+ * whole foundation fails to load rather than just its code blocks.
+ *
+ * ⇒ Keep every `shiki/` specifier behind a dynamic import. The promise is
+ * cached, so the cost is one resolution per session and nothing in SSR.
+ */
+let versionPromise = null
+
+function shikiVersion() {
+  if (!versionPromise) {
+    versionPromise = import('shiki/package.json').then((m) => (m.default ?? m).version)
+  }
+  return versionPromise
+}
 
 /**
  * Where the framework reads the corpus from when nothing else says.
@@ -86,13 +107,13 @@ function corpusBase() {
 }
 
 /** URL of one language's grammar module. */
-export function grammarUrl(lang) {
-  return `${corpusBase()}/@shikijs/langs@${SHIKI_VERSION}/dist/${lang}.mjs`
+export async function grammarUrl(lang) {
+  return `${corpusBase()}/@shikijs/langs@${await shikiVersion()}/dist/${lang}.mjs`
 }
 
 /** URL of one theme module. */
-export function themeUrl(name) {
-  return `${corpusBase()}/@shikijs/themes@${SHIKI_VERSION}/dist/${name}.mjs`
+export async function themeUrl(name) {
+  return `${corpusBase()}/@shikijs/themes@${await shikiVersion()}/dist/${name}.mjs`
 }
 
 /**
@@ -108,12 +129,12 @@ export function themeUrl(name) {
  * code block renders unhighlighted rather than not at all.
  */
 export async function loadGrammar(lang) {
-  const mod = await import(/* @vite-ignore */ grammarUrl(lang))
+  const mod = await import(/* @vite-ignore */ await grammarUrl(lang))
   return mod.default
 }
 
 /** A theme object, ready for `highlighter.loadTheme`. */
 export async function loadThemeByName(name) {
-  const mod = await import(/* @vite-ignore */ themeUrl(name))
+  const mod = await import(/* @vite-ignore */ await themeUrl(name))
   return mod.default
 }
