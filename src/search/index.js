@@ -2,7 +2,13 @@
  * Search Utilities for Uniweb Foundations
  *
  * Provides helpers for implementing search functionality in foundations.
- * Uses Fuse.js for fuzzy search (peer dependency - must be installed by foundation).
+ *
+ * ⛔ A foundation installs NOTHING for this. The local ranker is
+ * `@uniweb/projections/search`, a leaf of a package already in the graph, loaded
+ * dynamically only when a site actually queries a prebuilt index. This line used
+ * to name `fuse.js` as a peer dependency the foundation had to install; that was
+ * wrong from the moment the ranker changed (2026-09-06) and it was instruction,
+ * not description, which is the worst kind of comment to leave stale.
  *
  * @module @uniweb/kit (search)
  *

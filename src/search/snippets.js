@@ -23,7 +23,8 @@ export function escapeHtml(str) {
  * Build a snippet from content with optional match highlighting
  *
  * @param {string} text - Full text content
- * @param {Array} matches - Fuse.js matches array
+ * @param {Array} matches - match ranges, in the shape the index provider
+ *   computes (`{ key, indices: [[start, end], …] }`)
  * @param {Object} options - Options
  * @param {string} [options.key='content'] - Key to find matches for
  * @param {number} [options.maxLength=160] - Maximum snippet length

@@ -16,8 +16,9 @@
  *   content fact: the same site yields `item` on a server-backed provider and
  *   `null` on a static one.
  *
- * Concretely today: a local index can produce `matches` / `snippetText` (Fuse
- * reports match ranges) but knows nothing about API-backed collection records;
+ * Concretely today: a local index can produce `matches` / `snippetText` (it
+ * scores the text it downloaded, so it knows where terms landed) but knows
+ * nothing about API-backed collection records;
  * a server endpoint is the reverse. Neither is a subset of the other, which is
  * why the contract is a union with a guaranteed core rather than a
  * lowest-common-denominator.

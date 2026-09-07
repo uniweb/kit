@@ -5,8 +5,9 @@
  * site declares the provider; a component reads results the same way either
  * way — the same contract `content.data` gives data fetching, applied to search.
  *
- * Providers are loaded dynamically, so a site using a server endpoint never
- * bundles Fuse and a site using the local index never bundles anything else.
+ * Providers are loaded dynamically, so a site answered by a server endpoint
+ * never downloads the local ranking engine, and a site on the local index never
+ * downloads anything else.
  *
  * Resolution order:
  *   1. `site.yml  search.provider`  — the author's explicit choice
@@ -89,7 +90,6 @@ async function loadProviderFactory(name, transports) {
  *
  * @param {Object} website - Website instance from @uniweb/core
  * @param {Object} options - Configuration options
- * @param {Object} [options.fuseOptions] - Custom Fuse.js options (index provider)
  * @param {boolean} [options.useStorage=true] - Use localStorage caching (index provider)
  * @param {number} [options.defaultLimit=10] - Default result limit
  * @param {string} [options.provider] - Override the declared provider
