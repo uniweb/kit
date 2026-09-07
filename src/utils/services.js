@@ -24,4 +24,4 @@ export {
   resolveService,
   resolveServiceUrl,
   readServiceOptions
-} from '@uniweb/core/services'
+} from '@uniweb/core'

@@ -38,7 +38,7 @@
 import { isFileUrl } from './url.js'
 // Imported rather than only re-exported: `resolveHref` below calls it, and a
 // bare `export … from` creates no local binding.
-import { applyBasePath } from '@uniweb/core/base-path'
+import { applyBasePath } from '@uniweb/core'
 
 // An <a> tag's href attribute. Captures the prefix, the quote style, and the
 // value, so the replacement can preserve the original quoting.

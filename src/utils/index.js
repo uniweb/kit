@@ -24,7 +24,7 @@ export { twMerge, twJoin }
  * into every foundation bundle small — the same reason `@uniweb/projections`
  * reaches for `@uniweb/core/locale-config`.
  */
-export { LOCALE_DISPLAY_NAMES } from '@uniweb/core/locale-config'
+export { LOCALE_DISPLAY_NAMES } from '@uniweb/core'
 
 /**
  * Get display label for a locale.
@@ -42,7 +42,7 @@ export { LOCALE_DISPLAY_NAMES } from '@uniweb/core/locale-config'
  * getLocaleLabel('es')                             // 'Español'
  * getLocaleLabel({ code: 'xx' })                   // 'XX'
  */
-export { localeLabel as getLocaleLabel } from '@uniweb/core/locale-config'
+export { localeLabel as getLocaleLabel } from '@uniweb/core'
 
 // ─────────────────────────────────────────────────────────────────
 // Icon Utilities
