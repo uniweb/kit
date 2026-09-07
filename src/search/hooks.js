@@ -289,18 +289,27 @@ export function useSearchShortcut(callbacks) {
 }
 
 /**
- * Hook that wraps useSearch with intent-based preloading
+ * `useSearch`, plus handlers that PREFETCH the index when the visitor looks
+ * about to search.
  *
- * Provides handlers to trigger preload on user intent (hover, focus, touch)
- * rather than on component mount. This saves bandwidth for users who never search.
+ * Spread `prefetchProps` onto whatever opens search — a button, an input. It
+ * fetches on hover, focus or touch instead of on mount, so a visitor who never
+ * searches never downloads the index. Fetching happens once.
+ *
+ * ⛔ **"Prefetch", not "intent"** — this was `useSearchWithIntent` returning
+ * `intentProps`, which reads as *semantic* search (understanding what the user
+ * meant) and is the opposite of what it does. Nothing here interprets a query;
+ * it decides WHEN to download. The rest of the API already said so —
+ * `triggerPreload`, and `useSearchShortcut`'s `onPreload`.
  *
  * @param {Object} website - Website instance from @uniweb/core
  * @param {Object} options - Options passed to useSearch
- * @returns {Object} Search state, methods, and intent handlers
+ * @returns {Object} everything `useSearch` returns, plus `prefetchProps` (spread
+ *   onto the element) and `triggerPreload` (to fire it yourself)
  *
  * @example
  * function SearchButton({ onClick }) {
- *   const { intentProps, triggerPreload } = useSearchWithIntent(website)
+ *   const { prefetchProps, triggerPreload } = useSearchPrefetch(website)
  *
  *   useSearchShortcut({
  *     onOpen: onClick,
@@ -308,13 +317,13 @@ export function useSearchShortcut(callbacks) {
  *   })
  *
  *   return (
- *     <button onClick={onClick} {...intentProps}>
+ *     <button onClick={onClick} {...prefetchProps}>
  *       Search
  *     </button>
  *   )
  * }
  */
-export function useSearchWithIntent(website, options = {}) {
+export function useSearchPrefetch(website, options = {}) {
   const search = useSearch(website, options)
   const hasPreloaded = useRef(false)
 
@@ -324,8 +333,8 @@ export function useSearchWithIntent(website, options = {}) {
     search.preload()
   }, [search])
 
-  // Intent handlers - spread onto interactive elements
-  const intentProps = useMemo(() => ({
+  // Spread onto the element that opens search — hovering it is the signal.
+  const prefetchProps = useMemo(() => ({
     onMouseEnter: triggerPreload,
     onFocus: triggerPreload,
     onTouchStart: triggerPreload,
@@ -334,7 +343,7 @@ export function useSearchWithIntent(website, options = {}) {
   return {
     ...search,
     triggerPreload,
-    intentProps,
+    prefetchProps,
   }
 }
 

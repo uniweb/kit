@@ -24,4 +24,4 @@
 export { createSearchClient, loadSearchIndex, clearSearchCache, emptyResult } from './client.js'
 export { resolveEndpointUrl } from './providers/endpoint-provider.js'
 export { buildSnippet, highlightMatches, escapeHtml } from './snippets.js'
-export { useSearch, useSearchIndex, useSearchShortcut, useSearchWithIntent } from './hooks.js'
+export { useSearch, useSearchIndex, useSearchShortcut, useSearchPrefetch } from './hooks.js'

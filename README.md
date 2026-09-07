@@ -420,16 +420,16 @@ function SearchComponent() {
 }
 ```
 
-### useSearchWithIntent
+### useSearchPrefetch
 
-Intent-based preloading — loads search index on hover/focus instead of page load.
+Prefetches the search index on hover, focus or touch instead of on page load.
 
 ```jsx
-import { useSearchWithIntent, useSearchShortcut } from '@uniweb/kit'
+import { useSearchPrefetch, useSearchShortcut } from '@uniweb/kit'
 
 function SearchButton({ onClick }) {
   const { website } = useWebsite()
-  const { triggerPreload, intentProps } = useSearchWithIntent(website)
+  const { triggerPreload, prefetchProps } = useSearchPrefetch(website)
 
   // Cmd/Ctrl+K shortcut with preload
   useSearchShortcut({
@@ -438,14 +438,14 @@ function SearchButton({ onClick }) {
   })
 
   return (
-    <button onClick={onClick} {...intentProps}>
+    <button onClick={onClick} {...prefetchProps}>
       Search
     </button>
   )
 }
 ```
 
-This saves bandwidth — the search index only loads when users show intent to search.
+A visitor who never searches never downloads the index. It fetches once.
 
 ### useSearchShortcut
 

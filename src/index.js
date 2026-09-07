@@ -160,4 +160,4 @@ export { Scene } from './styled/Scene/index.jsx'
 
 export { createSearchClient, loadSearchIndex, clearSearchCache, emptyResult } from './search/client.js'
 export { buildSnippet, highlightMatches, escapeHtml } from './search/snippets.js'
-export { useSearch, useSearchIndex, useSearchShortcut, useSearchWithIntent } from './search/hooks.js'
+export { useSearch, useSearchIndex, useSearchShortcut, useSearchPrefetch } from './search/hooks.js'
