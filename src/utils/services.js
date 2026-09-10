@@ -13,7 +13,7 @@
  * was created to end after one matcher was implemented twice and the copies
  * diverged by one character.
  *
- * The full contract — two tiers, site-outranks-host, open registry,
+ * The full contract — two tiers, the host's offer first, open registry,
  * absent-means-absent, and why entitlement and decline strings are deliberately
  * unmodelled — lives in the module header there.
  *

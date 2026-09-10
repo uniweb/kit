@@ -10,16 +10,21 @@
  * downloads anything else.
  *
  * Resolution order:
- *   1. `site.yml  search.provider`  — the author's explicit choice
- *   2. the HOST's offer             — `config.services.search` in the payload,
+ *   1. the HOST's offer             — `config.services.search` in the payload,
  *                                     read through `resolveService` → `endpoint`
+ *   2. `site.yml  search.provider`  — the author's explicit choice, where the
+ *                                     host does not offer search
  *   3. `'index'`                    — the free default, works on any host
  *
- * ⛔ Tier 2 SHIPPED. This block described it as "a future tier … deliberately
+ * ⛔ Host tier SHIPPED. This block described it as "a future tier … deliberately
  * not invented here" until 2026-08-25, while `resolveService` was imported at
  * the top of this file and read ~100 lines below. The wire key is
  * `config.services.search`, resolved by `@uniweb/core/services` on the same
- * two-tier rule every site service uses (site-authored wins, host fills gaps).
+ * two-tier rule every site service uses (the host's offer first, then the
+ * site's own).
+ *
+ * ⚠️ The first two tiers swapped on 2026-09-10: until then an authored
+ * provider came first and outranked the host's offer (`authoredVeto` below).
  *
  * ⚠️ That stale sentence had a cost outside this repo. The hosting lane could
  * not tell from reading whether kit consumed the block, asked in a collab
