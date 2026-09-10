@@ -267,7 +267,10 @@ describe('client provider resolution — a host that serves search', () => {
     expect(client.getProviderName()).toBe('index')
   })
 
-  test('an authored endpoint wins over the host', async () => {
+  test("the host's offer wins over an authored endpoint", async () => {
+    // Reversed 2026-09-10: nothing a site declares overrides what its host
+    // offers. The author's own endpoint applies where the host does not offer
+    // search — the next test.
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ results: [] }))
     vi.stubGlobal('fetch', fetchMock)
 
@@ -280,8 +283,20 @@ describe('client provider resolution — a host that serves search', () => {
     )
     await client.query('x')
 
+    expect(fetchMock.mock.calls[0][0]).toContain('/theirs')
+    expect(fetchMock.mock.calls[0][0]).not.toContain('/mine')
+  })
+
+  test('an authored endpoint is used where the host does not offer search', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ results: [] }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const client = createSearchClient(
+      makeWebsite({ provider: 'endpoint', endpoint: '/mine', services: { tracking: { endpoint: '/_e' } } })
+    )
+    await client.query('x')
+
     expect(fetchMock.mock.calls[0][0]).toContain('/mine')
-    expect(fetchMock.mock.calls[0][0]).not.toContain('/theirs')
   })
 
   test('no host and no declaration is still the local index', () => {

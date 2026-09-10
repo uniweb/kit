@@ -92,8 +92,10 @@ describe('host declines search — the service name with no address', () => {
   test("⭐ a site's OWN endpoint survives a host decline", () => {
     // The sharpest guard on this change: an operator running self-hosted
     // search on a host that does not sell it must keep working.
-    // `resolveService` tier 1 is the site's own declaration, so it answers
-    // with `source: 'site'` and never reaches the decline branch.
+    // The host offers no address here, so `resolveService` falls to the site's
+    // own declaration and answers with `source: 'site'` — never reaching the
+    // decline branch. Where the host OFFERS search, its offer wins instead
+    // (search-provider.test.js).
     const website = makeWebsite({
       services: { search: {} },
       authoredSearch: { enabled: true, endpoint: '/my-own-search' },

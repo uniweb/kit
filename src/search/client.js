@@ -129,16 +129,17 @@ export function createSearchClient(website, options = {}) {
 
   const searchConfig = website.getSearchConfig?.() || {}
 
-  // Where search is answered: the site's own `search.endpoint`, else the host's
-  // `services.search`, else nothing. Same rule every site service resolves by.
+  // Where search is answered: the host's `services.search` when it offers it,
+  // else the site's own `search.endpoint`, else nothing. Same rule every site
+  // service resolves by — and core's, so the ADDRESS moves for every foundation.
   const service = resolveService(website, 'search')
 
   // The AUTHORED provider, read from config rather than from getSearchConfig(),
   // which fills in 'index' before kit sees it (core/website.js). That default
   // would make "the author chose index" and "the author said nothing"
   // indistinguishable — and the difference is precisely what decides whether a
-  // host's offer applies. An author who picked a provider means it; one who
-  // picked nothing gets whatever the host serves, and the local index if the
+  // host's offer applies. An author who picked a provider means it where the host
+  // does not offer search; one who picked nothing gets whatever the host serves, and the local index if the
   // host serves none.
   const authoredProvider = website?.config?.search?.provider
 
@@ -154,9 +155,8 @@ export function createSearchClient(website, options = {}) {
   // box, queried `search-index.json`, and got a 404. They had bought the
   // feature and could not use it.
   //
-  // ⇒ An authored `index` no longer outranks a host's offer. Any OTHER authored
-  // provider still does: `endpoint` and a foundation transport are real choices
-  // and the comment above still applies to them.
+  // ⇒ An authored `index` no longer outranks a host's offer — and since
+  // 2026-09-10 no other authored provider does either (below).
   //
   // ⚠️ This removes one thing an author could previously express — "use the
   // local index even though my host offers search". On a host-served lane that
@@ -170,8 +170,17 @@ export function createSearchClient(website, options = {}) {
   // provider selection is kit's, and frozen kit reads `website.config` directly.
   // There is no honest core-side fix: it would mean rewriting authored config
   // to steer a consumer's branch.
+  // ⛔ AND NO AUTHORED PROVIDER OUTRANKS A HOST'S OFFER — `endpoint` and a
+  // foundation transport included, since 2026-09-10. Where the host offers
+  // search it is the authority on what the site is given, and `resolveService`
+  // already hands back its address; an author's choice of provider applies only
+  // where the host does not offer search.
+  // ⚠️ Kit-side, so it reaches rebuilt foundations only: an already-published
+  // one still lets an authored transport win here. The address itself is
+  // core's, and moves for every foundation.
+  const hostOffers = service.source === 'host' && Boolean(service.url)
   const authoredVeto =
-    authoredProvider && authoredProvider !== 'index' ? authoredProvider : null
+    !hostOffers && authoredProvider && authoredProvider !== 'index' ? authoredProvider : null
 
   // ⛔ THE HOST ANSWERED AND DECLINED. `resolveService` returns
   // `{ url: null, source: 'host' }` when a host declares the service NAME
@@ -195,9 +204,10 @@ export function createSearchClient(website, options = {}) {
   // saving and makes an offered service indistinguishable from a declined one:
   // no search box, no error, nothing to grep for.
   //
-  // ⭐ A site's OWN declaration still wins — `resolveService` answers tier 1
-  // with `source: 'site'`, so an operator running self-hosted search on a host
-  // that does not sell it is untouched. Pinned in
+  // ⭐ A site's own declaration still works where the host does not offer
+  // search — `resolveService` answers with `source: 'site'` then — so an
+  // operator running self-hosted search on a host that does not sell it is
+  // untouched. Pinned in
   // `tests/search-host-decline.test.js`; that is the case worth re-running if
   // this branch is ever edited, because the headline case never breaks.
   const hostDeclined = service.source === 'host' && !service.url

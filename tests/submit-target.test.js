@@ -107,11 +107,17 @@ describe('resolveSubmitTarget — a host-supplied destination', () => {
     expect(resolveSubmitTarget(site).url).toBe('/gateway/site/abc/_submit')
   })
 
-  // Precedence: the operator's own declaration is an override, so a site that
-  // names an endpoint keeps it even where the host offers one.
-  it('prefers the authored declaration over the host', () => {
+  // Precedence, reversed 2026-09-10: a host that offers a destination is the
+  // authority on what the site is given — nothing the site declares overrides
+  // it. The site's own endpoint is used where the host offers none.
+  it("prefers the host's destination over the authored declaration", () => {
     const site = makeWebsite({ submit: '/mine', forms: { endpoint: '/_submit' } })
-    expect(resolveSubmitTarget(site).url).toBe('/mine')
+    expect(resolveSubmitTarget(site)).toMatchObject({ url: '/_submit', source: 'host' })
+  })
+
+  it('uses the authored declaration where the host offers no destination', () => {
+    const site = makeWebsite({ submit: '/mine' })
+    expect(resolveSubmitTarget(site)).toMatchObject({ url: '/mine', source: 'site' })
   })
 
   /**

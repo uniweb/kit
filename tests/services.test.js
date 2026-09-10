@@ -32,10 +32,16 @@ describe('resolveService — precedence', () => {
     ).toEqual({ url: '/_submit', source: 'host' })
   })
 
-  // An operator who named an endpoint means it — a host offering one does not
-  // quietly take over.
-  it('prefers the site over the host', () => {
+  // Reversed 2026-09-10: a host that offers a service is the authority on what
+  // the site is given, so its address wins. The site's own endpoint is used for
+  // a service the host does not provide — the next test.
+  it('prefers the host over the site where the host offers the service', () => {
     const w = site({ submit: '/mine', services: { submit: { endpoint: '/theirs' } } })
+    expect(resolveService(w, 'submit')).toMatchObject({ url: '/theirs', source: 'host' })
+  })
+
+  it("uses the site's own endpoint for a service the host does not provide", () => {
+    const w = site({ submit: '/mine', services: { search: { endpoint: '/_search' } } })
     expect(resolveService(w, 'submit')).toMatchObject({ url: '/mine', source: 'site' })
   })
 
@@ -134,12 +140,20 @@ describe('resolveService — a declaration may configure without addressing', ()
     expect(resolveService(w, 'assistant')).toEqual({ url: null, source: 'host' })
   })
 
-  it('still prefers the site when the block carries settings AND an endpoint', () => {
+  it('a block carrying settings AND an endpoint still names an address, used where the host offers none', () => {
+    const w = site({
+      assistant: { system: 'You are a support assistant.', endpoint: '/mine' },
+      services: { search: { endpoint: '/_search' } },
+    })
+    expect(resolveService(w, 'assistant')).toMatchObject({ url: '/mine', source: 'site' })
+  })
+
+  it('…and yields to a host that offers the service, settings or not', () => {
     const w = site({
       assistant: { system: 'You are a support assistant.', endpoint: '/mine' },
       services: { assistant: { endpoint: '/_agent/chat' } },
     })
-    expect(resolveService(w, 'assistant')).toMatchObject({ url: '/mine', source: 'site' })
+    expect(resolveService(w, 'assistant')).toMatchObject({ url: '/_agent/chat', source: 'host' })
   })
 })
 
