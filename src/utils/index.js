@@ -252,3 +252,12 @@ export function headingId(text) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
 }
+
+// Service predicates — the one thing to call before rendering UI for a service.
+export {
+  isApiEnabled,
+  isSearchEnabled,
+  isSubmitEnabled,
+  isTrackingEnabled,
+  isAssistantEnabled,
+} from './servicePredicates.js'

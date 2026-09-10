@@ -138,7 +138,13 @@ export {
   resolveSubmitTarget,
   // Site services (search / submit / assistant / anything a host offers)
   resolveService,
-  resolveServiceUrl
+  resolveServiceUrl,
+  // ⭐ Call one of these before rendering UI for a service. False ⇒ draw nothing.
+  isApiEnabled,
+  isSearchEnabled,
+  isSubmitEnabled,
+  isTrackingEnabled,
+  isAssistantEnabled
 } from './utils/index.js'
 
 // ============================================================================

@@ -273,8 +273,19 @@ export function createSearchClient(website, options = {}) {
      *
      * Two independent ways it is off, and a caller needs neither to tell them
      * apart: the SITE disabled it (`search: false` / `search: { enabled:
-     * false }`), or the HOST declared the service and offered no address —
-     * see `hostDeclined` above. Either way a foundation draws no search UI.
+     * false }`), or the HOST declared the service and offered no address.
+     * Either way a foundation draws no search UI.
+     *
+     * ⚠️ **`&& !hostDeclined` looks redundant and is not.** A real `Website`
+     * folds the decline into `isSearchEnabled()` itself, so against one the
+     * second operand cannot change the answer — but this client accepts
+     * anything website-SHAPED, and a duck-typed object (the editor's preview,
+     * a test's fixture) carries whatever `isSearchEnabled` it was given.
+     * `tests/search-host-decline.test.js` pins that contract: its fixture
+     * returns `true` unconditionally, and the decline still has to hold.
+     * ⛔ Removed as dead code 2026-09-10, restored the same day when those
+     * tests failed. The redundancy is the point — this resolves the tiers
+     * itself rather than trusting its receiver to have done it.
      *
      * ⛔ Deliberately no reason string. Which services a site is provisioned
      * for is not a visitor's business and could not be localized from a public
@@ -355,15 +366,25 @@ export function createSearchClient(website, options = {}) {
       if (!trimmed) return { results: [], total: 0 }
 
       if (!website.isSearchEnabled()) {
-        console.warn('Search is not enabled for this site')
+        // ⭐ SILENT WHEN THE HOST DECLINED, loud when the author switched it
+        // off. Not-provisioned is not a mistake — a visitor's console should
+        // carry no warning about a service the site was never sold — while
+        // `search: false` beside a search box IS worth naming.
+        //
+        // ⛔ The warn was unconditional until 2026-09-10, which DEFEATED the
+        // silence promised below: against a real `Website` the decline is
+        // already folded into `isSearchEnabled()`, so this branch fired first
+        // and warned, and the `hostDeclined` return never ran. The two are not
+        // interchangeable — that one still guards a duck-typed website — so
+        // only the WARNING became tier-aware.
+        if (!hostDeclined) console.warn('Search is not enabled for this site')
         return { results: [], total: 0 }
       }
 
       // The host declared the service and offered no address. Return empty
-      // rather than requesting anything — the alternative is a fetch we
-      // already know the answer to. Silent: a foundation that checked
-      // `isEnabled()` never reaches this, and one that did not should not fill
-      // a visitor's console over a service the site was never provisioned for.
+      // rather than requesting anything — the alternative is a fetch whose
+      // answer is already known. Reached when `isSearchEnabled()` above did not
+      // account for the decline, i.e. any website that is not a real `Website`.
       if (hostDeclined) return { results: [], total: 0 }
 
       const opts = { limit, type, route, signal }
