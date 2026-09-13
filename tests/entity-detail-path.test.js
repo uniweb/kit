@@ -65,12 +65,12 @@ describe('useEntityDetail request building', () => {
     expect(request.query).toBe('articles')
   })
 
-  it('honours an author-declared detailUrl on an API-backed collection', () => {
+  it('asks an external query\'s `record:` request, with its own transform (detailUrl retired 2026-09-13)', () => {
     const request = withConfig(
-      { queries: { articles: { deferred: ['body'], detailUrl: '/api/a/{slug}' } } },
+      { queries: { articles: { url: 'https://api.test/a', transform: 'results', record: { url: 'https://api.test/a/{slug}', transform: 'data' } } } },
       () => buildDetailRequest({ slug: 'design-tips' }, 'articles')
     )
-    expect(request.path ?? request.url).toBe('/api/a/design-tips')
+    expect(request).toMatchObject({ url: 'https://api.test/a/design-tips', transform: 'data', whole: true })
   })
 
   it('reaches a host\'s question door, which it previously could not see', () => {

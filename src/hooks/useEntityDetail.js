@@ -1,22 +1,15 @@
 /**
- * useEntityDetail — fetch the full record for a query with deferred fields.
+ * useEntityDetail — fetch the full record for a query whose list is lean.
  *
- * When a query declares `deferred: [...]`, the cascade
- * payload omits the deferred fields. The full record (with deferred
- * fields included) lives somewhere — either at a per-record file the
- * build emits, or at an author-declared API endpoint. This hook fetches
- * that full record on demand.
+ * When a query's list carries less than a record — a `deferred: [...]` query, a
+ * host's records service answering briefs, an external query that declares
+ * `record:` — the full record lives at its own address. This hook fetches that
+ * record on demand, from the source the query's declaration picks:
  *
- * Two source patterns, picked automatically from the query's
- * declaration:
- *
- *   - File-backed records (a query over `entities/{schema}/`).
- *     The build emits `/data/<query>/<slug>.json` per record. The
- *     hook fetches that path.
- *
- *   - Remote sources (a query declaring `url:` plus a
- *     `detailUrl:` pattern). The hook substitutes `{slug}` in the
- *     pattern and fetches that URL.
+ *   - a query over `entities/{schema}/` with `deferred:` — the per-record file the
+ *     build emits;
+ *   - a host's records service — the query's question narrowed to the record;
+ *   - an external query — its `record:` request, `{slug}` substituted.
  *
  * On dynamic-route pages the framework routes the singular detail to
  * the same source automatically (entity-store auto-injection). This
@@ -54,9 +47,8 @@ import { useFetched } from './useFetched.js'
  *   Pass null/undefined to skip the fetch.
  * @param {Object} [options]
  * @param {string} options.query - The query name (e.g., 'articles').
- *   Required when record is non-null. Used to look up the query's
- *   `detailUrl:` (if declared) or fall back to the static-file default
- *   `/data/<collection>/<slug>.json`.
+ *   Required when record is non-null. Used to look up where the query's
+ *   records live and what its per-record source is.
  * @param {string} [options.param] - The record field a detail address is
  *   built on. Defaults to the param of the site's own `[param]` template for
  *   this query (`website.detailTemplateFor`), else `slug`.
@@ -84,7 +76,7 @@ export function useEntityDetail(record, options = {}) {
  * Build the fetch request for one record's full payload.
  *
  * ⛔ THIS MUST NOT DECIDE THE ADDRESS ITSELF, and it used to. It read
- * `config.queries[name].detailUrl` directly and otherwise composed
+ * `config.queries[name].detailUrl` (retired since) directly and otherwise composed
  * `/data/<name>/<slug>.json` by hand, which was wrong three ways: it 404'd on
  * any collection without `deferred:` (that file is only written for one), it
  * could not see a host's live record lane at all, and its hand-rolled `{slug}`
