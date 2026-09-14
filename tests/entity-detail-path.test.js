@@ -82,8 +82,9 @@ describe('useEntityDetail request building', () => {
     } }
     try {
       const request = buildDetailRequest({ $name: 'design-tips' }, 'articles')
-      // the record is the list's own question plus `match` — the handle — asked in full
-      expect(request).toMatchObject({ ask: '/_records/_query/en', schema: '@std/article', as: 'articles', whole: true, match: { $name: 'design-tips' } })
+      // the record is the query's set narrowed by `match` — the handle — asked in full
+      expect(request).toMatchObject({ ask: '/_records/_query/en', schema: '@std/article', as: 'articles', whole: true, narrow: { match: { $name: 'design-tips' } } })
+      expect(request).not.toHaveProperty('match')
       expect(request).not.toHaveProperty('where')
       expect(request).not.toHaveProperty('endpoint')
     } finally { globalThis.uniweb = prev }
@@ -156,7 +157,7 @@ describe('the param is the SITE\'s, not the hook\'s', () => {
       const request = buildDetailRequest({ id: 7, $name: 'design-tips' }, 'articles', { param: 'id' })
       // ⛔ This narrowed `$name == '7'` until 2026-09-11 — the handle key with the
       // routed field's value, which no record could match. `[id]` matches `id`.
-      expect(request).toMatchObject({ ask: '/_records/_query/en', match: { id: '7' }, dynamicContext: { paramName: 'id', paramValue: '7' } })
+      expect(request).toMatchObject({ ask: '/_records/_query/en', narrow: { match: { id: '7' } }, dynamicContext: { paramName: 'id', paramValue: '7' } })
     } finally { globalThis.uniweb = prev }
   })
 
@@ -189,7 +190,7 @@ describe('the handle on a live record is `$name`', () => {
     const request = withDoor(() => buildDetailRequest({ $name: 'ada', $uuid: 'u1' }, 'articles'))
     expect(request).not.toBeNull()
     expect(request.dynamicContext).toMatchObject({ paramName: 'slug', paramValue: 'ada' })
-    expect(request.match).toEqual({ $name: 'ada' })
+    expect(request.narrow).toEqual({ match: { $name: 'ada' } })
     expect(request.where).toBeUndefined()
   })
   it('CONTROL — a record with neither $name nor slug is skipped', () => {
