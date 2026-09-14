@@ -131,7 +131,7 @@ describe('the param is the SITE\'s, not the hook\'s', () => {
     // it links to does — by `id` — while the per-record FILE is still named by
     // the record's slug.
     const request = withSite(
-      { detailTemplateFor: (key) => (key === 'articles' ? { route: '/blog/:id', paramName: 'id' } : null) },
+      { recordPageFor: (key) => (key === 'articles' ? { route: '/blog/:id', paramName: 'id' } : null) },
       () => buildDetailRequest({ id: 7, slug: 'design-tips' }, 'articles')
     )
     expect(request).toMatchObject({ path: recordDataUrl('articles', 'design-tips'), as: 'articles' })
@@ -140,7 +140,7 @@ describe('the param is the SITE\'s, not the hook\'s', () => {
 
   it('an explicit options.param wins over the site\'s template', () => {
     const request = withSite(
-      { detailTemplateFor: () => ({ route: '/blog/:id', paramName: 'id' }), services: undefined },
+      { recordPageFor: () => ({ route: '/blog/:id', paramName: 'id' }), services: undefined },
       () => buildDetailRequest({ id: 7, slug: 'design-tips', code: 'X1' }, 'articles', { param: 'code' })
     )
     expect(request).toMatchObject({ path: recordDataUrl('articles', 'design-tips'), as: 'articles' })
@@ -163,7 +163,7 @@ describe('the param is the SITE\'s, not the hook\'s', () => {
 
   it('a record without the routed field is skipped, as a record without a slug was', () => {
     const request = withSite(
-      { detailTemplateFor: () => ({ route: '/blog/:id', paramName: 'id' }) },
+      { recordPageFor: () => ({ route: '/blog/:id', paramName: 'id' }) },
       () => buildDetailRequest({ slug: 'design-tips' }, 'articles')
     )
     expect(request).toBeNull()

@@ -50,8 +50,8 @@ import { useFetched } from './useFetched.js'
  *   Required when record is non-null. Used to look up where the query's
  *   records live and what its per-record source is.
  * @param {string} [options.param] - The record field a detail address is
- *   built on. Defaults to the param of the site's own `[param]` template for
- *   this query (`website.detailTemplateFor`), else `slug`.
+ *   built on. Defaults to the param of the page that shows one record of this
+ *   query (`website.recordPageFor`), else `slug`.
  * @returns {{ data: any, error: string|null, loading: boolean }}
  */
 export function useEntityDetail(record, options = {}) {
@@ -107,10 +107,11 @@ export function buildDetailRequest(record, query, { param = null } = {}) {
   // ⛔ THE PARAM IS THE SITE'S, NOT THIS HOOK'S. It hardcoded `slug` until
   // 2026-09-04, so on a site routing `[id]` a hover card addressed a record by a
   // field the page it links to never uses (open-work U5). The order: the
-  // caller's explicit `param`, else the param of the site's own template page
-  // for this query — the same field `entity-store` matches on — else `slug`,
-  // which is the file lane's per-record key and the documented default.
-  const paramName = param || website?.detailTemplateFor?.(query)?.paramName || 'slug'
+  // caller's explicit `param`, else the param of the page that shows one record of
+  // this query — the page the record's `$route` links to, and the field
+  // `entity-store` matches on — else `slug`, the file lane's per-record key and the
+  // documented default.
+  const paramName = param || website?.recordPageFor?.(query)?.paramName || 'slug'
   const paramValue = routeParamValue(record, paramName)
   if (paramValue === undefined || paramValue === null || paramValue === '') return null
 
