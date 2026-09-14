@@ -1,5 +1,5 @@
 /**
- * `useEntityDetail` must not decide a record's address itself.
+ * `useWholeRecord` must not decide a record's address itself.
  *
  * History, because it explains every assertion here. This hook is the half of
  * per-record fetching that runs *outside* a `[slug]` page. It began by
@@ -22,7 +22,7 @@
 
 import { readFileSync } from 'node:fs'
 import { recordDataUrl } from '@uniweb/core'
-import { buildDetailRequest } from '../src/hooks/useEntityDetail.js'
+import { buildDetailRequest } from '../src/hooks/useWholeRecord.js'
 
 const withConfig = (config, fn) => {
   const prev = globalThis.uniweb
@@ -34,7 +34,7 @@ const withConfig = (config, fn) => {
   }
 }
 
-describe('useEntityDetail request building', () => {
+describe('useWholeRecord request building', () => {
   it('asks for nothing when the collection has no separate detail source', () => {
     // The common case, and NOT a failure: nothing was stripped from the
     // cascade, so the caller's record is already whole. Requesting the
@@ -109,7 +109,7 @@ describe('useEntityDetail request building', () => {
     // return comes from the shared resolution, so the source carries no path
     // literal and no string concatenation of one.
     const src = readFileSync(
-      new URL('../src/hooks/useEntityDetail.js', import.meta.url),
+      new URL('../src/hooks/useWholeRecord.js', import.meta.url),
       'utf8'
     )
     const code = src.replace(/\/\*\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')

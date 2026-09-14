@@ -1,21 +1,26 @@
 /**
- * useEntityDetail — fetch the full record for a query whose list is lean.
+ * useWholeRecord — the whole of a record whose query delivers less of it.
  *
  * When a query's list carries less than a record — a `deferred: [...]` query, a
  * host's records service answering briefs, an external query that declares
- * `record:` — the full record lives at its own address. This hook fetches that
+ * `record:` — the whole record lives at its own address. This hook fetches that
  * record on demand, from the source the query's declaration picks:
  *
  *   - a query over `entities/{schema}/` with `deferred:` — the per-record file the
  *     build emits;
- *   - a host's records service — the query's question narrowed to the record;
+ *   - a host's records service — the query's question narrowed to the record,
+ *     asked `whole`;
  *   - an external query — its `record:` request, `{slug}` substituted.
  *
- * On dynamic-route pages the framework routes the singular detail to
- * the same source automatically (entity-store auto-injection). This
- * hook is for the elsewhere case — a hover-card preview, a modal that
- * opens an article body, a related-items strip that wants summaries
- * everywhere except the one being highlighted.
+ * It was `useEntityDetail` until 2026-09-14 [Diego]. Both words named the wrong
+ * thing: a component holds a record a query delivered, not a stored entity, and
+ * "detail" was the retired `detailUrl`'s word for what the records service's
+ * question calls `whole`.
+ *
+ * On a parametric page the page's own record is already asked from that same
+ * source (entity-store auto-injection). This hook is for the elsewhere case —
+ * a hover-card preview, a modal that opens an article body, a related-items
+ * strip that wants summaries everywhere except the one being highlighted.
  *
  * Returns `{ data, error, loading }` like `useFetched`. Shares the same
  * cache. Pass null/undefined to skip without subscribing.
@@ -23,7 +28,7 @@
  * @example
  * function ArticleCard({ article }) {
  *   const [open, setOpen] = useState(false)
- *   const { data: full, loading } = useEntityDetail(open ? article : null, {
+ *   const { data: full, loading } = useWholeRecord(open ? article : null, {
  *     query: 'articles',
  *   })
  *   return (
@@ -54,7 +59,7 @@ import { useFetched } from './useFetched.js'
  *   query (`website.recordPageFor`), else `slug`.
  * @returns {{ data: any, error: string|null, loading: boolean }}
  */
-export function useEntityDetail(record, options = {}) {
+export function useWholeRecord(record, options = {}) {
   const query = options?.query
   const request = buildDetailRequest(record, query, { param: options?.param })
   const result = useFetched(request)
@@ -132,4 +137,4 @@ export function buildDetailRequest(record, query, { param = null } = {}) {
   return buildDetailConfig(resolved, { paramName, paramValue: String(paramValue), record })
 }
 
-export default useEntityDetail
+export default useWholeRecord

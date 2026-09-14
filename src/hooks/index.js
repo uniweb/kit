@@ -1,7 +1,7 @@
 export { useWebsite, default } from './useWebsite.js'
 export { useFetched } from './useFetched.js'
 export { useCacheEntry } from './useCacheEntry.js'
-export { useEntityDetail } from './useEntityDetail.js'
+export { useWholeRecord } from './useWholeRecord.js'
 export { useQueryable } from './useQueryable.js'
 export { useRouting } from './useRouting.js'
 export { useActiveRoute } from './useActiveRoute.js'
