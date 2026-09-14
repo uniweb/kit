@@ -12,10 +12,9 @@
  *     asked `whole`;
  *   - an external query — its `record:` request, `{slug}` substituted.
  *
- * It was `useEntityDetail` until 2026-09-14 [Diego]. Both words named the wrong
- * thing: a component holds a record a query delivered, not a stored entity, and
- * "detail" was the retired `detailUrl`'s word for what the records service's
- * question calls `whole`.
+ * It was `useEntityDetail` until 2026-09-14 [Diego]: a component holds a record a
+ * query delivered, not a stored entity, and what the hook returns is that record
+ * whole — as the records service's question asks for it, with `whole`.
  *
  * On a parametric page the page's own record is already asked from that same
  * source (entity-store auto-injection). This hook is for the elsewhere case —
