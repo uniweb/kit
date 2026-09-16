@@ -43,7 +43,8 @@ import { useActiveRoute } from './useActiveRoute.js'
  * Pull headings out of the page's own content — available during prerender.
  *
  * Skips the headings the semantic parser claimed as the section's own
- * title/pretitle/subtitle. In this framework a leading `###` is a pretitle and
+ * title/pretitle/subtitle. In this framework a `#>` label line is a pretitle
+ * (as is a smaller ordinary heading above the title, the older spelling) and
  * the `##` after the title is a subtitle — structure, not body headings — so a
  * typed section would otherwise open every contents rail with two entries no
  * reader recognises as sections of the article. An untyped document has none of
