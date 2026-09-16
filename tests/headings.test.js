@@ -94,7 +94,8 @@ describe('headingsFromContent', () => {
   })
 
   it('skips the headings the parser took as the section\'s own structure', () => {
-    // In this framework a leading `###` is a pretitle and the `##` after the
+    // In this framework a `#>` label line is a pretitle (as is a smaller
+    // ordinary heading above the title) and the `##` after the
     // title is a subtitle — structure, not sections of the article. Listing
     // them opened every contents rail with two entries no reader recognised.
     const page = pageOf([
