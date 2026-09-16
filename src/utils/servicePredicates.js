@@ -37,6 +37,24 @@
  * `isServiceEnabled(name)` exported here: ask the method directly —
  * `useWebsite().website.isServiceEnabled('booking')`. A one-liner can be added
  * if a real case appears.
+ *
+ * ## ⭐ THE ROSTER — one predicate per service, and the one deliberate exception
+ *
+ * The five below are every predicate the framework ships. **`records` has none,
+ * and that is deliberate on two counts**, both worth knowing before adding one:
+ *
+ *   1. **A foundation never gates UI on it.** The runtime fetches and fills
+ *      `content.data`; a component reads what it declared and renders the empty
+ *      case. There is no "draw or don't draw" decision to make.
+ *   2. ⛔ **`isServiceEnabled('records')` would give a WRONG answer.** That goes
+ *      through `resolveService`, which needs only an endpoint — while the records
+ *      lane additionally requires a `{locale}` placeholder and refuses a row
+ *      without one (`resolveRecordsService`, `@uniweb/core/records-service`). So
+ *      the predicate would report enabled where the lane declines. Adding one
+ *      would introduce a disagreement, not close a gap.
+ *
+ * ⚠️ `booking` above is an illustration of the open registry, not a service the
+ * framework knows.
  */
 
 import { getUniweb } from '@uniweb/core'
@@ -60,7 +78,15 @@ function activeWebsite() {
 /**
  * Does this site have an app backend — accounts, per-visitor data, member
  * writes? The question to ask before drawing a sign-in affordance or any
- * control only a backend can answer. Re-exported by `@uniweb/api`.
+ * control only a backend can answer.
+ *
+ * ⚠️ **`@uniweb/api` exports its OWN `isApiEnabled`, it does not re-export this
+ * one** — *this line claimed it did until 2026-09-15.* Theirs tests
+ * `resolveBase(website) !== null` and takes an optional website; this one calls
+ * `isServiceEnabled('api')` on the active site. They agree — both bottom out in
+ * `resolveService(website, 'api')`, and the input that would split them is
+ * unreachable — but they are two implementations, so a change to either is not a
+ * change to both.
  */
 export function isApiEnabled() {
   return activeWebsite()?.isServiceEnabled('api') ?? false
@@ -83,7 +109,19 @@ export function isSubmitEnabled() {
   return activeWebsite()?.isServiceEnabled('submit') ?? false
 }
 
-/** Does this site have somewhere to send analytics events? */
+/**
+ * Does this site have somewhere to send analytics events?
+ *
+ * ⛔ **Not a gate for emitting one.** `block.track()` and `useTracker()` are safe
+ * with no destination — they return having done nothing — and `useTracker`'s own
+ * doc says never to wrap them in a check. This is for UI *about* tracking: a
+ * consent banner, a settings toggle.
+ *
+ * ⚠️ **And tracking is not a capability a foundation supplies.** The runtime
+ * emits `page_view` / `outbound_click` / `section_view` for every foundation
+ * alike, so calling this says nothing about what this foundation contributes,
+ * and a foundation that never calls it still gets those events.
+ */
 export function isTrackingEnabled() {
   return activeWebsite()?.isServiceEnabled('tracking') ?? false
 }
