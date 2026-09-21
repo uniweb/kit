@@ -6,7 +6,7 @@
  * `record:` — the whole record lives at its own address. This hook fetches that
  * record on demand, from the source the query's declaration picks:
  *
- *   - a query over `entities/{schema}/` with `deferred:` — the per-record file the
+ *   - a query over `records/{schema}/` with `deferred:` — the per-record file the
  *     build emits;
  *   - a host's records service — the query's question narrowed to the record,
  *     asked `whole`;
