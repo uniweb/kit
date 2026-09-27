@@ -39,14 +39,14 @@ describe('useWholeRecord request building', () => {
   // file the record whole. ⛔ Until then only a `deferred:` query had one, and this asked for nothing.
   it('resolves a compiled query without `deferred:` to its per-record file too', () => {
     const request = withConfig({ queries: { articles: {} } }, () =>
-      buildDetailRequest({ slug: 'design-tips' }, 'articles')
+      buildDetailRequest({ $name: 'design-tips' }, 'articles')
     )
     expect(request.path).toBe(recordDataUrl('articles', 'design-tips'))
   })
 
   it('resolves a deferred collection to the per-record file the build wrote', () => {
     const request = withConfig({ queries: { articles: { deferred: ['body'] } } }, () =>
-      buildDetailRequest({ slug: 'design-tips' }, 'articles')
+      buildDetailRequest({ $name: 'design-tips' }, 'articles')
     )
     // Compared against the shared helper, never a literal: renaming the
     // convention in one place must keep this passing, and re-inlining a copy
@@ -66,7 +66,7 @@ describe('useWholeRecord request building', () => {
   it('asks an external query\'s `record:` request, with its own transform (detailUrl retired 2026-09-13)', () => {
     const request = withConfig(
       { queries: { articles: { url: 'https://api.test/a', transform: 'results', record: { url: 'https://api.test/a/{slug}', transform: 'data' } } } },
-      () => buildDetailRequest({ slug: 'design-tips' }, 'articles')
+      () => buildDetailRequest({ $name: 'design-tips' }, 'articles')
     )
     expect(request).toMatchObject({ url: 'https://api.test/a/design-tips', transform: 'data', whole: true })
   })
@@ -90,7 +90,7 @@ describe('useWholeRecord request building', () => {
 
   it('carries the query name as the binding key, so it shares the cache key', () => {
     const request = withConfig({ queries: { articles: { deferred: ['body'] } } }, () =>
-      buildDetailRequest({ slug: 'x' }, 'articles')
+      buildDetailRequest({ $name: 'x' }, 'articles')
     )
     expect(request.as).toBe('articles')
   })
@@ -98,7 +98,7 @@ describe('useWholeRecord request building', () => {
   it('skips without a record, a slug, or a collection', () => {
     expect(buildDetailRequest(null, 'articles')).toBeNull()
     expect(buildDetailRequest(undefined, 'articles')).toBeNull()
-    expect(buildDetailRequest({ slug: 'x' }, undefined)).toBeNull()
+    expect(buildDetailRequest({ $name: 'x' }, undefined)).toBeNull()
     expect(buildDetailRequest({ title: 'no slug' }, 'articles')).toBeNull()
   })
 
@@ -130,7 +130,7 @@ describe('the param is the SITE\'s, not the hook\'s', () => {
     // the record's slug.
     const request = withSite(
       { recordPageFor: (key) => (key === 'articles' ? { route: '/blog/:id', paramName: 'id' } : null) },
-      () => buildDetailRequest({ id: 7, slug: 'design-tips' }, 'articles')
+      () => buildDetailRequest({ id: 7, $name: 'design-tips' }, 'articles')
     )
     expect(request).toMatchObject({ path: recordDataUrl('articles', 'design-tips'), as: 'articles' })
     expect(request.dynamicContext).toEqual({ paramName: 'id', paramValue: '7' })
@@ -139,7 +139,7 @@ describe('the param is the SITE\'s, not the hook\'s', () => {
   it('an explicit options.param wins over the site\'s template', () => {
     const request = withSite(
       { recordPageFor: () => ({ route: '/blog/:id', paramName: 'id' }), services: undefined },
-      () => buildDetailRequest({ id: 7, slug: 'design-tips', code: 'X1' }, 'articles', { param: 'code' })
+      () => buildDetailRequest({ id: 7, $name: 'design-tips', code: 'X1' }, 'articles', { param: 'code' })
     )
     expect(request).toMatchObject({ path: recordDataUrl('articles', 'design-tips'), as: 'articles' })
     expect(request.dynamicContext).toEqual({ paramName: 'code', paramValue: 'X1' })
@@ -162,13 +162,13 @@ describe('the param is the SITE\'s, not the hook\'s', () => {
   it('a record without the routed field is skipped, as a record without a slug was', () => {
     const request = withSite(
       { recordPageFor: () => ({ route: '/blog/:id', paramName: 'id' }) },
-      () => buildDetailRequest({ slug: 'design-tips' }, 'articles')
+      () => buildDetailRequest({ $name: 'design-tips' }, 'articles')
     )
     expect(request).toBeNull()
   })
 
   it('CONTROL — with no template and no option the default is still slug', () => {
-    const request = withConfig(deferredCfg, () => buildDetailRequest({ slug: 'design-tips' }, 'articles'))
+    const request = withConfig(deferredCfg, () => buildDetailRequest({ $name: 'design-tips' }, 'articles'))
     expect(request).toMatchObject({ path: recordDataUrl('articles', 'design-tips'), as: 'articles' })
   })
 })
@@ -191,7 +191,8 @@ describe('the handle on a live record is `$name`', () => {
     expect(request.narrow).toEqual({ match: { $name: 'ada' } })
     expect(request.where).toBeUndefined()
   })
-  it('CONTROL — a record with neither $name nor slug is skipped', () => {
+  it('CONTROL — a record with no $name is skipped — a `slug` field is not its handle', () => {
+    expect(withDoor(() => buildDetailRequest({ $uuid: 'u1', slug: 'x' }, 'articles'))).toBeNull()
     expect(withDoor(() => buildDetailRequest({ $uuid: 'u1', title: 'x' }, 'articles'))).toBeNull()
   })
 })
