@@ -7,7 +7,7 @@
  * record on demand, from the source the query's declaration picks:
  *
  *   - a query over `records/{schema}/` — the per-record file the build emits for
- *     every record (only for a `deferred:` query until 2026-09-27);
+ *     every record (only for a query with `deferred:`, since retired, until 2026-09-27);
  *   - a host's records service — the query's question narrowed to the record,
  *     asked `whole`;
  *   - an external query — its `record:` request, `{slug}` substituted.
@@ -63,13 +63,11 @@ export function useWholeRecord(record, options = {}) {
   const request = buildDetailRequest(record, query, { param: options?.param })
   const result = useFetched(request)
 
-  // No separate detail source for this collection — nothing was stripped from
-  // the cascade, so the record the caller already holds IS the whole record.
-  // Returning it beats both alternatives: `null` makes every caller null-check
-  // a case that cannot fail, and requesting the per-record file anyway is a
-  // guaranteed 404, because that file is only written for a `deferred:`
-  // collection. `useFetched` is still called above — unconditionally, as the
-  // rules of hooks require — and simply skips on a null request.
+  // No separate source for one record — an external query with no `record:` — so
+  // the record the caller already holds is all there is. Returning it beats `null`,
+  // which would make every caller null-check a case that cannot fail. `useFetched`
+  // is still called above — unconditionally, as the rules of hooks require — and
+  // simply skips on a null request.
   if (record && query && !request) {
     return { data: record, error: null, loading: false }
   }
@@ -82,7 +80,7 @@ export function useWholeRecord(record, options = {}) {
  * ⛔ THIS MUST NOT DECIDE THE ADDRESS ITSELF, and it used to. It read
  * `config.queries[name].detailUrl` (retired since) directly and otherwise composed
  * `/data/<name>/<slug>.json` by hand, which was wrong three ways: it 404'd on
- * any collection without `deferred:` (that file is only written for one), it
+ * any query without `deferred:` (that file was only written for one then), it
  * could not see a host's live record lane at all, and its hand-rolled `{slug}`
  * replace ignored a route whose param is named anything else.
  *
