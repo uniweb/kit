@@ -45,6 +45,7 @@
     "@uniweb/core": "workspace:^",
     "@uniweb/projections": "workspace:^",
     "@uniweb/scene": "workspace:^",
+    "@uniweb/schemas": "workspace:^",
     "@uniweb/semantic-parser": "workspace:^",
     "clsx": "^2.1.0",
     "shiki": "^3.0.0",
