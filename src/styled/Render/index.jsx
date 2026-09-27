@@ -87,14 +87,15 @@ export const NOT_RENDERED = {
   dataBlock:
     'structured data, not prose — a component reads it from content.data[tag]',
   inset_ref:
-    'a BUILD-TIME intermediate. The reader emits it for `![](@Component)`; the ' +
-    'build\'s content-collector extracts it into the section\'s insets and leaves ' +
+    'the stored form of a leaf inset (`![](@Component)`, `[@key]`, `[#id]`). ' +
+    '@uniweb/core lifts it when it builds a Block — a placeholder in place, a ' +
+    'Block in `block.insets` — so a section\'s content reaches this renderer as ' +
     'an `inset_placeholder`, which is what the `inset` case resolves. Its attrs ' +
     'carry a component NAME and no refId, so there is nothing here to look up — ' +
     'and kit answering for the name is the shadowing the inset_block case ' +
-    'refuses. Consequence worth knowing: a document rendered straight from ' +
-    'markdown without that build step (a record body, say) loses its ' +
-    'inline component references.',
+    'refuses. Consequence worth knowing: a document rendered here WITHOUT a Block ' +
+    'built over it (a record\'s body passed straight in, say) keeps its ' +
+    'inset_ref nodes, and they render nothing.',
   form: 'an editor node; its data reaches components as content.data[schemaId]',
   'card-group': 'an editor node, deprecated — maps to content.data[cardType]',
   'document-group': 'an editor node — its documents reach content.links',
