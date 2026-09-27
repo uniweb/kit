@@ -35,15 +35,13 @@ const withConfig = (config, fn) => {
 }
 
 describe('useWholeRecord request building', () => {
-  it('asks for nothing when the collection has no separate detail source', () => {
-    // The common case, and NOT a failure: nothing was stripped from the
-    // cascade, so the caller's record is already whole. Requesting the
-    // per-record file here — which is what this hook used to do — is a
-    // guaranteed 404, because that file is only written for a `deferred:`
-    // collection.
-    expect(withConfig({ queries: { articles: {} } }, () =>
+  // ⭐ Every compiled query has a per-record file since 2026-09-27 — its list holds briefs, the
+  // file the record whole. ⛔ Until then only a `deferred:` query had one, and this asked for nothing.
+  it('resolves a compiled query without `deferred:` to its per-record file too', () => {
+    const request = withConfig({ queries: { articles: {} } }, () =>
       buildDetailRequest({ slug: 'design-tips' }, 'articles')
-    )).toBeNull()
+    )
+    expect(request.path).toBe(recordDataUrl('articles', 'design-tips'))
   })
 
   it('resolves a deferred collection to the per-record file the build wrote', () => {

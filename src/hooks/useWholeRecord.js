@@ -1,13 +1,13 @@
 /**
  * useWholeRecord — the whole of a record whose query delivers less of it.
  *
- * When a query's list carries less than a record — a `deferred: [...]` query, a
- * host's records service answering briefs, an external query that declares
- * `record:` — the whole record lives at its own address. This hook fetches that
+ * A query's list carries briefs — a static site's compiled list, a host's records
+ * service — and an external query that declares `record:` has its own request for
+ * one. The whole record, as stored, lives at its own address. This hook fetches that
  * record on demand, from the source the query's declaration picks:
  *
- *   - a query over `records/{schema}/` with `deferred:` — the per-record file the
- *     build emits;
+ *   - a query over `records/{schema}/` — the per-record file the build emits for
+ *     every record (only for a `deferred:` query until 2026-09-27);
  *   - a host's records service — the query's question narrowed to the record,
  *     asked `whole`;
  *   - an external query — its `record:` request, `{slug}` substituted.
@@ -93,8 +93,8 @@ export function useWholeRecord(record, options = {}) {
  * per-record source is, then `buildDetailConfig` turns that plus a param into a
  * request. A fourth answer computed here is a fourth thing to drift.
  *
- * Returns null when the collection has no separate detail source — the common
- * case, and not a failure. The caller's record is already whole.
+ * Returns null when the query has no separate detail source — an external query
+ * with no `record:` — and the caller's record is all there is.
  *
  * Exported for tests only — not re-exported from the package index.
  *
