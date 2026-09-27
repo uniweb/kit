@@ -41,7 +41,7 @@
  * }
  */
 
-import { getUniweb, resolveFetchConfigs, buildDetailConfig, routeParamValue } from '@uniweb/core'
+import { getUniweb, resolveFetchConfigs, buildDetailConfig, routeParamValue, routeFieldOf } from '@uniweb/core'
 import { useFetched } from './useFetched.js'
 
 /**
@@ -114,7 +114,8 @@ export function buildDetailRequest(record, query, { param = null } = {}) {
   // `entity-store` matches on — else `slug`, the file lane's per-record key and the
   // documented default.
   const paramName = param || website?.recordPageFor?.(query)?.paramName || 'slug'
-  const paramValue = routeParamValue(record, paramName)
+  // The field the query binds its page's URL segment to, when it binds one — else `$name`.
+  const paramValue = routeParamValue(record, paramName, routeFieldOf(config?.queries?.[query]))
   if (paramValue === undefined || paramValue === null || paramValue === '') return null
 
   // One synthetic source, resolved by the shared rule — same inputs the
