@@ -40,6 +40,9 @@ export { Asset } from './components/Asset/index.js'
 // Data loading
 export { DataPlaceholder } from './components/DataPlaceholder.jsx'
 
+// A section's background, for a component that draws it itself (`background: 'self'`)
+export { SectionBackground } from './components/SectionBackground/index.js'
+
 // Social
 export {
   SocialIcon,

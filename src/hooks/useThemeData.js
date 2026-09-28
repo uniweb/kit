@@ -89,31 +89,28 @@ export function useThemeData() {
 }
 
 /**
- * Get the current section's color context.
+ * The color context a section renders in: `'light'`, `'medium'` or `'dark'`.
  *
- * Note: This requires the component to receive the block prop.
- * For components that don't have block access, use a default or pass context explicitly.
+ * A section pinned with `theme:` renders in that context. One that follows the site — no
+ * `theme:` — renders in the site's current scheme, so on a dark-scheme site it is `'dark'`.
+ * This is how a component reads its context for its own logic, a light or dark logo say:
+ * `theme` is a setting of the section, never one of the component's params. ⛔ Until
+ * 2026-09-28 a section that follows the site read as `'light'` whatever the scheme.
  *
- * @param {Object} block - Block instance (optional)
- * @returns {string} Context name ('light', 'medium', or 'dark')
+ * @param {Object} block - The section's Block
+ * @returns {'light'|'medium'|'dark'}
  *
  * @example
- * function MyComponent({ block }) {
+ * function Logo({ block }) {
  *   const context = useColorContext(block)
- *   return <div className={`context-${context}`}>...</div>
+ *   return <img src={context === 'dark' ? '/logo-light.svg' : '/logo.svg'} alt="" />
  * }
  */
 export function useColorContext(block) {
-  // Get context from block's theme property
-  const context = block?.themeName || block?.theme || 'light'
-
-  // Validate context name
-  const validContexts = ['light', 'medium', 'dark']
-  if (validContexts.includes(context)) {
-    return context
-  }
-
-  return 'light'
+  const { scheme } = useAppearance()
+  const pinned = block?.themeName
+  if (pinned === 'light' || pinned === 'medium' || pinned === 'dark') return pinned
+  return scheme === 'dark' ? 'dark' : 'light'
 }
 
 /**

@@ -14,7 +14,7 @@ import { ChildGrid } from '../src/styled/ChildGrid/index.jsx'
 function withChildRenderer(fn) {
   const prev = globalThis.uniweb
   globalThis.uniweb = {
-    childBlockRenderer: ({ blocks }) => <span data-child={blocks[0].type} />,
+    childBlockRenderer: ({ blocks, wrapAs }) => <span data-child={blocks[0].type} data-wrap={wrapAs || 'bare'} />,
   }
   try {
     return fn()
@@ -28,6 +28,12 @@ const section = (grid, types = ['A', 'B', 'C']) => ({ grid, childBlocks: types.m
 const render = (props) => withChildRenderer(() => renderToStaticMarkup(<ChildGrid {...props} />))
 
 describe('ChildGrid', () => {
+  it('renders each child as a section, so its own theme and background apply', () => {
+    const html = render({ from: section(2, ['A', 'B']) })
+    expect(html.match(/data-wrap="div"/g)).toHaveLength(2)
+    expect(html).not.toContain('data-wrap="bare"')
+  })
+
   it('lays the children out in the chosen layout', () => {
     const html = render({ from: section('40/60', ['A', 'B']) })
     expect(html).toContain('--uniweb-grid-cols:minmax(0, 40fr) minmax(0, 60fr)')

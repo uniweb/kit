@@ -11,6 +11,10 @@
  * columns applies as chosen and a wider one shows two equal columns; from `lg` the
  * chosen layout applies whatever its width.
  *
+ * ⭐ Each child renders as a section, in a `div`: its own `theme:` and `background:`
+ * apply, and it carries the `section-{id}` its theme rules select [2026-09-28]. ⛔ Until
+ * then the children rendered bare, and a child's theme and background did nothing.
+ *
  * @module @uniweb/kit/styled/ChildGrid
  */
 
@@ -60,7 +64,7 @@ export function ChildGrid({ from: block, fallback = null, headerRow = false, cla
           key={child.id || index}
           className={cn(headerRow && index === 0 && 'md:col-span-full', cellClassName)}
         >
-          <ChildBlocks blocks={[child]} />
+          <ChildBlocks blocks={[child]} wrapAs="div" />
         </div>
       ))}
     </div>
