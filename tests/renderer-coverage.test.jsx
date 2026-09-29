@@ -125,6 +125,13 @@ describe('documents render as documents — they used to be drawn as an image of
     expect(out).toContain('<svg')
   })
 
+  it('with no caption or alt, it is named by its file — the name the author gave it, not a hashed copy', () => {
+    const copied = { type: 'image', attrs: { src: '/assets/report-1a2b3c4d.pdf', role: 'pdf', name: 'Annual report.pdf' } }
+    const out = html(<Render content={pm([copied])} />)
+    expect(out).toContain('<span>Annual report.pdf</span>')
+    expect(out).not.toContain('<span>report-1a2b3c4d.pdf</span>')
+  })
+
   it('the author and description describe the resource — a caption, not alt text', () => {
     const out = html(<Render content={pm([pdf({ author: 'Ada', description: 'Results for the year' })])} />)
     expect(out).toContain('<figcaption>')

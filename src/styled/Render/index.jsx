@@ -325,12 +325,15 @@ export function SequenceElement({ element, block, components }) {
     // 2026-09-29 the parser delivered a document as an image, and this drew
     // `<img src="report.pdf">`.
     case 'document': {
-      const { url, alt, caption, preview, author, description } = element.attrs || {}
-      const name = caption || alt || fileNameOf(url)
+      // `file` is the file's own name — the parser reads it from the address, and a build
+      // that copies the file under a hashed name stamps the one it had; the address is
+      // the fallback for content parsed before documents carried one (2026-09-29).
+      const { url, alt, caption, preview, author, description, name: file } = element.attrs || {}
+      const name = caption || alt || file || fileNameOf(url)
       return (
         <figure id={authoredId(element)} data-kind="document">
           <Link to={url}>
-            {preview ? <Image src={preview} alt="" /> : <FileLogo filename={url} />}
+            {preview ? <Image src={preview} alt="" /> : <FileLogo filename={file || url} />}
             <span>{name}</span>
           </Link>
           {(author || description) && (
