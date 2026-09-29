@@ -54,6 +54,7 @@ import { Image } from '../../components/Image/index.js'
 import { Media } from '../../components/Media/index.js'
 import { Icon } from '../../components/Icon/index.js'
 import { Link } from '../../components/Link/index.js'
+import { FileLogo } from '../../components/FileLogo/index.js'
 import { Code } from '../Section/renderers/Code.jsx'
 import { Divider } from '../Section/renderers/Divider.jsx'
 
@@ -98,7 +99,6 @@ export const NOT_RENDERED = {
     'inset_ref nodes, and they render nothing.',
   form: 'an editor node; its data reaches components as content.data[schemaId]',
   'card-group': 'an editor node, deprecated — maps to content.data[cardType]',
-  'document-group': 'an editor node — its documents reach content.links',
 }
 
 /**
@@ -114,6 +114,11 @@ export const NOT_RENDERED = {
  * internal links. Until 2026-07-31 nothing emitted it, so an authored id
  * existed only inside the registry and never reached the document.
  */
+/** A file's name from its address — the last path segment, without a query or fragment. */
+function fileNameOf(url) {
+  return String(url || '').split(/[?#]/)[0].split('/').pop() || ''
+}
+
 function authoredId(element) {
   return element?.attrs?.id ?? element?.id ?? undefined
 }
@@ -308,6 +313,33 @@ export function SequenceElement({ element, block, components }) {
         <figure id={authoredId(element)}>
           <Image src={url || src} alt={alt || caption || ''} />
           {caption && <figcaption>{caption}</figcaption>}
+        </figure>
+      )
+    }
+
+    // A file — a PDF — with an optional preview: one link to the file, holding
+    // the preview (or a file badge, when there is none) and the document's name.
+    // The author and description describe the RESOURCE, so they sit in the
+    // caption, and the preview's alt is empty — the name labels the link. <Link>
+    // treats a file address as a download and applies the base path. Until
+    // 2026-09-29 the parser delivered a document as an image, and this drew
+    // `<img src="report.pdf">`.
+    case 'document': {
+      const { url, alt, caption, preview, author, description } = element.attrs || {}
+      const name = caption || alt || fileNameOf(url)
+      return (
+        <figure id={authoredId(element)} data-kind="document">
+          <Link to={url}>
+            {preview ? <Image src={preview} alt="" /> : <FileLogo filename={url} />}
+            <span>{name}</span>
+          </Link>
+          {(author || description) && (
+            <figcaption>
+              {author && <span>{author}</span>}
+              {author && description && ' — '}
+              {description && <span>{description}</span>}
+            </figcaption>
+          )}
         </figure>
       )
     }

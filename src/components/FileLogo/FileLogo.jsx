@@ -131,13 +131,17 @@ export function FileLogo({ filename, size = '24', className, ...props }) {
   const ext = getExtension(filename)
   const iconType = FILE_ICONS[ext] || 'default'
   const icon = ICONS[iconType]
+  // A number or a string of digits is pixels. React appends `px` to a number and
+  // to nothing else, so the default `'24'` rendered `width:24` — invalid CSS the
+  // browser drops — until 2026-09-29. Any other string (`'1.5em'`) is kept as written.
+  const dimension = /^\d+(\.\d+)?$/.test(String(size)) ? `${size}px` : size
 
   return (
     <svg
       viewBox="0 0 24 24"
       fill="currentColor"
       className={cn('inline-block', className)}
-      style={{ width: size, height: size }}
+      style={{ width: dimension, height: dimension }}
       aria-hidden="true"
       {...props}
     >

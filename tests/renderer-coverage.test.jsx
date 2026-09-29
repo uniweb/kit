@@ -101,6 +101,38 @@ describe('math renders — it used to vanish from every Article', () => {
   })
 })
 
+describe('documents render as documents — they used to be drawn as an image of the file', () => {
+  const pdf = attrs => ({ type: 'image', attrs: { src: '/files/report.pdf', alt: 'Annual report', role: 'pdf', ...attrs } })
+
+  it.each([
+    ['Render', <Render content={pm([pdf({ preview: '/files/cover.jpg' })])} />],
+    ['Prose', <Prose content={pm([pdf({ preview: '/files/cover.jpg' })])} />],
+    ['Article', <Article content={pm([pdf({ preview: '/files/cover.jpg' })])} />],
+  ])('%s links the file, with its preview and its name', (_name, el) => {
+    const out = html(el)
+    expect(out).toContain('data-kind="document"')
+    expect(out).toMatch(/<a [^>]*href="\/files\/report\.pdf"/)
+    expect(out).toContain('src="/files/cover.jpg"')
+    expect(out).toContain('Annual report')
+    // Never the file itself as an image — the defect this replaces.
+    expect(out).not.toContain('src="/files/report.pdf"')
+  })
+
+  it('a document with no preview gets a file badge, not an empty image', () => {
+    const out = html(<Render content={pm([pdf()])} />)
+    expect(out).toMatch(/<a [^>]*href="\/files\/report\.pdf"/)
+    expect(out).not.toContain('<img')
+    expect(out).toContain('<svg')
+  })
+
+  it('the author and description describe the resource — a caption, not alt text', () => {
+    const out = html(<Render content={pm([pdf({ author: 'Ada', description: 'Results for the year' })])} />)
+    expect(out).toContain('<figcaption>')
+    expect(out).toContain('Ada')
+    expect(out).toContain('Results for the year')
+  })
+})
+
 describe('tables render — they used to be destroyed at the parser', () => {
   const cell = (t, attrs = {}) => ({
     type: 'tableCell',
@@ -449,5 +481,13 @@ describe('an authored {#id} reaches the document', () => {
     // attribute matching nothing, which is worse than its absence.
     expect(renderEl({ type: 'image', attrs: { src: '/c.png', alt: 'x' } })).not.toMatch(/id=/)
     expect(renderEl({ type: 'math', display: true, mathml: '<math></math>' })).not.toMatch(/id=/)
+  })
+})
+
+describe('the file badge has a size a browser reads', () => {
+  it('a document with no preview draws its badge in pixels — not a unitless `width:24`', () => {
+    const out = html(<Render content={pm([{ type: 'image', attrs: { src: '/f/a.pdf', alt: 'A', role: 'pdf' } }])} />)
+    expect(out).toContain('width:24px')
+    expect(out).not.toMatch(/width:24[;"]/)
   })
 })
