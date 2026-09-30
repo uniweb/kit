@@ -5,7 +5,8 @@
  * - Internal navigation via React Router
  * - External links with appropriate attributes
  * - File downloads
- * - Auto-generated accessible titles
+ * - A generated tooltip where a link does something its text may not say:
+ *   leaves the site, downloads a file, writes an email, places a call
  *
  * @module @uniweb/kit/Link
  */
@@ -52,10 +53,17 @@ function detectSocialPlatform(url) {
 }
 
 /**
- * Generate an accessible title for a link
+ * The tooltip a link gets when its caller gives none — only where the link does
+ * something its text may not say. An internal link gets none: its text names where
+ * it goes.
+ *
+ * ⛔ Until 2026-09-30 an internal link got `Go to <its path>`, dashes as spaces —
+ * `Go to blog/writing for the web` on every card of a blog [Diego: "stop adding it
+ * to internal links"].
+ *
  * @param {string} href - The link URL
  * @param {Function} localize - Localization function
- * @returns {string}
+ * @returns {string} the tooltip, or '' for none
  */
 function generateTitle(href, localize) {
   if (!href) return ''
@@ -108,26 +116,6 @@ function generateTitle(href, localize) {
     })
   }
 
-  // Internal links - humanize the path
-  try {
-    const url = new URL(href, window.location.origin)
-    const path = decodeURIComponent(url.pathname)
-      .replace(/^\/+/, '')
-      .replace(/[-_]/g, ' ')
-      .replace(/\.\w+$/, '')
-      .trim()
-
-    if (path) {
-      return localize({
-        en: `Go to ${path}`,
-        fr: `Aller à ${path}`,
-        es: `Ir a ${path}`
-      })
-    }
-  } catch {
-    // Invalid URL
-  }
-
   return ''
 }
 
@@ -137,7 +125,9 @@ function generateTitle(href, localize) {
  * @param {Object} props
  * @param {string} [props.to] - Destination URL (alias for href)
  * @param {string} [props.href] - Destination URL
- * @param {string} [props.title] - Custom title/tooltip (auto-generated if not provided)
+ * @param {string} [props.title] - Custom title/tooltip. Without one, a link that leaves the
+ *   site, downloads, writes an email or places a call gets one saying so; an internal
+ *   link gets none
  * @param {string} [props.target] - Link target (_blank, _self, etc.)
  * @param {string} [props.className] - CSS classes
  * @param {boolean} [props.download] - Force download behavior
@@ -192,8 +182,8 @@ export function Link({
   // Determine if external
   const isExternal = isExternalUrl(linkHref)
 
-  // Auto-generate title if not provided
-  const linkTitle = title || generateTitle(linkHref, localize)
+  // A generated tooltip when none is given — none at all rather than an empty one.
+  const linkTitle = title || generateTitle(linkHref, localize) || undefined
 
   // Links with reload: render plain <a> for full page navigation
   // Used for locale switches (same-domain or cross-domain)

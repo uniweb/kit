@@ -53,7 +53,7 @@ function Hero({ content }) {
 
 ### Link
 
-Smart link component with routing, downloads, and auto-generated accessible titles.
+Smart link component with routing and downloads. A link that leaves the site, downloads a file, writes an email or places a call gets a tooltip saying so; an internal link gets none.
 
 ```jsx
 import { Link } from '@uniweb/kit'
@@ -67,7 +67,7 @@ import { Link } from '@uniweb/kit'
 | Prop | Type | Description |
 |------|------|-------------|
 | `to` / `href` | `string` | Destination URL |
-| `title` | `string` | Tooltip (auto-generated if omitted) |
+| `title` | `string` | Tooltip. If omitted, one is generated only where the link leaves the site, downloads, writes an email or places a call |
 | `target` | `string` | Link target |
 | `download` | `boolean` | Force download behavior |
 
