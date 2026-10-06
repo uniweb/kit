@@ -193,8 +193,8 @@ describe('result contract', () => {
 
 /**
  * A host may answer search itself, and says so in the same `services` block it
- * uses for every other service. Resolution is the one documented in
- * site-derived-artifacts.md: site.yml → served payload → the local index.
+ * uses for every other service. Resolution order: site.yml → served payload →
+ * the local index.
  *
  * ⚠️ The third test INVERTED on 2026-08-25, and the original concern is worth
  * keeping because it was correct and is now answered rather than discarded:
