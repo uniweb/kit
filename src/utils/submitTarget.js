@@ -22,13 +22,12 @@ import { resolveService, resolveServiceUrl } from './services.js'
  * offers the path when something is actually there to catch it. Same bytes, and
  * only one of them is correct.
  *
- * ## Simulating a host locally
+ * ## `services:` in site.yml is not the host tier
  *
- * The bundle lane spreads all of site.yml into the payload config, so writing a
- * `services:` block in site.yml exercises the host tier end to end with no
- * framework change. It cannot leak into a real deployment: the sync lane is an
- * explicit allowlist and does not carry `services`, so a synced site's value can
- * only have come from its host.
+ * It is the owner's request to their host, and the build keeps it out of the
+ * payload, so a site's `config.services` can only have come from its host. *(Until
+ * 2026-10-06 a static build copied it there, and it doubled as a way to simulate a
+ * host's offer locally.)*
  */
 
 /**
