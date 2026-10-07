@@ -80,16 +80,21 @@ function activeWebsite() {
  * writes? The question to ask before drawing a sign-in affordance or any
  * control only a backend can answer.
  *
- * ⚠️ **`@uniweb/api` exports its OWN `isApiEnabled`, it does not re-export this
- * one** — *this line claimed it did until 2026-09-15.* Theirs tests
+ * ⚠️ **`@uniweb/api` exports its OWN `isBackendEnabled`, it does not re-export
+ * this one** — *this line claimed it did until 2026-09-15.* Theirs tests
  * `resolveBase(website) !== null` and takes an optional website; this one calls
- * `isServiceEnabled('api')` on the active site. They agree — both bottom out in
- * `resolveService(website, 'api')`, and the input that would split them is
+ * `isServiceEnabled('backend')` on the active site. They agree — both bottom out
+ * in `resolveService(website, 'backend')`, and the input that would split them is
  * unreachable — but they are two implementations, so a change to either is not a
  * change to both.
+ *
+ * ⛔ **It was `isApiEnabled`, asking for the service `api`, until 2026-10-07**,
+ * when the site's own backend became the `backend` service: a service is named for
+ * what it gives the site, and `/api` is only the interface it answers on. No alias —
+ * a foundation importing the old name fails at its build, where someone will see it.
  */
-export function isApiEnabled() {
-  return activeWebsite()?.isServiceEnabled('api') ?? false
+export function isBackendEnabled() {
+  return activeWebsite()?.isServiceEnabled('backend') ?? false
 }
 
 /**

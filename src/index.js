@@ -143,7 +143,7 @@ export {
   resolveService,
   resolveServiceUrl,
   // ⭐ Call one of these before rendering UI for a service. False ⇒ draw nothing.
-  isApiEnabled,
+  isBackendEnabled,
   isSearchEnabled,
   isSubmitEnabled,
   isTrackingEnabled,

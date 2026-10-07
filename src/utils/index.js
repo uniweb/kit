@@ -255,7 +255,7 @@ export function headingId(text) {
 
 // Service predicates — the one thing to call before rendering UI for a service.
 export {
-  isApiEnabled,
+  isBackendEnabled,
   isSearchEnabled,
   isSubmitEnabled,
   isTrackingEnabled,
