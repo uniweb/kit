@@ -35,7 +35,7 @@
     "url": "https://github.com/uniweb/kit/issues"
   },
   "engines": {
-    "node": ">=20.19"
+    "node": ">=22.12"
   },
   "scripts": {
     "test": "vitest run"
