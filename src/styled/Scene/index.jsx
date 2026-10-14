@@ -1,4 +1,5 @@
 import { Scene as SceneRenderer, composeScene } from '@uniweb/scene'
+import { sanitizeSVG } from '@uniweb/semantic-parser/sanitize'
 
 // The @uniweb/scene renderer reads `--vc-*` custom properties for its default
 // colors (an explicit value in the scene JSON always wins). Text, font, and
@@ -22,14 +23,20 @@ const THEME_VARS = {
  * Maps the site's `--primary` / `--accent` tokens onto the renderer's decorative
  * defaults so an unstyled scene adopts the theme; text and fonts inherit the
  * section context automatically. All other props (`mobileBreakpoint`,
- * `initialWidth`, `sanitizeSvg`, `className`, `style`, and the editing hooks)
- * forward straight through.
+ * `initialWidth`, `className`, `style`, and the editing hooks) forward straight
+ * through.
+ *
+ * An svg layer's markup is injected, so it is rebuilt from the SVG allowlist
+ * first (`sanitizeSVG`, `@uniweb/semantic-parser/sanitize`) — a scene is content,
+ * and whoever composed it may not be the person who wrote the foundation. Pass
+ * your own `sanitizeSvg` to replace it. ⛔ Until 2026-10-14 nothing was passed by
+ * default, so a layer's `<script>` or `onload` ran on the page.
  *
  * @example
  *   <Scene composition={content.data.scene} />
  *   <Scene composition={template} overrides={{ title: { content: content.title } }} />
  */
-export function Scene({ composition, overrides, content, style, ...rest }) {
+export function Scene({ composition, overrides, content, style, sanitizeSvg = sanitizeSVG, ...rest }) {
   const data =
     overrides || content
       ? composeScene(composition, { overrides, content })
@@ -39,6 +46,7 @@ export function Scene({ composition, overrides, content, style, ...rest }) {
     <SceneRenderer
       composition={data}
       style={{ ...THEME_VARS, ...style }}
+      sanitizeSvg={sanitizeSvg}
       {...rest}
     />
   )
