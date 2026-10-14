@@ -9,14 +9,20 @@
  * The resolution itself lives in utils/href.js, shared with <Text>, so both
  * prose renderers agree on what an authored href means.
  *
- * WHAT "SAFE" DOES NOT MEAN
- * This component does NOT sanitize. Nothing in the framework does. The value
- * is rendered as-is, so it must come from a source you trust — which the
- * framework's own content is: the author of a site's markdown also writes its
- * foundation, so there is no privilege boundary to defend. A foundation that
- * renders genuinely untrusted HTML (say a user-submitted string arriving
- * through a fetcher) is responsible for that decision, and should not read
- * this component's name as a guarantee.
+ * WHAT MAKES IT SAFE — and what does not
+ * The value is rendered as HTML, as given; this component cleans nothing. A
+ * semantic-parser string is safe to give it because the parser builds it from
+ * structure and escapes every character of the text and every attribute value,
+ * and the only markup it lets through, a math node's MathML, it rebuilds from
+ * an allowlist (`@uniweb/semantic-parser`, since 2026-10-14).
+ *
+ * ⛔ So a string from anywhere else does not belong here — a field a member
+ * wrote, a response from an API. Render it as text. *(This said until
+ * 2026-10-14 that "nothing in the framework" sanitizes and that a site's
+ * author also writes its foundation, so there was no privilege boundary — a
+ * premise that fails wherever the person writing content is not the one
+ * writing code: an author using an editor, a member of a site with a
+ * backend.)*
  *
  * @module @uniweb/kit/SafeHtml
  */

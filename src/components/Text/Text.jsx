@@ -5,10 +5,15 @@
  * Handles single strings or arrays of paragraphs with automatic semantic
  * tag selection and empty content filtering.
  *
- * Security Model:
- * - Assumes content is ALREADY SANITIZED at the engine level
- * - Does NOT sanitize HTML (that's the engine's responsibility)
- * - Trusts the data it receives and renders it as-is
+ * What it renders as HTML (`html`, true by default): a semantic-parser string.
+ * The parser builds it from structure and escapes every character of the text
+ * and every attribute value, so a `content.title` or a paragraph is safe to
+ * inject (`@uniweb/semantic-parser`, since 2026-10-14). Text renders it as
+ * given and adds no cleaning of its own.
+ *
+ * ⛔ A string from anywhere else is not parser output: a field a member wrote,
+ * a value an API returned. Render it as text — `html={false}` (`<PlainText>`),
+ * or `{value}` in JSX — or a member's `<img onerror>` runs as the viewer.
  *
  * @module @uniweb/kit/Text
  */

@@ -12,6 +12,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react'
 import { getUniweb } from '@uniweb/core'
+import { sanitizeSVG } from '@uniweb/semantic-parser/sanitize'
 import { cn, parseIconRef } from '../../utils/index.js'
 
 /**
@@ -93,9 +94,13 @@ function parseSvg(svgContent) {
     const strokeLinecap = getAttr(svgTag, 'stroke-linecap')
     const strokeLinejoin = getAttr(svgTag, 'stroke-linejoin')
 
-    // Get inner content (everything between <svg> and </svg>)
+    // Get inner content (everything between <svg> and </svg>), rebuilt from
+    // the SVG allowlist before it is injected: an icon can come from content
+    // (an author's file, a pasted SVG) or from any URL, and markup from there
+    // may not run script. Built-in icons are constants and skip this.
+    // ⛔ Until 2026-10-14 the inner markup was injected as fetched.
     const innerMatch = svgContent.match(/<svg\s[^>]*>([\s\S]*)<\/svg>/i)
-    const content = innerMatch ? innerMatch[1] : ''
+    const content = innerMatch ? sanitizeSVG(innerMatch[1]) : ''
 
     return {
       viewBox, content, width, height,

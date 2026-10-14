@@ -146,8 +146,15 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs))
 }
 
+const REFERENCES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0' }
+
 /**
- * Strip HTML tags from a string
+ * Strip HTML tags from a string — the plain text of a parser string.
+ *
+ * semantic-parser escapes the text it puts into its strings (`a<b` arrives as
+ * `a&lt;b`), so the plain text decodes the references as well as dropping the
+ * tags, in the browser and on the server alike.
+ *
  * @param {string} html - HTML string
  * @returns {string} Plain text
  */
@@ -160,8 +167,15 @@ export function stripTags(html) {
     return doc.body.textContent || ''
   }
 
-  // Fallback: simple regex (less accurate but works in Node)
-  return html.replace(/<[^>]*>/g, '')
+  // Fallback (no DOM — the server): drop the tags, then decode the references
+  // a serializer writes. ⛔ Until 2026-10-14 it only dropped the tags.
+  return html
+    .replace(/<[^>]*>/g, '')
+    .replace(/&(#[xX][0-9a-fA-F]+|#[0-9]+|[a-zA-Z]+);/g, (match, ref) => {
+      if (ref[0] !== '#') return REFERENCES[ref] ?? match
+      const code = ref[1] === 'x' || ref[1] === 'X' ? parseInt(ref.slice(2), 16) : parseInt(ref.slice(1), 10)
+      return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : match
+    })
 }
 
 // URL predicates live in url.js so href.js can use them without importing

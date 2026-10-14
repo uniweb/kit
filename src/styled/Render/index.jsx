@@ -360,8 +360,9 @@ export function SequenceElement({ element, block, components }) {
 
     case 'math': {
       // MathML is pre-compiled at parse time; the browser renders it natively,
-      // so no runtime math library ships. Missing here until 2026-07-30, which
-      // is why math vanished from every <Article>.
+      // so no runtime math library ships. semantic-parser rebuilds it from the
+      // MathML allowlist before it gets here. Missing here until 2026-07-30,
+      // which is why math vanished from every <Article>.
       if (!element.mathml) return null
       const display = element.display !== false
       const Tag = display ? 'div' : 'span'
