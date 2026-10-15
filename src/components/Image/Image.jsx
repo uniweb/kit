@@ -29,21 +29,37 @@ const SIZE_CLASSES = {
 };
 
 /**
+ * A filter setting as the number it must be — 0 for anything else. A value is
+ * written into a CSS function, so a string there could carry more than a number
+ * (`1px) url(…)`). ⛔ Until 2026-10-15 values were written as given.
+ */
+function filterNumber(value) {
+    const n = typeof value === "string" && value.trim() !== "" ? Number(value) : value;
+    return typeof n === "number" && Number.isFinite(n) ? n : 0;
+}
+
+/**
  * Build CSS filter string from filter object
- * @param {Object} filter - Filter settings
+ * @param {Object} filter - Filter settings, each a number
  * @returns {string} CSS filter value
  */
 function buildFilterStyle(filter) {
     if (!filter || typeof filter !== "object") return undefined;
 
     const filters = [];
+    const blur = filterNumber(filter.blur);
+    const brightness = filterNumber(filter.brightness);
+    const contrast = filterNumber(filter.contrast);
+    const grayscale = filterNumber(filter.grayscale);
+    const saturate = filterNumber(filter.saturate);
+    const sepia = filterNumber(filter.sepia);
 
-    if (filter.blur) filters.push(`blur(${filter.blur}px)`);
-    if (filter.brightness) filters.push(`brightness(${filter.brightness}%)`);
-    if (filter.contrast) filters.push(`contrast(${filter.contrast}%)`);
-    if (filter.grayscale) filters.push(`grayscale(${filter.grayscale}%)`);
-    if (filter.saturate) filters.push(`saturate(${filter.saturate}%)`);
-    if (filter.sepia) filters.push(`sepia(${filter.sepia}%)`);
+    if (blur) filters.push(`blur(${blur}px)`);
+    if (brightness) filters.push(`brightness(${brightness}%)`);
+    if (contrast) filters.push(`contrast(${contrast}%)`);
+    if (grayscale) filters.push(`grayscale(${grayscale}%)`);
+    if (saturate) filters.push(`saturate(${saturate}%)`);
+    if (sepia) filters.push(`sepia(${sepia}%)`);
 
     return filters.length > 0 ? filters.join(" ") : undefined;
 }

@@ -221,9 +221,10 @@ export function Media({
   // `poster` is the authored markdown spelling (`{role=video poster=…}`, and
   // what @uniweb/build auto-generates when it is absent); `coverImg` is what
   // the editor's Video node carries. All three named here because a video
-  // entry from `content.videos[]` is spread straight in — `<Media {...video} />`
-  // via <Visual> — so an unrecognised one would land on the wrapper div, where
-  // it does nothing and React warns.
+  // entry from `content.videos[]` may be spread straight in — `<Media {...video} />`
+  // — so an unrecognised one would land on the wrapper div, where it does
+  // nothing and React warns. (<Visual> hands kit's other <Media> only what it
+  // reads, since 2026-10-15: `../media-props.js`.)
   poster,
   coverImg,
   // Also part of the delivered video shape. Absorbed rather than forwarded:

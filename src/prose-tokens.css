@@ -121,3 +121,62 @@
 .prose :is(h1, h2, h3, h4, figure, table, .math-display) {
   scroll-margin-top: calc(var(--header-height, 4rem) + 1rem);
 }
+
+/* Where a block sits in a flow — an author's `placement` on an image, a video or
+   a table, which <Render> writes as `data-placement` on the block's box: a
+   figure, or a table's scrolling box. This is a starting look; a foundation
+   restyles `[data-placement]`, or sets these:
+
+     --prose-side-width   how much of the column `left` and `right` take (50%)
+     --prose-wide-bleed   how far `wide` reaches past the column on each side
+     --prose-full-width   how wide `full` is. By default the nearest size
+                          container's width (`100cqi`), and the viewport's where
+                          there is none: a foundation makes the box its sections
+                          sit in a container (`container-type: inline-size`, the
+                          `@container` class), since the stylesheet cannot see it.
+
+   `left` and `right` sit beside the text, which wraps, and take the whole column
+   on a narrow screen, where there is no room beside anything. Their width is
+   set rather than taken from the picture, so a page does not reflow when a lazy
+   image arrives. `wide` and `full` are centred on the column — the section's
+   width for `full` wherever the column is centred in its section — and never
+   wider than the viewport. A block placed nowhere has no attribute and sits in
+   the column. */
+.prose [data-placement="left"],
+.prose [data-placement="right"] {
+  width: var(--prose-side-width, 50%);
+  margin-top: 0.25em;
+  margin-bottom: 1em;
+}
+.prose [data-placement="left"] {
+  float: left;
+  margin-inline-end: 1.5em;
+}
+.prose [data-placement="right"] {
+  float: right;
+  margin-inline-start: 1.5em;
+}
+.prose [data-placement="wide"],
+.prose [data-placement="full"] {
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: none;
+}
+.prose [data-placement="wide"] {
+  width: min(calc(100% + 2 * var(--prose-wide-bleed, 6rem)), calc(100vw - 2rem));
+}
+.prose [data-placement="full"] {
+  width: min(var(--prose-full-width, 100cqi), 100vw);
+}
+.prose figure[data-placement] img {
+  width: 100%;
+}
+@media (max-width: 40rem) {
+  .prose [data-placement="left"],
+  .prose [data-placement="right"] {
+    float: none;
+    width: auto;
+    margin-inline: 0;
+  }
+}

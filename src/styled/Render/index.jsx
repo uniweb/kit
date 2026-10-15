@@ -48,7 +48,9 @@
 
 import React from 'react'
 import { parseContent } from '@uniweb/semantic-parser'
+import { PLACEMENTS } from '@uniweb/schemas/content'
 import { getChildBlockRenderer, headingId } from '../../utils/index.js'
+import { videoProps } from '../media-props.js'
 import { SafeHtml } from '../../components/SafeHtml/index.js'
 import { Image } from '../../components/Image/index.js'
 import { Media } from '../../components/Media/index.js'
@@ -121,6 +123,17 @@ function fileNameOf(url) {
 
 function authoredId(element) {
   return element?.attrs?.id ?? element?.id ?? undefined
+}
+
+/**
+ * Where the author placed a block in the flow — `left`, `right`, `wide` or
+ * `full` — written as `data-placement` on the block's box, where a foundation's
+ * stylesheet (or kit's `prose-tokens.css`) lays it out. Nothing for any other
+ * value: the block sits in the text column, as it would with none.
+ */
+function placementOf(element) {
+  const value = element?.attrs?.placement
+  return PLACEMENTS.includes(value) ? value : undefined
 }
 
 /**
@@ -306,13 +319,21 @@ export function SequenceElement({ element, block, components }) {
       )
     }
 
+    // The caption line holds the caption and the image's author — its credit —
+    // as a document's holds its author and description.
     case 'image': {
-      const { url, src, alt, caption, role } = element.attrs || {}
+      const { url, src, alt, caption, author, role } = element.attrs || {}
       if (role === 'icon') return <Icon {...element.attrs} />
       return (
-        <figure id={authoredId(element)}>
+        <figure id={authoredId(element)} data-placement={placementOf(element)}>
           <Image src={url || src} alt={alt || caption || ''} />
-          {caption && <figcaption>{caption}</figcaption>}
+          {(caption || author) && (
+            <figcaption>
+              {caption}
+              {caption && author && ' — '}
+              {author && <span data-role="author">{author}</span>}
+            </figcaption>
+          )}
         </figure>
       )
     }
@@ -338,7 +359,7 @@ export function SequenceElement({ element, block, components }) {
           </Link>
           {(author || description) && (
             <figcaption>
-              {author && <span>{author}</span>}
+              {author && <span data-role="author">{author}</span>}
               {author && description && ' — '}
               {description && <span>{description}</span>}
             </figcaption>
@@ -347,10 +368,20 @@ export function SequenceElement({ element, block, components }) {
       )
     }
 
-    // Spread rather than cherry-pick: a markdown video carries poster and the
-    // playback flags, and <Media> reads all of them.
-    case 'video':
-      return <Media {...element.attrs} />
+    // A figure, as an image is: it carries the video's id and placement and its
+    // caption, and <Media> gets what it reads — the address, the poster and the
+    // playback flags. ⛔ Until 2026-10-15 the element was spread into <Media>,
+    // which put the rest on its box as attributes (`role="video"`, `caption=…`)
+    // and the caption on no line at all.
+    case 'video': {
+      const { caption } = element.attrs || {}
+      return (
+        <figure id={authoredId(element)} data-kind="video" data-placement={placementOf(element)}>
+          <Media {...videoProps(element.attrs)} />
+          {caption && <figcaption>{caption}</figcaption>}
+        </figure>
+      )
+    }
 
     case 'icon':
       return <Icon {...element.attrs} />
@@ -424,9 +455,13 @@ export function SequenceElement({ element, block, components }) {
       // docs site (uniweb-site) has no table CSS of its own and relied on kit
       // for exactly this, so dropping it would have broken every wide
       // reference table on a phone.
+      // The scrolling box is the block in the flow, so it carries the placement;
+      // the caption is the table's own, from its caption line.
+      const caption = element.attrs?.caption
       return (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" data-placement={placementOf(element)}>
           <table id={authoredId(element)}>
+            {caption && <caption>{caption}</caption>}
             {hasHeader && <thead>{renderRow(first, 'h')}</thead>}
             <tbody>{(hasHeader ? rest : rows).map((row, i) => renderRow(row, i))}</tbody>
           </table>

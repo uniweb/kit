@@ -11,6 +11,7 @@ import React from "react";
 import { Media } from "../../components/Media/Media.jsx";
 import { Image } from "../../components/Image/index.js";
 import { getChildBlockRenderer } from "../../utils/index.js";
+import { imageProps, videoProps } from "../media-props.js";
 
 /**
  * Renders one visual.
@@ -22,6 +23,10 @@ import { getChildBlockRenderer } from "../../utils/index.js";
  * one of.
  *
  * Without `media`, the first non-empty candidate: inset, then video, then image.
+ *
+ * An image or a video is handed what `<Image>` or `<Media>` reads of it — its
+ * address, alt text, caption, link and so on (`../media-props.js`) — and none of
+ * its other keys: a slot is not a flow, so a `placement` means nothing here.
  *
  * @param {Object} props
  * @param {Object|Object[]} [props.media] - A `content.media` item, or the list (its first item)
@@ -53,12 +58,11 @@ export function Visual({ media, block, inset, video, image, className, fallback 
     if (inset) return renderInset(inset, className);
 
     if (video) {
-        return <Media {...video} className={className} />;
+        return <Media {...videoProps(video)} className={className} />;
     }
 
     if (image) {
-        const { contentType, viewType, contentId, imgPos, ...imageProps } = image;
-        return <Image {...imageProps} className={className} />;
+        return <Image {...imageProps(image)} className={className} />;
     }
 
     return fallback;
@@ -69,12 +73,10 @@ function renderItem(item, block, className) {
     if (!item || typeof item !== "object") return null;
     const { kind, ...attrs } = item;
     switch (kind) {
-        case "image": {
-            const { contentType, viewType, contentId, imgPos, ...imageProps } = attrs;
-            return <Image {...imageProps} className={className} />;
-        }
+        case "image":
+            return <Image {...imageProps(attrs)} className={className} />;
         case "video":
-            return <Media {...attrs} className={className} />;
+            return <Media {...videoProps(attrs)} className={className} />;
         case "inset": {
             const insetBlock = attrs.refId ? block?.getInset?.(attrs.refId) : null;
             return insetBlock ? renderInset(insetBlock, className) : null;
