@@ -31,7 +31,7 @@ src/components/Image/
 
 ## Dependencies
 
-- `@uniweb/core`, `@uniweb/semantic-parser`, `@uniweb/scene` — sibling packages, referenced as `workspace:*` (resolved from the monorepo during development; the publish script rewrites them to real versions on release)
+- `@uniweb/core`, `@uniweb/semantic-parser`, `@uniweb/scene`, `@uniweb/schemas`, `@uniweb/projections` — sibling packages, referenced as `workspace:~` (resolved from the monorepo during development; pnpm writes a tilde range of the real version at publish). ⛔ *This said `workspace:*` and named three of the five until 2026-10-15; `package.json` is the list.*
 - `clsx` + `tailwind-merge` — Class name merging (`cn()` utility)
 - `shiki` — Syntax highlighting. ⚠️ **Only `shiki/core` and `shiki/engine/javascript`** — never a
   `bundle/*`. Grammars and themes are fetched from a corpus URL at render time
@@ -59,8 +59,8 @@ naming it. Check `package.json` rather than this list.
 
 ## Publishing
 
-1. Bump version in `package.json`
-2. Commit and push to `main`
-3. Run `npm publish --access public`
-
-No build step is needed before publishing.
+⛔ **Don't bump `version` and don't run `npm publish` here.** Kit is released with the other
+framework packages by the maintainers' release script, which derives each package's version from its
+own commits since its last release. Commit and push; mark a breaking change in the commit message
+(`feat!:`, `fix!:`), which makes the release a minor bump. No build step is needed. ⛔ *Until
+2026-10-15 this section said to bump the version, push and `npm publish` by hand.*
