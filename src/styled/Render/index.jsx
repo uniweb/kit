@@ -101,7 +101,8 @@ export const NOT_RENDERED = {
     'refuses. Consequence worth knowing: a document rendered here WITHOUT a Block ' +
     'built over it (a record\'s body passed straight in, say) keeps its ' +
     'inset_ref nodes, and they render nothing.',
-  form: 'an editor node; its data reaches components as content.data[schemaId]',
+  // `form` was here until 2026-10-18: the parser's element for the editor's
+  // form node, which it reads nowhere since. A form's data is a `dataBlock`.
 }
 
 /**
@@ -558,12 +559,9 @@ export function SequenceElement({ element, block, components }) {
       )
     }
 
-    case 'button':
-      return (
-        <p>
-          <Link to={element.attrs?.href}>{element.text}</Link>
-        </p>
-      )
+    // ⛔ A `button` element was drawn here until 2026-10-18 — the shape the
+    // parser's reader of the editor's `button` node made, read nowhere since
+    // that day. A button is a `link` with `role: 'button'`.
 
     // `type` is content — `---{type=dots}` is a different divider, not a
     // differently-styled one — so this resolves it rather than emitting <hr>.
