@@ -66,17 +66,18 @@ const INLINE_INSET_RE = /<uniweb-inset data-ref-id="([^"]+)"><\/uniweb-inset>/g
 /**
  * Inline atoms the parser leaves as markers in a paragraph's HTML, because each
  * needs a React component rather than markup: an inset resolves to a Block, an
- * icon to <Icon> (which fetches library+name from the icon CDN).
+ * icon to <Icon> (which fetches library+name from the icon CDN), a picture
+ * beside text to <Image>.
  *
- * One regex for both so a paragraph carrying a mix is split in a single pass and
- * every fragment keeps its authored position.
+ * One regex for all three so a paragraph carrying a mix is split in a single
+ * pass and every fragment keeps its authored position.
  */
 const INLINE_MARKER_RE =
-  /<uniweb-inset data-ref-id="([^"]+)"><\/uniweb-inset>|<uniweb-icon data-index="(\d+)"><\/uniweb-icon>/g
+  /<uniweb-inset data-ref-id="([^"]+)"><\/uniweb-inset>|<uniweb-icon data-index="(\d+)"><\/uniweb-icon>|<uniweb-image data-index="(\d+)"><\/uniweb-image>/g
 
 /** Does this HTML string carry any inline marker needing component substitution? */
 function hasInlineMarkers(html) {
-  return typeof html === 'string' && /<uniweb-(?:inset|icon)\b/.test(html)
+  return typeof html === 'string' && /<uniweb-(?:inset|icon|image)\b/.test(html)
 }
 
 /**
@@ -179,16 +180,19 @@ function toSequence(content, block) {
 }
 
 /**
- * Render an HTML paragraph fragment containing inline-inset markers
- * (`<uniweb-inset data-ref-id="…">`). HTML chunks render via SafeHtml, marker
- * positions via the framework's child-block renderer — the same path
- * block-level insets take, scoped to one inset.
+ * Render an HTML paragraph fragment containing inline markers — an inset's
+ * (`<uniweb-inset data-ref-id="…">`), an icon's or a picture's
+ * (`<uniweb-icon data-index="…">`, `<uniweb-image data-index="…">`). HTML chunks
+ * render via SafeHtml; an inset via the framework's child-block renderer, the
+ * path block-level insets take, scoped to one inset; an icon or a picture via
+ * its component, from the element's `children`.
  */
 function renderParagraphWithInsets(html, block, element) {
-  // An icon needs no Block, so a paragraph carrying only icons still resolves
-  // without one — only insets require `block` for the getInset() lookup.
+  // An icon or a picture needs no Block, so a paragraph carrying only those still
+  // resolves without one — only insets require `block` for the getInset() lookup.
   const icons = (element?.children || []).filter((c) => c?.type === 'icon')
-  if (!block && !icons.length) return <SafeHtml value={html} as="span" />
+  const pictures = (element?.children || []).filter((c) => c?.type === 'image')
+  if (!block && !icons.length && !pictures.length) return <SafeHtml value={html} as="span" />
 
   const InsetRenderer = getChildBlockRenderer()
   const parts = []
@@ -202,6 +206,7 @@ function renderParagraphWithInsets(html, block, element) {
 
     const refId = match[1]
     const iconIndex = match[2]
+    const pictureIndex = match[3]
 
     if (refId !== undefined) {
       const insetBlock = block?.getInset?.(refId)
@@ -213,6 +218,17 @@ function renderParagraphWithInsets(html, block, element) {
       // — the contract semantic-parser's getTextContent() emits the marker on.
       const icon = icons[Number(iconIndex)]
       if (icon) parts.push(<Icon key={`ic${iconIndex}`} {...icon.attrs} />)
+    } else if (pictureIndex !== undefined) {
+      // Ordinal into the pictures (`image` entries) of `children`, the same
+      // contract. Inline in the text, so no <figure>: a caption has no place
+      // inside a paragraph, and the alternative text stands in for it.
+      // ⛔ Until 2026-10-18 the parser left no marker, and a picture beside text
+      // was drawn nowhere.
+      const picture = pictures[Number(pictureIndex)]
+      if (picture) {
+        const { url, src, alt, caption } = picture.attrs || {}
+        parts.push(<Image key={`im${pictureIndex}`} src={url || src} alt={alt || caption || ''} />)
+      }
     }
 
     lastIdx = match.index + match[0].length
