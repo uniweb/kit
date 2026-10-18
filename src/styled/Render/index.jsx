@@ -100,7 +100,6 @@ export const NOT_RENDERED = {
     'built over it (a record\'s body passed straight in, say) keeps its ' +
     'inset_ref nodes, and they render nothing.',
   form: 'an editor node; its data reaches components as content.data[schemaId]',
-  'card-group': 'an editor node, deprecated — maps to content.data[cardType]',
 }
 
 /**

@@ -217,16 +217,16 @@ export function Media({
   src,
   media,
   thumbnail,
-  // Same concept, three producers. `thumbnail` is this component's own prop;
+  // Same concept, two producers. `thumbnail` is this component's own prop;
   // `poster` is the authored markdown spelling (`{role=video poster=…}`, and
-  // what @uniweb/build auto-generates when it is absent); `coverImg` is what
-  // the editor's Video node carries. All three named here because a video
-  // entry from `content.videos[]` may be spread straight in — `<Media {...video} />`
-  // — so an unrecognised one would land on the wrapper div, where it does
-  // nothing and React warns. (<Visual> hands kit's other <Media> only what it
-  // reads, since 2026-10-15: `../media-props.js`.)
+  // what @uniweb/build auto-generates when it is absent). Both named here
+  // because a video entry from `content.videos[]` may be spread straight in —
+  // `<Media {...video} />` — so an unrecognised one would land on the wrapper
+  // div, where it does nothing and React warns. (<Visual> hands kit's other
+  // <Media> only what it reads, since 2026-10-15: `../media-props.js`.)
+  // ⛔ Until 2026-10-18 the editor's `coverImg` was a third; no video element
+  // carries it now.
   poster,
-  coverImg,
   // Also part of the delivered video shape. Absorbed rather than forwarded:
   // the reference documents wrapping media in a link as the FOUNDATION's job
   // (docs/reference/content-structure.md, "Clickable Images and Videos"), so
@@ -259,7 +259,7 @@ export function Media({
 
   // Get thumbnail
   const thumbnailSrc =
-    thumbnail || poster || coverImg || getVideoThumbnail(videoSrc, mediaType)
+    thumbnail || poster || getVideoThumbnail(videoSrc, mediaType)
 
   // Handle play click (for facade mode)
   const handlePlay = useCallback(() => {
