@@ -2,9 +2,7 @@
  * Image Component
  *
  * Versatile image component supporting:
- * - Profile avatars and banners
- * - Asset-based images
- * - Direct URLs
+ * - An address given as `src`, `url` or `value`
  * - CSS filters
  * - Responsive sizing
  *
@@ -68,10 +66,8 @@ function buildFilterStyle(filter) {
  * Image - Versatile image component
  *
  * @param {Object} props
- * @param {Object} [props.profile] - Profile object for avatar/banner images
- * @param {string} [props.type] - Image type: 'avatar', 'banner', or 'image'
  * @param {string} [props.size] - Size preset: 'xs', 'sm', 'md', 'lg', 'xl', '2xl', 'full'
- * @param {string|Object} [props.value] - Asset identifier or object
+ * @param {string|Object} [props.value] - An address, or an object with `url`/`src` and `alt`
  * @param {string} [props.src] - Direct image URL
  * @param {string} [props.url] - Direct image URL (alias)
  * @param {string} [props.alt] - Alt text for accessibility
@@ -89,8 +85,8 @@ function buildFilterStyle(filter) {
  * <Image src="/images/hero.jpg" alt="Hero image" />
  *
  * @example
- * // Profile avatar
- * <Image profile={profile} type="avatar" size="lg" rounded />
+ * // A size preset, rounded
+ * <Image src="/team/ada.jpg" alt="Ada" size="lg" rounded />
  *
  * @example
  * // With filters
@@ -101,8 +97,6 @@ function buildFilterStyle(filter) {
  * <Image src="/logo.png" href="/about" alt="Company logo" />
  */
 export function Image({
-    profile,
-    type,
     size,
     value,
     src,
@@ -126,22 +120,6 @@ export function Image({
     // Determine the image source
     let resolvedSrc = src || url || "";
     let resolvedAlt = alt;
-
-    // Handle profile-based images
-    if (profile && type) {
-        if (type === "avatar" || type === "banner") {
-            // Use profile methods if available
-            if (typeof profile.getImageInfo === "function") {
-                const imageInfo = profile.getImageInfo(type, size);
-                resolvedSrc = imageInfo?.url || resolvedSrc;
-                resolvedAlt = imageInfo?.alt || resolvedAlt;
-            }
-        } else if (value && typeof profile.getAssetInfo === "function") {
-            const assetInfo = profile.getAssetInfo(value, true, alt);
-            resolvedSrc = assetInfo?.src || resolvedSrc;
-            resolvedAlt = assetInfo?.alt || resolvedAlt;
-        }
-    }
 
     // Handle value as direct source
     if (!resolvedSrc && value) {

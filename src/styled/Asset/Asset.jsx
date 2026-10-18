@@ -27,19 +27,18 @@ function isImageFile(filename) {
  * Asset - File preview with download
  *
  * @param {Object} props
- * @param {string|Object} props.value - Asset identifier or object
- * @param {Object} [props.profile] - Profile object for asset resolution
+ * @param {string|Object} props.value - A file's address, or an object with `src`/`url`, `filename`/`name` and `alt`
  * @param {boolean} [props.withDownload=true] - Show download button
  * @param {string} [props.className] - Additional CSS classes
  *
  * @example
- * <Asset value="document.pdf" profile={profile} />
+ * <Asset value="/files/document.pdf" />
  *
  * @example
  * <Asset value={{ src: "/files/report.pdf", filename: "report.pdf" }} />
  */
 export const Asset = forwardRef(function Asset(
-  { value, profile, withDownload = true, className, ...props },
+  { value, withDownload = true, className, ...props },
   ref
 ) {
   const { localize } = useWebsite()
@@ -58,14 +57,6 @@ export const Asset = forwardRef(function Asset(
     src = value.src || value.url || ''
     filename = value.filename || value.name || src.split('/').pop() || ''
     alt = value.alt || filename
-  }
-
-  // Use profile to resolve asset if available
-  if (profile && typeof profile.getAssetInfo === 'function') {
-    const assetInfo = profile.getAssetInfo(value, true, filename)
-    src = assetInfo?.src || src
-    filename = assetInfo?.filename || filename
-    alt = assetInfo?.alt || alt
   }
 
   const isImage = isImageFile(filename)

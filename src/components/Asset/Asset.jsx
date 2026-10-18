@@ -17,8 +17,7 @@ import { useWebsite } from '../../hooks/useWebsite.js'
  * Asset - File download component (plain/unstyled)
  *
  * @param {Object} props
- * @param {string|Object} props.value - Asset identifier or object
- * @param {Object} [props.profile] - Profile object for asset resolution
+ * @param {string|Object} props.value - A file's address, or an object with `src`/`url` and `filename`/`name`
  * @param {boolean} [props.showIcon=true] - Show file type icon
  * @param {string} [props.iconSize='24'] - Icon size
  * @param {string} [props.className] - CSS classes for the link
@@ -35,7 +34,7 @@ import { useWebsite } from '../../hooks/useWebsite.js'
  * </Asset>
  */
 export const Asset = forwardRef(function Asset(
-  { value, profile, showIcon = true, iconSize = '24', className, iconClassName, children, ...props },
+  { value, showIcon = true, iconSize = '24', className, iconClassName, children, ...props },
   ref
 ) {
   const { localize } = useWebsite()
@@ -50,13 +49,6 @@ export const Asset = forwardRef(function Asset(
   } else if (value && typeof value === 'object') {
     src = value.src || value.url || ''
     filename = value.filename || value.name || src.split('/').pop() || ''
-  }
-
-  // Use profile to resolve asset if available
-  if (profile && typeof profile.getAssetInfo === 'function') {
-    const assetInfo = profile.getAssetInfo(value, true, filename)
-    src = assetInfo?.src || src
-    filename = assetInfo?.filename || filename
   }
 
   // Handle download

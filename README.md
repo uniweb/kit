@@ -73,14 +73,14 @@ import { Link } from '@uniweb/kit'
 
 ### Image
 
-Versatile image component with filters and profile integration.
+Versatile image component with filters and size presets.
 
 ```jsx
 import { Image } from '@uniweb/kit'
 
 <Image src="/photo.jpg" alt="Photo" />
 <Image src="/photo.jpg" filter={{ grayscale: 100 }} />
-<Image profile={profile} type="avatar" size="lg" rounded />
+<Image src="/team/ada.jpg" alt="Ada" size="lg" rounded />
 ```
 
 | Prop | Type | Description |
@@ -90,8 +90,6 @@ import { Image } from '@uniweb/kit'
 | `size` | `string` | Preset: xs, sm, md, lg, xl, 2xl, full |
 | `rounded` | `boolean\|string` | Border radius |
 | `filter` | `object` | CSS filters: blur, brightness, contrast, grayscale, saturate, sepia |
-| `profile` | `object` | Profile for avatar/banner images |
-| `type` | `string` | Image type: avatar, banner |
 
 ### SafeHtml
 
@@ -199,7 +197,7 @@ File preview with download functionality.
 ```jsx
 import { Asset } from '@uniweb/kit'
 
-<Asset value="document.pdf" profile={profile} />
+<Asset value="/files/document.pdf" />
 ```
 
 ---
