@@ -6,8 +6,8 @@
  *
  * Two regressions these pin:
  *
- *  - `page:` / `topic:` references were resolved by SafeHtml but NOT by Text,
- *    so an internal reference written in a paragraph rendered by <P>/<H1>
+ *  - `page:` references were resolved by SafeHtml but NOT by Text, so an
+ *    internal reference written in a paragraph rendered by <P>/<H1>
  *    reached the DOM as href="page:abc" — an unknown URL scheme, and a dead
  *    link. The runtime's link interceptor cannot rescue it either: its
  *    isInternalLink() test rejects a `page:` scheme outright.
@@ -25,8 +25,8 @@ function makeWebsite({ basePath = '', pages = {} } = {}) {
   return {
     basePath,
     makeHref(href) {
-      const ref = href.replace(/^(page|topic):/, '')
-      return pages[ref] ?? href // unresolvable refs come back untouched
+      if (!href.startsWith('page:')) return href
+      return pages[href.slice(5)] ?? href // unresolvable refs come back untouched
     },
   }
 }
@@ -38,10 +38,15 @@ describe('resolveHref', () => {
     expect(resolveHref('page:about', website)).toBe('/docs/about')
   })
 
-  it('resolves the legacy topic: scheme identically', () => {
+  // ⛔ Until 2026-10-18 `topic:` was a second spelling of `page:`.
+  it('reads topic: as a scheme like any other, not a reference', () => {
     const website = makeWebsite({ basePath: '/docs', pages: { about: '/about' } })
 
-    expect(resolveHref('topic:about', website)).toBe('/docs/about')
+    website.makeHref = vi.fn(website.makeHref)
+
+    expect(resolveHref('topic:about', website)).toBe('topic:about')
+    expect(resolveProseHrefs('<a href="topic:about">About</a>', website)).toBe('<a href="topic:about">About</a>')
+    expect(website.makeHref).not.toHaveBeenCalled()
   })
 
   it('bases a plain site-root-relative href', () => {
@@ -178,8 +183,8 @@ function makeLocalizedWebsite({
   return {
     basePath,
     makeHref(href) {
-      const ref = href.replace(/^(page|topic):/, '')
-      return pages[ref] ?? href
+      if (!href.startsWith('page:')) return href
+      return pages[href.slice(5)] ?? href
     },
     hasMultipleLocales: () => true,
     getActiveLocale: () => active,

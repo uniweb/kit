@@ -163,7 +163,7 @@ export function Link({
   // Normalize href
   const authoredHref = href || to || ''
 
-  // Resolve the authored href to a route: page:/topic: internal references,
+  // Resolve the authored href to a route: page: internal references,
   // then slug translation and the locale prefix. Shared with prose rendering
   // (utils/href.js) so a link written in markdown and a link passed to <Link>
   // mean the same thing.

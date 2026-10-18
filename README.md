@@ -93,13 +93,13 @@ import { Image } from '@uniweb/kit'
 
 ### SafeHtml
 
-Safely render HTML with topic link resolution.
+Safely render HTML, resolving `page:` links and the base path.
 
 ```jsx
 import { SafeHtml } from '@uniweb/kit'
 
 <SafeHtml value="<p>Hello <strong>World</strong></p>" />
-<SafeHtml value='<a href="topic:about">About</a>' />
+<SafeHtml value='<a href="page:about">About</a>' />
 ```
 
 ### Icon
@@ -215,7 +215,7 @@ function MyComponent() {
   const {
     website,      // Website instance
     localize,     // Localize multilingual values
-    makeHref,     // Transform hrefs (topic:, locale prefixes)
+    makeHref,     // Resolve page: references to routes
     getLanguage,  // Current language code
     getLanguages  // Available languages
   } = useWebsite()

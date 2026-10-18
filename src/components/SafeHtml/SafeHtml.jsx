@@ -1,10 +1,10 @@
 /**
  * SafeHtml Component
  *
- * Renders an HTML string with authored-href resolution: the `page:` (stable
- * page reference) and `topic:` (legacy) protocols, and the deployment base
- * path — the same resolution kit's <Link> applies to a structured link, so
- * inline link marks inside rich-text bodies resolve identically.
+ * Renders an HTML string with authored-href resolution: the `page:` stable
+ * page reference, and the deployment base path — the same resolution kit's
+ * <Link> applies to a structured link, so inline link marks inside rich-text
+ * bodies resolve identically.
  *
  * The resolution itself lives in utils/href.js, shared with <Text>, so both
  * prose renderers agree on what an authored href means.
@@ -43,7 +43,7 @@ import { resolveProseHrefs } from '../../utils/href.js'
  * <SafeHtml value="<p>Hello <strong>World</strong></p>" />
  *
  * @example
- * // With internal reference links (page: stable ref, or legacy topic:)
+ * // With an internal reference link (page: stable ref)
  * <SafeHtml value='<a href="page:93dc5359">About</a>' />
  */
 export function SafeHtml({ value, className, as: Component = 'div', ...props }) {
@@ -56,7 +56,7 @@ export function SafeHtml({ value, className, as: Component = 'div', ...props }) 
     // Handle array of HTML strings
     const html = Array.isArray(value) ? value.join('') : value
 
-    // Resolve authored hrefs (page:/topic: references, base path)
+    // Resolve authored hrefs (page: references, base path)
     return resolveProseHrefs(html, website)
   }, [value, website])
 

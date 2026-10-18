@@ -46,7 +46,7 @@ export function useWebsite() {
     localize: (value, defaultVal = '') => website.localize(value, defaultVal),
 
     /**
-     * Transform a href (handles topic: protocol, etc.)
+     * Resolve a page: reference to its route; any other href comes back as written
      * @param {string} href
      * @returns {string}
      */

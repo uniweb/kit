@@ -12,7 +12,7 @@
  *
  * Both must apply the same rules, in the same order:
  *
- *   1. page: / topic: internal references resolve to a route
+ *   1. page: internal references resolve to a route
  *   2. the route is translated and locale-prefixed for the active locale
  *   3. the deployment base path is applied
  *
@@ -106,8 +106,8 @@ export function resolveRoute(href, website, { locale = true } = {}) {
 
   let resolved = href
 
-  // 1. page: / topic: internal references → real route
-  if (href.startsWith('page:') || href.startsWith('topic:')) {
+  // 1. page: internal references → real route
+  if (href.startsWith('page:')) {
     resolved = website.makeHref ? website.makeHref(href) : href
   }
 
@@ -151,7 +151,7 @@ export function resolveProseHrefs(html, website) {
   // Nothing to do when there are no internal references, no base path and no
   // active non-default locale — the common case for a monolingual site served
   // at the root.
-  const hasRef = html.includes('page:') || html.includes('topic:')
+  const hasRef = html.includes('page:')
   const localized =
     !!website.hasMultipleLocales?.() &&
     website.getActiveLocale?.() !== website.getDefaultLocale?.()
