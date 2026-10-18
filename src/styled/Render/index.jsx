@@ -47,6 +47,7 @@
  */
 
 import React from 'react'
+import { getUniweb } from '@uniweb/core'
 import { parseContent } from '@uniweb/semantic-parser'
 import { PLACEMENTS } from '@uniweb/schemas/content'
 import { getChildBlockRenderer, headingId } from '../../utils/index.js'
@@ -136,6 +137,25 @@ function placementOf(element) {
 }
 
 /**
+ * What the parser is told about the site when this walker parses a document:
+ * the host's asset-URL pattern, `config.assets.url`, which turns an uploaded
+ * picture's `assetId`/`assetExt` into the address the host serves it at.
+ *
+ * A section's own content is parsed by @uniweb/core when it builds the Block,
+ * with the same options (`Block.parseOptions`), and usually arrives here as a
+ * sequence. What arrives raw is a document a component hands over itself — a
+ * record's body, typically — and until 2026-10-18 it was parsed with none, so
+ * its pictures fell back to their stored `src`: a path on the backend that
+ * stored them, which a page served from any other origin asked of its own.
+ * `tests/document-assets.test.jsx` holds the two lanes to one address.
+ */
+function parseOptionsFor(block) {
+  const website = block?.website ?? getUniweb()?.activeWebsite
+  const assets = website?.config?.assets
+  return assets ? { assets } : {}
+}
+
+/**
  * Normalize whatever a caller passed into a sequence.
  *
  * Accepts a parsed content object (`content.sequence`), a Block (its content is
@@ -146,13 +166,13 @@ function placementOf(element) {
 function toSequence(content, block) {
   if (Array.isArray(content?.sequence)) return content.sequence
 
-  if (content?.type === 'doc') return parseContent(content).sequence
-  if (Array.isArray(content)) return parseContent({ type: 'doc', content }).sequence
+  if (content?.type === 'doc') return parseContent(content, parseOptionsFor(block)).sequence
+  if (Array.isArray(content)) return parseContent({ type: 'doc', content }, parseOptionsFor(block)).sequence
 
   if (block) {
     if (Array.isArray(block.parsedContent?.sequence)) return block.parsedContent.sequence
     const raw = block.rawContent?.doc ?? block.rawContent
-    if (raw?.type === 'doc') return parseContent(raw).sequence
+    if (raw?.type === 'doc') return parseContent(raw, parseOptionsFor(block)).sequence
   }
 
   return null
