@@ -123,3 +123,15 @@ describe('struck text reaches the page', () => {
     expect(out).toBe('<p><span>was <s>gone</s> now</span></p>')
   })
 })
+
+describe('a code block shows its code', () => {
+  // ⛔ Until 2026-10-19 the parser escaped a code block's text for HTML and this
+  // escaped it again, so `<p>` showed as `&lt;p&gt;` on the page.
+  const code = (t) => pm([{ type: 'codeBlock', attrs: { language: 'html' }, content: [text(t)] }])
+
+  it('escaped once, as any text is — the reader sees the characters as written', () => {
+    const out = html(<Render content={code('<p>Hi & bye</p>')} />)
+    expect(out).toContain('&lt;p&gt;Hi &amp; bye&lt;/p&gt;')
+    expect(out).not.toContain('&amp;lt;')
+  })
+})
