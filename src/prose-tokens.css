@@ -59,9 +59,9 @@
  *
  * A component picks a step of that scale — `prose-sm`, `prose-base`, `prose-lg`,
  * `prose-xl`, `prose-2xl` (`<Prose size>`), each a ratio of `--prose-size`
- * (0.875 · 1 · 1.125 · 1.25 · 1.5). A step carries Tailwind Typography's tuned
- * line height, block spacing, item spacing and heading sizes for that size as
- * its defaults; the finer spacing is set once in em and scales with the text.
+ * (0.875 · 1 · 1.125 · 1.25 · 1.5). A step carries every value Tailwind
+ * Typography tuned for that size — line heights, spacing, heading metrics, code,
+ * tables, figures — as its defaults, and the site's variables win over them.
  *
  * ── Beneath every utility ──
  *
@@ -124,7 +124,16 @@
 /*
  * The steps. Utilities, so a responsive one works (`lg:prose-xl`), and so each
  * sets only kit-private values — the site's variables, when set, win over all
- * of them. The values are Tailwind Typography's for that size.
+ * of them. The values are Tailwind Typography's for that size, every one it
+ * tunes — Typography rounded each size's to whole pixels, so a step is not the
+ * base step scaled. Where Typography gives several properties the same number
+ * at every step, they share a value here: `--_prose-small` is the size of keys,
+ * code blocks, tables and captions; `--_prose-media` a picture's, a
+ * video's and a figure's space. Rules read them, so every rule stays beneath
+ * the utilities. ⛔ Until 2026-10-19 a step carried only its size, line
+ * height, flow, item gap and h1–h3, and the rest was the base step's in em: at
+ * `prose-lg` headings, code blocks, tables and figures sat 1–5px off, at
+ * `prose-2xl` up to 24px.
  */
 @utility prose-sm {
   --_prose-step: 0.875;
@@ -134,6 +143,42 @@
   --_prose-h1: 2.1428571em;
   --_prose-h2: 1.4285714em;
   --_prose-h3: 1.2857143em;
+  --_prose-small: 0.8571429em;
+  --_prose-lead: 1.2857143em;
+  --_prose-lead-leading: 1.5555556;
+  --_prose-lead-flow: 0.8888889em;
+  --_prose-quote-flow: 1.3333333em;
+  --_prose-quote-pad: 1.1111111em;
+  --_prose-h1-leading: 1.2;
+  --_prose-h1-after: 0.8em;
+  --_prose-h2-leading: 1.4;
+  --_prose-h2-before: 1.6em;
+  --_prose-h2-after: 0.8em;
+  --_prose-h3-leading: 1.5555556;
+  --_prose-h3-before: 1.5555556em;
+  --_prose-h3-after: 0.4444444em;
+  --_prose-h4-leading: 1.4285714;
+  --_prose-h4-before: 1.4285714em;
+  --_prose-h4-after: 0.5714286em;
+  --_prose-media: 1.7142857em;
+  --_prose-kbd-radius: 0.3125rem;
+  --_prose-kbd-y: 0.1428571em;
+  --_prose-kbd-x: 0.3571429em;
+  --_prose-pre-leading: 1.6666667;
+  --_prose-pre-flow: 1.6666667em;
+  --_prose-pre-radius: 0.25rem;
+  --_prose-pre-y: 0.6666667em;
+  --_prose-pre-x: 1em;
+  --_prose-indent: 1.5714286em;
+  --_prose-li-pad: 0.4285714em;
+  --_prose-li-p: 0.5714286em;
+  --_prose-nested: 0.5714286em;
+  --_prose-hr: 2.8571429em;
+  --_prose-table-leading: 1.5;
+  --_prose-cell-x: 1em;
+  --_prose-cell-y: 0.6666667em;
+  --_prose-caption-leading: 1.3333333;
+  --_prose-caption-gap: 0.6666667em;
 }
 @utility prose-base {
   --_prose-step: 1;
@@ -143,6 +188,42 @@
   --_prose-h1: 2.25em;
   --_prose-h2: 1.5em;
   --_prose-h3: 1.25em;
+  --_prose-small: 0.875em;
+  --_prose-lead: 1.25em;
+  --_prose-lead-leading: 1.6;
+  --_prose-lead-flow: 1.2em;
+  --_prose-quote-flow: 1.6em;
+  --_prose-quote-pad: 1em;
+  --_prose-h1-leading: 1.1111111;
+  --_prose-h1-after: 0.8888889em;
+  --_prose-h2-leading: 1.3333333;
+  --_prose-h2-before: 2em;
+  --_prose-h2-after: 1em;
+  --_prose-h3-leading: 1.6;
+  --_prose-h3-before: 1.6em;
+  --_prose-h3-after: 0.6em;
+  --_prose-h4-leading: 1.5;
+  --_prose-h4-before: 1.5em;
+  --_prose-h4-after: 0.5em;
+  --_prose-media: 2em;
+  --_prose-kbd-radius: 0.3125rem;
+  --_prose-kbd-y: 0.1875em;
+  --_prose-kbd-x: 0.375em;
+  --_prose-pre-leading: 1.7142857;
+  --_prose-pre-flow: 1.7142857em;
+  --_prose-pre-radius: 0.375rem;
+  --_prose-pre-y: 0.8571429em;
+  --_prose-pre-x: 1.1428571em;
+  --_prose-indent: 1.625em;
+  --_prose-li-pad: 0.375em;
+  --_prose-li-p: 0.75em;
+  --_prose-nested: 0.75em;
+  --_prose-hr: 3em;
+  --_prose-table-leading: 1.7142857;
+  --_prose-cell-x: 0.5714286em;
+  --_prose-cell-y: 0.5714286em;
+  --_prose-caption-leading: 1.4285714;
+  --_prose-caption-gap: 0.8571429em;
 }
 @utility prose-lg {
   --_prose-step: 1.125;
@@ -152,6 +233,42 @@
   --_prose-h1: 2.6666667em;
   --_prose-h2: 1.6666667em;
   --_prose-h3: 1.3333333em;
+  --_prose-small: 0.8888889em;
+  --_prose-lead: 1.2222222em;
+  --_prose-lead-leading: 1.4545455;
+  --_prose-lead-flow: 1.0909091em;
+  --_prose-quote-flow: 1.6666667em;
+  --_prose-quote-pad: 1em;
+  --_prose-h1-leading: 1;
+  --_prose-h1-after: 0.8333333em;
+  --_prose-h2-leading: 1.3333333;
+  --_prose-h2-before: 1.8666667em;
+  --_prose-h2-after: 1.0666667em;
+  --_prose-h3-leading: 1.5;
+  --_prose-h3-before: 1.6666667em;
+  --_prose-h3-after: 0.6666667em;
+  --_prose-h4-leading: 1.5555556;
+  --_prose-h4-before: 1.7777778em;
+  --_prose-h4-after: 0.4444444em;
+  --_prose-media: 1.7777778em;
+  --_prose-kbd-radius: 0.3125rem;
+  --_prose-kbd-y: 0.2222222em;
+  --_prose-kbd-x: 0.4444444em;
+  --_prose-pre-leading: 1.75;
+  --_prose-pre-flow: 2em;
+  --_prose-pre-radius: 0.375rem;
+  --_prose-pre-y: 1em;
+  --_prose-pre-x: 1.5em;
+  --_prose-indent: 1.5555556em;
+  --_prose-li-pad: 0.4444444em;
+  --_prose-li-p: 0.8888889em;
+  --_prose-nested: 0.8888889em;
+  --_prose-hr: 3.1111111em;
+  --_prose-table-leading: 1.5;
+  --_prose-cell-x: 0.75em;
+  --_prose-cell-y: 0.75em;
+  --_prose-caption-leading: 1.5;
+  --_prose-caption-gap: 1em;
 }
 @utility prose-xl {
   --_prose-step: 1.25;
@@ -161,6 +278,42 @@
   --_prose-h1: 2.8em;
   --_prose-h2: 1.8em;
   --_prose-h3: 1.5em;
+  --_prose-small: 0.9em;
+  --_prose-lead: 1.2em;
+  --_prose-lead-leading: 1.5;
+  --_prose-lead-flow: 1em;
+  --_prose-quote-flow: 1.6em;
+  --_prose-quote-pad: 1.0666667em;
+  --_prose-h1-leading: 1;
+  --_prose-h1-after: 0.8571429em;
+  --_prose-h2-leading: 1.1111111;
+  --_prose-h2-before: 1.5555556em;
+  --_prose-h2-after: 0.8888889em;
+  --_prose-h3-leading: 1.3333333;
+  --_prose-h3-before: 1.6em;
+  --_prose-h3-after: 0.6666667em;
+  --_prose-h4-leading: 1.6;
+  --_prose-h4-before: 1.8em;
+  --_prose-h4-after: 0.6em;
+  --_prose-media: 2em;
+  --_prose-kbd-radius: 0.3125rem;
+  --_prose-kbd-y: 0.25em;
+  --_prose-kbd-x: 0.4em;
+  --_prose-pre-leading: 1.7777778;
+  --_prose-pre-flow: 2em;
+  --_prose-pre-radius: 0.5rem;
+  --_prose-pre-y: 1.1111111em;
+  --_prose-pre-x: 1.3333333em;
+  --_prose-indent: 1.6em;
+  --_prose-li-pad: 0.4em;
+  --_prose-li-p: 0.8em;
+  --_prose-nested: 0.8em;
+  --_prose-hr: 2.8em;
+  --_prose-table-leading: 1.5555556;
+  --_prose-cell-x: 0.6666667em;
+  --_prose-cell-y: 0.8888889em;
+  --_prose-caption-leading: 1.5555556;
+  --_prose-caption-gap: 1em;
 }
 @utility prose-2xl {
   --_prose-step: 1.5;
@@ -170,6 +323,42 @@
   --_prose-h1: 2.6666667em;
   --_prose-h2: 2em;
   --_prose-h3: 1.5em;
+  --_prose-small: 0.8333333em;
+  --_prose-lead: 1.25em;
+  --_prose-lead-leading: 1.4666667;
+  --_prose-lead-flow: 1.0666667em;
+  --_prose-quote-flow: 1.7777778em;
+  --_prose-quote-pad: 1.1111111em;
+  --_prose-h1-leading: 1;
+  --_prose-h1-after: 0.875em;
+  --_prose-h2-leading: 1.0833333;
+  --_prose-h2-before: 1.5em;
+  --_prose-h2-after: 0.8333333em;
+  --_prose-h3-leading: 1.2222222;
+  --_prose-h3-before: 1.5555556em;
+  --_prose-h3-after: 0.6666667em;
+  --_prose-h4-leading: 1.5;
+  --_prose-h4-before: 1.6666667em;
+  --_prose-h4-after: 0.6666667em;
+  --_prose-media: 2em;
+  --_prose-kbd-radius: 0.375rem;
+  --_prose-kbd-y: 0.25em;
+  --_prose-kbd-x: 0.3333333em;
+  --_prose-pre-leading: 1.8;
+  --_prose-pre-flow: 2em;
+  --_prose-pre-radius: 0.5rem;
+  --_prose-pre-y: 1.2em;
+  --_prose-pre-x: 1.6em;
+  --_prose-indent: 1.5833333em;
+  --_prose-li-pad: 0.4166667em;
+  --_prose-li-p: 0.8333333em;
+  --_prose-nested: 0.6666667em;
+  --_prose-hr: 3em;
+  --_prose-table-leading: 1.4;
+  --_prose-cell-x: 0.6em;
+  --_prose-cell-y: 0.8em;
+  --_prose-caption-leading: 1.6;
+  --_prose-caption-gap: 1em;
 }
 
 @layer components {
@@ -182,6 +371,42 @@
     --_prose-h1: 2.25em;
     --_prose-h2: 1.5em;
     --_prose-h3: 1.25em;
+    --_prose-small: 0.875em;
+    --_prose-lead: 1.25em;
+    --_prose-lead-leading: 1.6;
+    --_prose-lead-flow: 1.2em;
+    --_prose-quote-flow: 1.6em;
+    --_prose-quote-pad: 1em;
+    --_prose-h1-leading: 1.1111111;
+    --_prose-h1-after: 0.8888889em;
+    --_prose-h2-leading: 1.3333333;
+    --_prose-h2-before: 2em;
+    --_prose-h2-after: 1em;
+    --_prose-h3-leading: 1.6;
+    --_prose-h3-before: 1.6em;
+    --_prose-h3-after: 0.6em;
+    --_prose-h4-leading: 1.5;
+    --_prose-h4-before: 1.5em;
+    --_prose-h4-after: 0.5em;
+    --_prose-media: 2em;
+    --_prose-kbd-radius: 0.3125rem;
+    --_prose-kbd-y: 0.1875em;
+    --_prose-kbd-x: 0.375em;
+    --_prose-pre-leading: 1.7142857;
+    --_prose-pre-flow: 1.7142857em;
+    --_prose-pre-radius: 0.375rem;
+    --_prose-pre-y: 0.8571429em;
+    --_prose-pre-x: 1.1428571em;
+    --_prose-indent: 1.625em;
+    --_prose-li-pad: 0.375em;
+    --_prose-li-p: 0.75em;
+    --_prose-nested: 0.75em;
+    --_prose-hr: 3em;
+    --_prose-table-leading: 1.7142857;
+    --_prose-cell-x: 0.5714286em;
+    --_prose-cell-y: 0.5714286em;
+    --_prose-caption-leading: 1.4285714;
+    --_prose-caption-gap: 0.8571429em;
     font-size: calc(var(--prose-size, 1rem) * var(--_prose-step));
     line-height: var(--prose-leading, var(--_prose-leading));
     max-width: var(--prose-measure, 65ch);
@@ -196,9 +421,9 @@
   }
   .prose :where([class~="lead"]):not(:where(.not-prose, .not-prose *)) {
     color: var(--subtle);
-    font-size: 1.25em;
-    line-height: 1.6;
-    margin-block: 1.2em;
+    font-size: var(--_prose-lead);
+    line-height: var(--_prose-lead-leading);
+    margin-block: var(--_prose-lead-flow);
   }
   /* A `#>` label line: a kicker above its heading, not a heading itself. */
   .prose :where(p[data-role="pretitle"]):not(:where(.not-prose, .not-prose *)) {
@@ -247,30 +472,30 @@
   .prose :where(h1):not(:where(.not-prose, .not-prose *)) {
     font-size: var(--prose-h1, var(--_prose-h1));
     font-weight: 800;
-    line-height: 1.1111111;
+    line-height: var(--_prose-h1-leading);
     margin-top: 0;
-    margin-bottom: 0.8888889em;
+    margin-bottom: var(--_prose-h1-after);
   }
   .prose :where(h2):not(:where(.not-prose, .not-prose *)) {
     font-size: var(--prose-h2, var(--_prose-h2));
     font-weight: 700;
-    line-height: 1.3333333;
-    margin-top: 2em;
-    margin-bottom: 1em;
+    line-height: var(--_prose-h2-leading);
+    margin-top: var(--_prose-h2-before);
+    margin-bottom: var(--_prose-h2-after);
   }
   .prose :where(h3):not(:where(.not-prose, .not-prose *)) {
     font-size: var(--prose-h3, var(--_prose-h3));
     font-weight: 600;
-    line-height: 1.6;
-    margin-top: 1.6em;
-    margin-bottom: 0.6em;
+    line-height: var(--_prose-h3-leading);
+    margin-top: var(--_prose-h3-before);
+    margin-bottom: var(--_prose-h3-after);
   }
   /* Typography left h5 and h6 to the reset, so they drew as body text. */
   .prose :where(h4, h5, h6):not(:where(.not-prose, .not-prose *)) {
     font-weight: 600;
-    line-height: 1.5;
-    margin-top: 1.5em;
-    margin-bottom: 0.5em;
+    line-height: var(--_prose-h4-leading);
+    margin-top: var(--_prose-h4-before);
+    margin-bottom: var(--_prose-h4-after);
   }
   .prose :where(h4):not(:where(.not-prose, .not-prose *)) {
     font-size: var(--prose-h4, 1em);
@@ -295,7 +520,7 @@
 
   .prose :where(ul, ol):not(:where(.not-prose, .not-prose *)) {
     margin-block: var(--prose-flow, var(--_prose-flow));
-    padding-inline-start: 1.625em;
+    padding-inline-start: var(--_prose-indent);
   }
   .prose :where(ul):not(:where(.not-prose, .not-prose *)) {
     list-style-type: disc;
@@ -335,7 +560,7 @@
   }
   .prose :where(li):not(:where(.not-prose, .not-prose *)) {
     margin-block: var(--_prose-item);
-    padding-inline-start: 0.375em;
+    padding-inline-start: var(--_prose-li-pad);
   }
   .prose :where(ol > li):not(:where(.not-prose, .not-prose *))::marker {
     color: var(--subtle);
@@ -345,12 +570,12 @@
     color: var(--border);
   }
   .prose :where(ul ul, ul ol, ol ul, ol ol):not(:where(.not-prose, .not-prose *)) {
-    margin-block: 0.75em;
+    margin-block: var(--_prose-nested);
   }
   /* A paragraph in an item means the author wrote a loose list (`<Render>` draws
      a tight one's text bare), so a top-level loose list opens up. */
   .prose :where(.prose > :is(ul, ol) > li p):not(:where(.not-prose, .not-prose *)) {
-    margin-block: 0.75em;
+    margin-block: var(--_prose-li-p);
   }
   .prose :where(.prose > :is(ul, ol) > li > p:first-child):not(:where(.not-prose, .not-prose *)) {
     margin-top: var(--prose-flow, var(--_prose-flow));
@@ -368,8 +593,8 @@
     margin-top: var(--prose-flow, var(--_prose-flow));
   }
   .prose :where(dd):not(:where(.not-prose, .not-prose *)) {
-    margin-top: 0.5em;
-    padding-inline-start: 1.625em;
+    margin-top: var(--_prose-item);
+    padding-inline-start: var(--_prose-indent);
   }
 
   /* ── Quotes and rules ── */
@@ -379,8 +604,8 @@
     font-style: italic;
     font-weight: 500;
     border-inline-start: 0.25rem solid var(--primary);
-    padding-inline-start: 1em;
-    margin-block: 1.6em;
+    padding-inline-start: var(--_prose-quote-pad);
+    margin-block: var(--_prose-quote-flow);
     quotes: "\201C" "\201D" "\2018" "\2019";
   }
   .prose :where(blockquote p:first-of-type):not(:where(.not-prose, .not-prose *))::before {
@@ -392,12 +617,14 @@
   .prose :where(hr):not(:where(.not-prose, .not-prose *)) {
     border-color: var(--border);
     border-top-width: 1px;
-    margin-block: 3em;
+    margin-block: var(--_prose-hr);
   }
 
   /* ── Code ── */
 
-  /* Inline code reads as a chip on whatever surface it sits on. */
+  /* Inline code reads as a chip on whatever surface it sits on, at 0.875em of
+     its text at every step and in every heading — kit's chip, drawn over
+     Typography's per-step code sizes since before this file replaced it. */
   .prose :where(:not(pre) > code):not(:where(.not-prose, .not-prose *)) {
     color: var(--heading);
     background-color: color-mix(in oklch, var(--section), var(--heading) 6%);
@@ -408,12 +635,6 @@
   }
   .prose :where(a code, h1 code, h2 code, h3 code, h4 code, h5 code, h6 code, blockquote code, thead th code):not(:where(.not-prose, .not-prose *)) {
     color: inherit;
-  }
-  .prose :where(h2 code):not(:where(.not-prose, .not-prose *)) {
-    font-size: 0.875em;
-  }
-  .prose :where(h3 code):not(:where(.not-prose, .not-prose *)) {
-    font-size: 0.9em;
   }
   /* A code block's box, for a `<pre>` that brings nothing of its own — a
      developer's. Kit's <Code> draws its own: before the highlighter paints, its
@@ -426,11 +647,11 @@
     background-color: var(--code-surface, var(--muted));
     overflow-x: auto;
     font-weight: 400;
-    font-size: 0.875em;
-    line-height: 1.7142857;
-    margin-block: 1.7142857em;
-    border-radius: 0.375rem;
-    padding: 0.8571429em 1.1428571em;
+    font-size: var(--_prose-small);
+    line-height: var(--_prose-pre-leading);
+    margin-block: var(--_prose-pre-flow);
+    border-radius: var(--_prose-pre-radius);
+    padding: var(--_prose-pre-y) var(--_prose-pre-x);
   }
   .prose :where(pre code):not(:where(.not-prose, .not-prose *)) {
     background-color: transparent;
@@ -446,10 +667,10 @@
   .prose :where(kbd):not(:where(.not-prose, .not-prose *)) {
     color: var(--heading);
     font-family: inherit;
-    font-size: 0.875em;
+    font-size: var(--_prose-small);
     font-weight: 500;
-    border-radius: 0.3125rem;
-    padding: 0.1875em 0.375em;
+    border-radius: var(--_prose-kbd-radius);
+    padding: var(--_prose-kbd-y) var(--_prose-kbd-x);
     box-shadow:
       0 0 0 1px color-mix(in oklch, var(--heading) 10%, transparent),
       0 3px 0 color-mix(in oklch, var(--heading) 10%, transparent);
@@ -461,13 +682,13 @@
     width: 100%;
     table-layout: auto;
     margin-block: 2em;
-    font-size: 0.875em;
-    line-height: 1.7142857;
+    font-size: var(--_prose-small);
+    line-height: var(--_prose-table-leading);
   }
   .prose :where(caption):not(:where(.not-prose, .not-prose *)) {
     color: var(--subtle);
     text-align: start;
-    padding-bottom: 0.5714286em;
+    padding-bottom: var(--_prose-cell-y);
   }
   .prose :where(thead):not(:where(.not-prose, .not-prose *)) {
     border-bottom: 1px solid var(--border);
@@ -476,8 +697,8 @@
     color: var(--heading);
     font-weight: 600;
     vertical-align: bottom;
-    padding-inline: 0.5714286em;
-    padding-bottom: 0.5714286em;
+    padding-inline: var(--_prose-cell-x);
+    padding-bottom: var(--_prose-cell-y);
   }
   .prose :where(tbody tr):not(:where(.not-prose, .not-prose *)) {
     border-bottom: 1px solid var(--border);
@@ -489,7 +710,7 @@
     vertical-align: baseline;
   }
   .prose :where(tbody td, tfoot td):not(:where(.not-prose, .not-prose *)) {
-    padding: 0.5714286em;
+    padding: var(--_prose-cell-y) var(--_prose-cell-x);
   }
   .prose :where(thead th:first-child, tbody td:first-child, tfoot td:first-child):not(:where(.not-prose, .not-prose *)) {
     padding-inline-start: 0;
@@ -511,7 +732,7 @@
 
   /* A figure's own space is set after the flow's edges, below. */
   .prose :where(img, picture, video):not(:where(.not-prose, .not-prose *)) {
-    margin-block: 2em;
+    margin-block: var(--_prose-media);
   }
   .prose :where(picture):not(:where(.not-prose, .not-prose *)) {
     display: block;
@@ -529,9 +750,9 @@
   }
   .prose :where(figcaption):not(:where(.not-prose, .not-prose *)) {
     color: var(--subtle);
-    font-size: 0.875em;
-    line-height: 1.4285714;
-    margin-top: 0.8571429em;
+    font-size: var(--_prose-small);
+    line-height: var(--_prose-caption-leading);
+    margin-top: var(--_prose-caption-gap);
   }
   /* An image's credit, after its caption. */
   .prose :where(figcaption [data-role="author"]):not(:where(.not-prose, .not-prose *)) {
@@ -575,7 +796,7 @@
      below, so a leading one still sits flush. ⛔ Until 2026-10-19 it came first,
      and an image drew 8px under an h4. */
   .prose :where(figure):not(:where(.not-prose, .not-prose *)) {
-    margin-block: 2em;
+    margin-block: var(--_prose-media);
   }
   .prose :where(.prose > :first-child):not(:where(.not-prose, .not-prose *)) {
     margin-top: 0;

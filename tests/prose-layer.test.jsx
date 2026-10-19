@@ -5,16 +5,18 @@
  * What these pin:
  *   - one import is the whole setup: no plugin, no dependency;
  *   - no color variable is declared — colors are the section's theme tokens,
- *     read where they are used, so a nested container changes nothing;
+ *     read where they are used, so a nested container re-points none;
  *   - every rule sits in `@layer components`, beneath every utility (kit's own
  *     rules used to be unlayered, and beat every utility whatever its
- *     specificity);
+ *     specificity), whichever import comes first;
+ *   - each step carries Tailwind Typography's values for its size, every one,
+ *     and where the cascade decides, it decides as Typography's did;
  *   - the class names a developer writes keep working: the five steps, as
  *     utilities so `lg:prose-xl` works, and the 33 element variants;
  *   - every element `<Render>` emits for the vocabulary has a rule, or is named
  *     below as needing none — so a new element type fails here instead of
  *     reaching a page unstyled;
- *   - it compiles, with Tailwind, to less than Tailwind Typography's one size.
+ *   - it compiles, with Tailwind, to less than Tailwind Typography did.
  */
 
 import React from 'react'
@@ -86,29 +88,93 @@ describe('beneath every utility', () => {
   })
 })
 
-describe("Tailwind Typography's values, where a step carries its own", () => {
-  // Typography 0.5.20's own numbers (src/styles.js, rounded there to 7 places) for
-  // what each step sets. Rounded to 3, they drifted by up to 0.01px.
-  const TYPOGRAPHY = {
-    sm: ['0.875', '1.7142857', '1.1428571em', '0.2857143em', '2.1428571em', '1.4285714em', '1.2857143em'],
-    base: ['1', '1.75', '1.25em', '0.5em', '2.25em', '1.5em', '1.25em'],
-    lg: ['1.125', '1.7777778', '1.3333333em', '0.6666667em', '2.6666667em', '1.6666667em', '1.3333333em'],
-    xl: ['1.25', '1.8', '1.2em', '0.6em', '2.8em', '1.8em', '1.5em'],
-    '2xl': ['1.5', '1.6666667', '1.3333333em', '0.5em', '2.6666667em', '2em', '1.5em'],
+describe("Tailwind Typography's values, at every step", () => {
+  // Typography 0.5.20's own numbers, each size modifier's, as its src/styles.js
+  // writes them (fixtures/typography-0.5.20-steps.json). Each variable a step sets
+  // stands for the Typography values named here — one number at every step, or
+  // the test says where they part. ⛔ Until 2026-10-19 a step set seven, rounded to
+  // three places, and every other value was the base step's in em: 1–5px off at
+  // `prose-lg`, up to 24px at `prose-2xl`.
+  const typography = JSON.parse(at('./fixtures/typography-0.5.20-steps.json'))
+  const STANDS_FOR = {
+    step: [':root :: fontSize'],
+    leading: [':root :: lineHeight'],
+    flow: ['p :: marginTop', 'p :: marginBottom', 'ol :: marginTop', 'ol :: marginBottom', 'ul :: marginTop', 'ul :: marginBottom', 'dl :: marginTop', 'dl :: marginBottom', 'dt :: marginTop', '> ul > li > p:first-child :: marginTop', '> ul > li > p:last-child :: marginBottom', '> ol > li > p:first-child :: marginTop', '> ol > li > p:last-child :: marginBottom'],
+    item: ['li :: marginTop', 'li :: marginBottom', 'dd :: marginTop'],
+    h1: ['h1 :: fontSize'],
+    h2: ['h2 :: fontSize'],
+    h3: ['h3 :: fontSize'],
+    small: ['kbd :: fontSize', 'pre :: fontSize', 'table :: fontSize', 'figcaption :: fontSize'],
+    lead: ['[class~="lead"] :: fontSize'],
+    'lead-leading': ['[class~="lead"] :: lineHeight'],
+    'lead-flow': ['[class~="lead"] :: marginTop', '[class~="lead"] :: marginBottom'],
+    'quote-flow': ['blockquote :: marginTop', 'blockquote :: marginBottom'],
+    'quote-pad': ['blockquote :: paddingInlineStart'],
+    'h1-leading': ['h1 :: lineHeight'],
+    'h1-after': ['h1 :: marginBottom'],
+    'h2-leading': ['h2 :: lineHeight'],
+    'h2-before': ['h2 :: marginTop'],
+    'h2-after': ['h2 :: marginBottom'],
+    'h3-leading': ['h3 :: lineHeight'],
+    'h3-before': ['h3 :: marginTop'],
+    'h3-after': ['h3 :: marginBottom'],
+    'h4-leading': ['h4 :: lineHeight'],
+    'h4-before': ['h4 :: marginTop'],
+    'h4-after': ['h4 :: marginBottom'],
+    media: ['img :: marginTop', 'img :: marginBottom', 'picture :: marginTop', 'picture :: marginBottom', 'video :: marginTop', 'video :: marginBottom', 'figure :: marginTop', 'figure :: marginBottom'],
+    'kbd-radius': ['kbd :: borderRadius'],
+    'kbd-y': ['kbd :: paddingTop', 'kbd :: paddingBottom'],
+    'kbd-x': ['kbd :: paddingInlineStart', 'kbd :: paddingInlineEnd'],
+    'pre-leading': ['pre :: lineHeight'],
+    'pre-flow': ['pre :: marginTop', 'pre :: marginBottom'],
+    'pre-radius': ['pre :: borderRadius'],
+    'pre-y': ['pre :: paddingTop', 'pre :: paddingBottom'],
+    'pre-x': ['pre :: paddingInlineStart', 'pre :: paddingInlineEnd'],
+    indent: ['ol :: paddingInlineStart', 'ul :: paddingInlineStart', 'dd :: paddingInlineStart'],
+    'li-pad': ['ol > li :: paddingInlineStart', 'ul > li :: paddingInlineStart'],
+    'li-p': ['> ul > li p :: marginTop', '> ul > li p :: marginBottom'],
+    nested: ['ul ul, ul ol, ol ul, ol ol :: marginTop', 'ul ul, ul ol, ol ul, ol ol :: marginBottom'],
+    hr: ['hr :: marginTop', 'hr :: marginBottom'],
+    'table-leading': ['table :: lineHeight'],
+    'cell-x': ['thead th :: paddingInlineStart', 'thead th :: paddingInlineEnd', 'tbody td, tfoot td :: paddingInlineStart', 'tbody td, tfoot td :: paddingInlineEnd'],
+    'cell-y': ['thead th :: paddingBottom', 'tbody td, tfoot td :: paddingTop', 'tbody td, tfoot td :: paddingBottom'],
+    'caption-leading': ['figcaption :: lineHeight'],
+    'caption-gap': ['figcaption :: marginTop'],
   }
-  const NAMES = ['step', 'leading', 'flow', 'item', 'h1', 'h2', 'h3']
+  // What kit draws its own way: inline code is a chip at 0.875em of its text at
+  // every step, in a heading too, as kit drew it over Typography before.
+  const KIT_OWN = ['code :: fontSize', 'h2 code :: fontSize', 'h3 code :: fontSize']
   const declared = (body) => Object.fromEntries([...body.matchAll(/--_prose-([\w-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]))
+  const stepBody = (step) => code.match(new RegExp(`@utility prose-${step} \\{([^}]*)\\}`))[1]
 
-  for (const [step, values] of Object.entries(TYPOGRAPHY)) {
+  it('every value Typography sets by step is one a step carries, or kit’s own', () => {
+    const carried = new Set(Object.values(STANDS_FOR).flat())
+    const zero = (values) => values.every((v) => v === '0')
+    const left = Object.entries(typography.values).filter(([key, values]) => !carried.has(key) && !KIT_OWN.includes(key) && !zero(values))
+    expect(left.map(([key]) => key)).toEqual([])
+  })
+
+  typography.steps.forEach((step, i) => {
     it(`prose-${step}`, () => {
-      const body = code.match(new RegExp(`@utility prose-${step} \\{([^}]*)\\}`))[1]
-      expect(declared(body)).toEqual(Object.fromEntries(NAMES.map((name, i) => [name, values[i]])))
+      const values = declared(stepBody(step))
+      expect(Object.keys(values).sort()).toEqual(Object.keys(STANDS_FOR).sort())
+      for (const [name, keys] of Object.entries(STANDS_FOR)) {
+        for (const key of keys) {
+          const want = typography.values[key][i]
+          expect(values[name], `--_prose-${name} at prose-${step}, for ${key}`).toBe(name === 'step' ? want.replace(/rem$/, '') : want)
+        }
+      }
     })
-  }
+  })
 
   it('the container starts at the base step', () => {
-    const body = code.match(/\n {2}\.prose \{([^}]*)\}/)[1]
-    expect(declared(body)).toEqual(Object.fromEntries(NAMES.map((name, i) => [name, TYPOGRAPHY.base[i]])))
+    const container = code.match(/\n {2}\.prose \{([^}]*)\}/)[1]
+    expect(declared(container)).toEqual(declared(stepBody('base')))
+  })
+
+  it('every variable a step sets is one a rule reads', () => {
+    const read = new Set([...code.matchAll(/var\(--_prose-([\w-]+)/g)].map((m) => m[1]))
+    expect(Object.keys(STANDS_FOR).filter((name) => !read.has(name))).toEqual([])
   })
 })
 
@@ -304,13 +370,15 @@ describe('compiled with Tailwind', () => {
     expect(out).not.toMatch(/\.prose-(slate|gray|invert)\b/)
   })
 
-  it('weighs less than Tailwind Typography’s one size did', async () => {
-    // Measured 2026-10-19 (kb/framework/plans/kit-prose-layer.md §2.3): Typography
-    // added 2.5 KB gzip for one size and 4.1 KB for the five kit names. This is
-    // all five, unminified.
-    const steps = ['prose', 'prose-sm', 'prose-base', 'prose-lg', 'prose-xl', 'prose-2xl', 'max-w-none']
-    const [withProse, without] = await Promise.all([build(steps), build(steps, { prose: false })])
-    const added = gzipSync(withProse).length - gzipSync(without).length
-    expect(added).toBeLessThan(2.5 * 1024)
+  it('weighs less than Tailwind Typography did — its five sizes, and its one', async () => {
+    // Measured 2026-10-19, gzip: Typography added 4.1 KB for the five steps kit names
+    // and 2.5 KB for one. Unminified here. Every per-step value raised this from
+    // 2.1 to 2.9 KB for the five, and to 2.4 KB for `prose` and one step.
+    const added = async (classes) => {
+      const [withProse, without] = await Promise.all([build(classes), build(classes, { prose: false })])
+      return gzipSync(withProse).length - gzipSync(without).length
+    }
+    expect(await added(['prose', 'prose-sm', 'prose-base', 'prose-lg', 'prose-xl', 'prose-2xl', 'max-w-none'])).toBeLessThan(4.1 * 1024)
+    expect(await added(['prose', 'prose-lg', 'max-w-none'])).toBeLessThan(2.5 * 1024)
   })
 })
