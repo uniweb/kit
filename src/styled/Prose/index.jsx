@@ -6,9 +6,9 @@
  * a foundation with its own type system uses `<Render>` and lays out the
  * elements itself.
  *
- * Typography comes from a plugin the FOUNDATION installs — kit ships no
- * stylesheet — and answers to the site's `theme.yml` through
- * `@uniweb/kit/prose-tokens.css`. See that file for the two rules that bite:
+ * The typography is `@uniweb/kit/prose-tokens.css`, one import in the
+ * foundation's stylesheet: it brings Tailwind Typography with it and points it
+ * at the site's `theme.yml`. See that file for the two rules that bite:
  * one prose container per subtree (the variables are inherited, so a nested one
  * silently resets its subtree), and no palette modifier (`prose-gray` and
  * friends re-declare every variable and defeat the theme bridge).
