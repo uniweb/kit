@@ -10,7 +10,7 @@
  * instead. It has since been removed: a layout is a foundation's design, and
  * kit renders what the framework produces, not what a foundation designs.
  *
- * That rule was already written down (framework CLAUDE.md, gotcha #8) and it
+ * That rule was already written down, and it
  * decayed anyway, inside kit, where it reads as the sanctioned example. A
  * principle nothing enforces is a preference. So this is a test.
  *

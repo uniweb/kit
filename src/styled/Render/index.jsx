@@ -33,8 +33,8 @@
  * library, a link's base path, a code block's highlighting, a video's playback
  * attributes — and otherwise emit semantic HTML with no classes. What a
  * blockquote LOOKS like is a foundation's decision and a site's `theme.yml`,
- * the same rule that keeps fixed palettes out of kit (framework CLAUDE.md
- * gotcha #8). The previous version carried 23 hardcoded utility strings,
+ * the same rule that keeps fixed palettes out of kit. The previous version
+ * carried 23 hardcoded utility strings,
  * including `italic text-subtle` on blockquote — kit deciding a foundation's
  * design, and unreachable without forking the walker.
  *
