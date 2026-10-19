@@ -8,8 +8,8 @@
  * That single import is the whole contract: it pulls Temml's own stylesheet AND
  * the two corrections below. `prose-tokens.css` does NOT pull it in — a
  * foundation that renders equations imports both, and prose-tokens' own header
- * says so. (`framework/_contracts/math-css-parity.test.js` fails if any kit
- * stylesheet imports a sibling.) Rendering math and setting up prose typography
+ * says so. (A cross-package test fails if any kit stylesheet imports a
+ * sibling.) Rendering math and setting up prose typography
  * are different decisions: the academic template has 23 equations and no prose
  * column, and while these rules lived inside prose-tokens it shipped its maths
  * unstyled. Correct metrics are not a typography opt-in.
