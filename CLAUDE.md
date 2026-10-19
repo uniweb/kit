@@ -38,7 +38,9 @@ src/components/Image/
   (`src/styled/Section/renderers/shiki-corpus.js`), the way `@uniweb/core/icon-corpus` handles icons.
   Importing `shiki/bundle/full` put 236 grammar chunks and a 622 KB WASM engine into every
   foundation — 7.3 MB — for languages almost no site uses
-- `@tailwindcss/typography` — the prose plugin behind `prose-tokens.css`
+- No prose plugin: `prose-tokens.css` is kit's own CSS — rules for the content vocabulary, colored by
+  theme tokens, beneath every utility (`tests/prose-layer.test.jsx`). ⛔ *Until 2026-10-19 it loaded
+  `@tailwindcss/typography` and re-pointed its colors; that dependency is gone.*
 - `temml` — **CSS only.** `math-tokens.css` does `@import "temml/dist/Temml-Local.css"`; kit never imports Temml's JS
 - React 19 as peer dependency
 

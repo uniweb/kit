@@ -355,9 +355,10 @@ describe('the wrappers are wrappers', () => {
   })
 
   it('neither adds a palette modifier', () => {
-    // prose-tokens.css: a modifier "re-declares every variable below", which
-    // defeats the bridge that makes prose answer to the site's theme.yml.
-    // `Section` shipped `prose-gray` for exactly this reason until 2026-07-30.
+    // Under Tailwind Typography a modifier re-declared every color variable and
+    // defeated the theme; `Section` shipped `prose-gray` until 2026-07-30. Kit's
+    // own layer (2026-10-19) has none, so one written here would do nothing but
+    // claim a design the page does not have.
     for (const source of ['../src/styled/Prose/index.jsx', '../src/styled/Article/index.jsx', '../src/styled/Section/Section.jsx']) {
       expect(read(source)).not.toMatch(/["'\s]prose-(gray|slate|zinc|neutral|stone)\b/)
     }

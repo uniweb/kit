@@ -8,6 +8,7 @@
     "./xref": "./src/xref/index.js",
     "./theme-tokens.css": "./src/theme-tokens.css",
     "./prose-tokens.css": "./src/prose-tokens.css",
+    "./prose-vars": "./src/prose-vars.js",
     "./callout-tokens.css": "./src/callout-tokens.css",
     "./math-tokens.css": "./src/math-tokens.css"
   },
@@ -41,7 +42,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@tailwindcss/typography": "^0.5.20",
     "@uniweb/core": "workspace:~",
     "@uniweb/projections": "workspace:~",
     "@uniweb/scene": "workspace:~",

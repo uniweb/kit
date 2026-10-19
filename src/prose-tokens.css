@@ -12,171 +12,623 @@
  */
 
 /*
- * Tailwind Typography, wired to the theme.
+ * Kit's prose typography: the look of long-form content, answering to the
+ * site's theme.
  *
- * Usage — one line, in the foundation's stylesheet:
+ * Usage — one line, in the foundation's stylesheet, after its Tailwind import:
  *
  *   @import "@uniweb/kit/prose-tokens.css";
  *
- * That is the whole setup: this file brings the plugin with it (below) and then
- * overrides its greys. It used to take two lines, and the foundation had to
- * install the plugin itself and remember that the order mattered.
+ * Then a `prose` element styles what `<Render>` puts in it, which is what
+ * `<Prose>` and `<Article>` do. Nothing to install.
  *
- * `prose` ships its own greys, which means long-form body copy is the one part
- * of a foundation that ignores the site's theme.yml unless someone bridges it
- * by hand. Everyone does bridge it by hand, identically, and the bridge is easy
- * to get subtly wrong — so it lives here.
+ * ── What it is made of ──
  *
- * After this import, a prose container answers to the site like everything else
- * and flips with the visitor's scheme on its own. Do not add a `prose-invert`
- * or a `dark:` variant: the tokens have already changed by the time the dark
- * scheme is active, and `prose-invert` would override this with fixed greys.
+ * The rules are written for the content vocabulary — the elements `<Render>`
+ * emits, from what the content states (a tight list is drawn bare, a button
+ * says it is one) — and their values start from Tailwind Typography's, which
+ * this file replaced on 2026-10-19 (the plugin is MIT-licensed; its notice is
+ * at the end of this file). The class names a developer writes are the ones
+ * that plugin made familiar: `prose`, the five sizes, `not-prose`, `.lead` and
+ * the element variants (`prose-headings:`, `prose-a:` …).
  *
- * For the same reason, do not add a palette modifier — `prose-gray`,
- * `prose-slate`, `prose-neutral`. Those re-declare every variable below.
+ * ── Colors are the section's ──
  *
- * ── One container ──
+ * Every color is a semantic token — `--body`, `--heading`, `--link`, `--border`
+ * … — read where it is used. Nothing here declares a color variable, so a
+ * section's context (light, medium, dark) and the site's theme.yml reach the
+ * text directly, and the visitor's scheme flips them on its own. A `prose`
+ * container nested inside another changes no color. There are no palette
+ * modifiers and no `prose-invert`: `prose-gray`, `prose-slate` or a
+ * `dark:prose-invert` left in a class list does nothing, and the theme's
+ * colors apply.
  *
- * These variables are inherited, so a `prose` container nested inside another
- * silently resets the lot for its subtree. Two containers is always a bug, and
- * a quiet one: the outer looks right and everything inside it does not. Decide
- * who owns prose — the section that renders the document is usually the better
- * owner, since it then renders correctly under any layout — and make sure the
- * other one only supplies column width and padding.
+ * ── Size, rhythm and line length are the site's ──
+ *
+ * A site sets these in theme.yml `vars:` (a foundation may declare them, with
+ * a description, through `@uniweb/kit/prose-vars`):
+ *
+ *   --prose-size      the reading size at the base step (1rem)
+ *   --prose-leading   line height, at every step (each step's own when unset)
+ *   --prose-measure   line length (65ch); `max-w-none` still removes it
+ *   --prose-flow      the space between paragraphs and lists (each step's own)
+ *   --prose-h1 … h4   heading sizes, relative to the text (each step's own;
+ *                     h4 1em)
+ *
+ * A component picks a step of that scale — `prose-sm`, `prose-base`, `prose-lg`,
+ * `prose-xl`, `prose-2xl` (`<Prose size>`), each a ratio of `--prose-size`
+ * (0.875 · 1 · 1.125 · 1.25 · 1.5). A step carries Tailwind Typography's tuned
+ * line height, block spacing, item spacing and heading sizes for that size as
+ * its defaults; the finer spacing is set once in em and scales with the text.
+ *
+ * ── Beneath every utility ──
+ *
+ * The rules sit in `@layer components`, each element selector inside
+ * `:where()`, so any utility class, any `prose-*:` variant and a foundation's
+ * own CSS override them. ⛔ Until 2026-10-19 kit's additions here were
+ * unlayered, and beat every utility whatever its specificity.
  */
 
 /*
- * The plugin comes from kit, and the ORDER below is the reason.
- *
- * A `@plugin` inside a package's own CSS resolves from that package's
- * dependencies, so a foundation importing this file needs nothing installed
- * (verified 2026-07-30: a foundation with no typography dependency and no
- * `@plugin` line of its own emitted `.prose :where(p){margin-top:1.25em}` in a
- * production build).
- *
- * Why it moved here rather than staying the foundation's job. The overrides
- * below have to come AFTER the plugin's own declarations or they lose on equal
- * specificity — which made "install this, then import that, in this order" a
- * three-part instruction a foundation could get subtly wrong, and the failure
- * is silent: the variables are set, the rules they modify do not exist, and
- * prose renders with no margins at all. Measured on a foundation missing only
- * the plugin: `--tw-prose-body` present, every paragraph `margin-top: 0px`, no
- * warning from anywhere. Owning both halves here makes the order unorderable.
- *
- * The precedent is `shiki` and `fuse.js` — kit takes DIRECT dependencies on
- * what its own code needs at build time rather than asking a foundation to
- * supply them (framework CLAUDE.md gotcha #10). This is that rule applied to
- * the CSS layer. A foundation that never writes `prose` pays disk only:
- * Tailwind emits utilities that are used, so an unused plugin generates
- * nothing.
+ * The element variants: `prose-a:text-primary` styles every link inside the
+ * element that carries it. One per element, over the same elements Tailwind
+ * Typography's covered, outside `not-prose`.
  */
-@plugin "@tailwindcss/typography";
+@custom-variant prose-headings (& :where(h1, h2, h3, h4, h5, h6, th):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-h1 (& :where(h1):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-h2 (& :where(h2):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-h3 (& :where(h3):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-h4 (& :where(h4):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-h5 (& :where(h5):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-h6 (& :where(h6):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-p (& :where(p):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-a (& :where(a):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-blockquote (& :where(blockquote):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-figure (& :where(figure):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-figcaption (& :where(figcaption):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-strong (& :where(strong):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-em (& :where(em):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-kbd (& :where(kbd):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-code (& :where(code):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-pre (& :where(pre):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-ol (& :where(ol):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-ul (& :where(ul):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-li (& :where(li):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-dl (& :where(dl):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-dt (& :where(dt):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-dd (& :where(dd):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-table (& :where(table):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-thead (& :where(thead):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-tr (& :where(tr):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-th (& :where(th):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-td (& :where(td):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-img (& :where(img):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-picture (& :where(picture):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-video (& :where(video):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-hr (& :where(hr):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-lead (& :where([class~="lead"]):not(:where(.not-prose, .not-prose *)));
 
-.prose {
-  --tw-prose-body: var(--body);
-  --tw-prose-headings: var(--heading);
-  --tw-prose-lead: var(--subtle);
-  --tw-prose-links: var(--link, var(--primary));
-  --tw-prose-bold: var(--heading);
-  --tw-prose-counters: var(--subtle);
-  --tw-prose-bullets: var(--border);
-  --tw-prose-hr: var(--border);
-  --tw-prose-quotes: var(--subtle);
-  --tw-prose-quote-borders: var(--primary);
-  --tw-prose-captions: var(--subtle);
-  --tw-prose-kbd: var(--heading);
-  --tw-prose-code: var(--heading);
-  --tw-prose-th-borders: var(--border);
-  --tw-prose-td-borders: var(--border);
-
-  /* Fenced code keeps whatever the highlighter paints — a site retunes that
-     through `code:` in theme.yml, not here. */
-  --tw-prose-pre-code: var(--code-text, var(--body));
-  --tw-prose-pre-bg: var(--code-surface, var(--muted));
+/*
+ * The steps. Utilities, so a responsive one works (`lg:prose-xl`), and so each
+ * sets only kit-private values — the site's variables, when set, win over all
+ * of them. The values are Tailwind Typography's for that size.
+ */
+@utility prose-sm {
+  --_prose-step: 0.875;
+  --_prose-leading: 1.714;
+  --_prose-flow: 1.143em;
+  --_prose-item: 0.286em;
+  --_prose-h1: 2.143em;
+  --_prose-h2: 1.429em;
+  --_prose-h3: 1.286em;
+}
+@utility prose-base {
+  --_prose-step: 1;
+  --_prose-leading: 1.75;
+  --_prose-flow: 1.25em;
+  --_prose-item: 0.5em;
+  --_prose-h1: 2.25em;
+  --_prose-h2: 1.5em;
+  --_prose-h3: 1.25em;
+}
+@utility prose-lg {
+  --_prose-step: 1.125;
+  --_prose-leading: 1.778;
+  --_prose-flow: 1.333em;
+  --_prose-item: 0.667em;
+  --_prose-h1: 2.667em;
+  --_prose-h2: 1.667em;
+  --_prose-h3: 1.333em;
+}
+@utility prose-xl {
+  --_prose-step: 1.25;
+  --_prose-leading: 1.8;
+  --_prose-flow: 1.2em;
+  --_prose-item: 0.6em;
+  --_prose-h1: 2.8em;
+  --_prose-h2: 1.8em;
+  --_prose-h3: 1.5em;
+}
+@utility prose-2xl {
+  --_prose-step: 1.5;
+  --_prose-leading: 1.667;
+  --_prose-flow: 1.333em;
+  --_prose-item: 0.5em;
+  --_prose-h1: 2.667em;
+  --_prose-h2: 2em;
+  --_prose-h3: 1.5em;
 }
 
-/* Inline code reads as a chip on whatever surface it sits on, rather than the
-   plugin's fixed grey. Scoped to `:not(pre)` so fenced blocks are untouched. */
-.prose :not(pre) > code {
-  background-color: color-mix(in oklch, var(--section), var(--heading) 6%);
-  border-radius: 0.25rem;
-  padding: 0.125rem 0.375rem;
-  font-weight: 500;
-  font-size: 0.875em;
-}
-.prose :not(pre) > code::before,
-.prose :not(pre) > code::after {
-  content: none;
-}
+@layer components {
+  /* The container, at the base step until a step says otherwise. */
+  .prose {
+    --_prose-step: 1;
+    --_prose-leading: 1.75;
+    --_prose-flow: 1.25em;
+    --_prose-item: 0.5em;
+    --_prose-h1: 2.25em;
+    --_prose-h2: 1.5em;
+    --_prose-h3: 1.25em;
+    font-size: calc(var(--prose-size, 1rem) * var(--_prose-step));
+    line-height: var(--prose-leading, var(--_prose-leading));
+    max-width: var(--prose-measure, 65ch);
+    color: var(--body);
+  }
 
-/* Anchors land clear of a fixed site header when something scrolls to them —
-   a contents rail, or a link with a #fragment.
+  /* ── Text ── */
 
-   Figures, tables and display math are on this list because they became anchor
-   targets: an authored `{#fig-cells}` is emitted onto the element, and a
-   cross-reference links to it. Without them a `[#eq-binomial]` scrolls its
-   equation flush to the viewport top and the sticky header covers it — which is
-   exactly what happened the first time the feature was clicked. Headings had
-   the rule and nothing else did, because until then nothing else was a target. */
-.prose :is(h1, h2, h3, h4, figure, table, .math-display) {
-  scroll-margin-top: calc(var(--header-height, 4rem) + 1rem);
-}
+  .prose :where(p):not(:where(.not-prose, .not-prose *)) {
+    margin-block: var(--prose-flow, var(--_prose-flow));
+    text-wrap: pretty;
+  }
+  .prose :where([class~="lead"]):not(:where(.not-prose, .not-prose *)) {
+    color: var(--subtle);
+    font-size: 1.25em;
+    line-height: 1.6;
+    margin-block: 1.2em;
+  }
+  /* A `#>` label line: a kicker above its heading, not a heading itself. */
+  .prose :where(p[data-role="pretitle"]):not(:where(.not-prose, .not-prose *)) {
+    color: var(--primary);
+    font-size: 0.875em;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    margin-bottom: 0.5em;
+  }
+  .prose :where(a):not(:where(.not-prose, .not-prose *)) {
+    color: var(--link, var(--primary));
+    text-decoration: underline;
+    font-weight: 500;
+  }
+  /* A button is a link that says so (`[Go](/x){button}`, `data-role="button"`). */
+  .prose :where(a[data-role="button"]):not(:where(.not-prose, .not-prose *)) {
+    display: inline-block;
+    padding: 0.5em 1.25em;
+    border-radius: var(--radius, 0.5rem);
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    font-weight: 600;
+    line-height: 1.5;
+    text-decoration: none;
+  }
+  .prose :where(a[data-role="button"]):not(:where(.not-prose, .not-prose *)):hover {
+    background-color: var(--primary-hover, var(--primary));
+  }
+  .prose :where(strong):not(:where(.not-prose, .not-prose *)) {
+    color: var(--heading);
+    font-weight: 600;
+  }
+  .prose :where(a strong, blockquote strong, thead th strong):not(:where(.not-prose, .not-prose *)) {
+    color: inherit;
+  }
+  .prose :where(s):not(:where(.not-prose, .not-prose *)) {
+    text-decoration: line-through;
+  }
 
-/* Where a block sits in a flow — an author's `placement` on an image, a video or
-   a table, which <Render> writes as `data-placement` on the block's box: a
-   figure, or a table's scrolling box. This is a starting look; a foundation
-   restyles `[data-placement]`, or sets these:
+  /* ── Headings ── */
 
-     --prose-side-width   how much of the column `left` and `right` take (50%)
-     --prose-wide-bleed   how far `wide` reaches past the column on each side
-     --prose-full-width   how wide `full` is. By default the nearest size
-                          container's width (`100cqi`), and the viewport's where
-                          there is none: a foundation makes the box its sections
-                          sit in a container (`container-type: inline-size`, the
-                          `@container` class), since the stylesheet cannot see it.
+  .prose :where(h1, h2, h3, h4, h5, h6):not(:where(.not-prose, .not-prose *)) {
+    color: var(--heading);
+    text-wrap: balance;
+  }
+  .prose :where(h1):not(:where(.not-prose, .not-prose *)) {
+    font-size: var(--prose-h1, var(--_prose-h1));
+    font-weight: 800;
+    line-height: 1.111;
+    margin-top: 0;
+    margin-bottom: 0.889em;
+  }
+  .prose :where(h2):not(:where(.not-prose, .not-prose *)) {
+    font-size: var(--prose-h2, var(--_prose-h2));
+    font-weight: 700;
+    line-height: 1.333;
+    margin-top: 2em;
+    margin-bottom: 1em;
+  }
+  .prose :where(h3):not(:where(.not-prose, .not-prose *)) {
+    font-size: var(--prose-h3, var(--_prose-h3));
+    font-weight: 600;
+    line-height: 1.6;
+    margin-top: 1.6em;
+    margin-bottom: 0.6em;
+  }
+  /* Typography left h5 and h6 to the reset, so they drew as body text. */
+  .prose :where(h4, h5, h6):not(:where(.not-prose, .not-prose *)) {
+    font-weight: 600;
+    line-height: 1.5;
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+  }
+  .prose :where(h4):not(:where(.not-prose, .not-prose *)) {
+    font-size: var(--prose-h4, 1em);
+  }
+  .prose :where(h1 strong):not(:where(.not-prose, .not-prose *)) {
+    font-weight: 900;
+    color: inherit;
+  }
+  .prose :where(h2 strong):not(:where(.not-prose, .not-prose *)) {
+    font-weight: 800;
+    color: inherit;
+  }
+  .prose :where(h3 strong, h4 strong, h5 strong, h6 strong):not(:where(.not-prose, .not-prose *)) {
+    font-weight: 700;
+    color: inherit;
+  }
+  .prose :where(p[data-role="pretitle"] + :is(h1, h2, h3, h4, h5, h6)):not(:where(.not-prose, .not-prose *)) {
+    margin-top: 0;
+  }
 
-   `left` and `right` sit beside the text, which wraps, and take the whole column
-   on a narrow screen, where there is no room beside anything. Their width is
-   set rather than taken from the picture, so a page does not reflow when a lazy
-   image arrives. `wide` and `full` are centred on the column — the section's
-   width for `full` wherever the column is centred in its section — and never
-   wider than the viewport. A block placed nowhere has no attribute and sits in
-   the column. */
-.prose [data-placement="left"],
-.prose [data-placement="right"] {
-  width: var(--prose-side-width, 50%);
-  margin-top: 0.25em;
-  margin-bottom: 1em;
-}
-.prose [data-placement="left"] {
-  float: left;
-  margin-inline-end: 1.5em;
-}
-.prose [data-placement="right"] {
-  float: right;
-  margin-inline-start: 1.5em;
-}
-.prose [data-placement="wide"],
-.prose [data-placement="full"] {
-  position: relative;
-  left: 50%;
-  transform: translateX(-50%);
-  max-width: none;
-}
-.prose [data-placement="wide"] {
-  width: min(calc(100% + 2 * var(--prose-wide-bleed, 6rem)), calc(100vw - 2rem));
-}
-.prose [data-placement="full"] {
-  width: min(var(--prose-full-width, 100cqi), 100vw);
-}
-.prose figure[data-placement] img {
-  width: 100%;
-}
-@media (max-width: 40rem) {
-  .prose [data-placement="left"],
-  .prose [data-placement="right"] {
-    float: none;
-    width: auto;
-    margin-inline: 0;
+  /* ── Lists ── */
+
+  .prose :where(ul, ol):not(:where(.not-prose, .not-prose *)) {
+    margin-block: var(--prose-flow, var(--_prose-flow));
+    padding-inline-start: 1.625em;
+  }
+  .prose :where(ul):not(:where(.not-prose, .not-prose *)) {
+    list-style-type: disc;
+  }
+  .prose :where(ol):not(:where(.not-prose, .not-prose *)) {
+    list-style-type: decimal;
+  }
+  .prose :where(ol[type="A"], ol[type="A" s]):not(:where(.not-prose, .not-prose *)) {
+    list-style-type: upper-alpha;
+  }
+  .prose :where(ol[type="a"], ol[type="a" s]):not(:where(.not-prose, .not-prose *)) {
+    list-style-type: lower-alpha;
+  }
+  .prose :where(ol[type="I"], ol[type="I" s]):not(:where(.not-prose, .not-prose *)) {
+    list-style-type: upper-roman;
+  }
+  .prose :where(ol[type="i"], ol[type="i" s]):not(:where(.not-prose, .not-prose *)) {
+    list-style-type: lower-roman;
+  }
+  .prose :where(ol[type="1"]):not(:where(.not-prose, .not-prose *)) {
+    list-style-type: decimal;
+  }
+  .prose :where(li):not(:where(.not-prose, .not-prose *)) {
+    margin-block: var(--_prose-item);
+    padding-inline-start: 0.375em;
+  }
+  .prose :where(ol > li):not(:where(.not-prose, .not-prose *))::marker {
+    color: var(--subtle);
+    font-weight: 400;
+  }
+  .prose :where(ul > li):not(:where(.not-prose, .not-prose *))::marker {
+    color: var(--border);
+  }
+  .prose :where(ul ul, ul ol, ol ul, ol ol):not(:where(.not-prose, .not-prose *)) {
+    margin-block: 0.75em;
+  }
+  /* A paragraph in an item means the author wrote a loose list (`<Render>` draws
+     a tight one's text bare), so a top-level loose list opens up. */
+  .prose :where(.prose > :is(ul, ol) > li p):not(:where(.not-prose, .not-prose *)) {
+    margin-block: 0.75em;
+  }
+  .prose :where(.prose > :is(ul, ol) > li > p:first-child):not(:where(.not-prose, .not-prose *)) {
+    margin-top: var(--prose-flow, var(--_prose-flow));
+  }
+  .prose :where(.prose > :is(ul, ol) > li > p:last-child):not(:where(.not-prose, .not-prose *)) {
+    margin-bottom: var(--prose-flow, var(--_prose-flow));
+  }
+  /* No content produces these; a developer's own markup inside `<Prose>` may. */
+  .prose :where(dl):not(:where(.not-prose, .not-prose *)) {
+    margin-block: var(--prose-flow, var(--_prose-flow));
+  }
+  .prose :where(dt):not(:where(.not-prose, .not-prose *)) {
+    color: var(--heading);
+    font-weight: 600;
+    margin-top: var(--prose-flow, var(--_prose-flow));
+  }
+  .prose :where(dd):not(:where(.not-prose, .not-prose *)) {
+    margin-top: 0.5em;
+    padding-inline-start: 1.625em;
+  }
+
+  /* ── Quotes and rules ── */
+
+  .prose :where(blockquote):not(:where(.not-prose, .not-prose *)) {
+    color: var(--subtle);
+    font-style: italic;
+    font-weight: 500;
+    border-inline-start: 0.25rem solid var(--primary);
+    padding-inline-start: 1em;
+    margin-block: 1.6em;
+    quotes: "\201C" "\201D" "\2018" "\2019";
+  }
+  .prose :where(blockquote p:first-of-type):not(:where(.not-prose, .not-prose *))::before {
+    content: open-quote;
+  }
+  .prose :where(blockquote p:last-of-type):not(:where(.not-prose, .not-prose *))::after {
+    content: close-quote;
+  }
+  .prose :where(hr):not(:where(.not-prose, .not-prose *)) {
+    border-color: var(--border);
+    border-top-width: 1px;
+    margin-block: 3em;
+  }
+
+  /* ── Code ── */
+
+  /* Inline code reads as a chip on whatever surface it sits on. */
+  .prose :where(:not(pre) > code):not(:where(.not-prose, .not-prose *)) {
+    color: var(--heading);
+    background-color: color-mix(in oklch, var(--section), var(--heading) 6%);
+    border-radius: 0.25rem;
+    padding: 0.125rem 0.375rem;
+    font-weight: 500;
+    font-size: 0.875em;
+  }
+  .prose :where(a code, h1 code, h4 code, h5 code, h6 code, blockquote code, thead th code):not(:where(.not-prose, .not-prose *)) {
+    color: inherit;
+  }
+  .prose :where(h2 code):not(:where(.not-prose, .not-prose *)) {
+    font-size: 0.875em;
+  }
+  .prose :where(h3 code):not(:where(.not-prose, .not-prose *)) {
+    font-size: 0.9em;
+  }
+  /* A code block's box. Its colors are the highlighter's, which a site retunes
+     through `code:` in theme.yml; these are what shows before it paints, and
+     for a block it does not color. */
+  .prose :where(pre):not(:where(.not-prose, .not-prose *)) {
+    color: var(--code-text, var(--body));
+    background-color: var(--code-surface, var(--muted));
+    overflow-x: auto;
+    font-weight: 400;
+    font-size: 0.875em;
+    line-height: 1.714;
+    margin-block: 1.714em;
+    border-radius: 0.375rem;
+    padding: 0.857em 1.143em;
+  }
+  .prose :where(pre code):not(:where(.not-prose, .not-prose *)) {
+    background-color: transparent;
+    border-width: 0;
+    border-radius: 0;
+    padding: 0;
+    font-weight: inherit;
+    color: inherit;
+    font-size: inherit;
+    font-family: inherit;
+    line-height: inherit;
+  }
+  .prose :where(kbd):not(:where(.not-prose, .not-prose *)) {
+    color: var(--heading);
+    font-size: 0.875em;
+    font-weight: 500;
+    border-radius: 0.3125rem;
+    padding: 0.1875em 0.375em;
+    box-shadow:
+      0 0 0 1px color-mix(in oklch, var(--heading) 10%, transparent),
+      0 3px 0 color-mix(in oklch, var(--heading) 10%, transparent);
+  }
+
+  /* ── Tables ── */
+
+  .prose :where(table):not(:where(.not-prose, .not-prose *)) {
+    width: 100%;
+    table-layout: auto;
+    margin-block: 2em;
+    font-size: 0.875em;
+    line-height: 1.714;
+  }
+  .prose :where(caption):not(:where(.not-prose, .not-prose *)) {
+    color: var(--subtle);
+    text-align: start;
+    padding-bottom: 0.571em;
+  }
+  .prose :where(thead):not(:where(.not-prose, .not-prose *)) {
+    border-bottom: 1px solid var(--border);
+  }
+  .prose :where(thead th):not(:where(.not-prose, .not-prose *)) {
+    color: var(--heading);
+    font-weight: 600;
+    vertical-align: bottom;
+    padding-inline: 0.571em;
+    padding-bottom: 0.571em;
+  }
+  .prose :where(tbody tr):not(:where(.not-prose, .not-prose *)) {
+    border-bottom: 1px solid var(--border);
+  }
+  .prose :where(tbody tr:last-child):not(:where(.not-prose, .not-prose *)) {
+    border-bottom-width: 0;
+  }
+  .prose :where(tbody td):not(:where(.not-prose, .not-prose *)) {
+    vertical-align: baseline;
+  }
+  .prose :where(tbody td, tfoot td):not(:where(.not-prose, .not-prose *)) {
+    padding: 0.571em;
+  }
+  .prose :where(thead th:first-child, tbody td:first-child, tfoot td:first-child):not(:where(.not-prose, .not-prose *)) {
+    padding-inline-start: 0;
+  }
+  .prose :where(thead th:last-child, tbody td:last-child, tfoot td:last-child):not(:where(.not-prose, .not-prose *)) {
+    padding-inline-end: 0;
+  }
+  .prose :where(tfoot):not(:where(.not-prose, .not-prose *)) {
+    border-top: 1px solid var(--border);
+  }
+  .prose :where(tfoot td):not(:where(.not-prose, .not-prose *)) {
+    vertical-align: top;
+  }
+  .prose :where(th, td):not(:where(.not-prose, .not-prose *)) {
+    text-align: start;
+  }
+
+  /* ── Media ── */
+
+  .prose :where(figure, img, picture, video):not(:where(.not-prose, .not-prose *)) {
+    margin-block: 2em;
+  }
+  .prose :where(picture):not(:where(.not-prose, .not-prose *)) {
+    display: block;
+  }
+  .prose :where(figure > *, picture > img):not(:where(.not-prose, .not-prose *)) {
+    margin-block: 0;
+  }
+  .prose :where(figcaption):not(:where(.not-prose, .not-prose *)) {
+    color: var(--subtle);
+    font-size: 0.875em;
+    line-height: 1.429;
+    margin-top: 0.857em;
+  }
+  /* An image's credit, after its caption. */
+  .prose :where(figcaption [data-role="author"]):not(:where(.not-prose, .not-prose *)) {
+    font-style: italic;
+  }
+  /* A document: one link holding its preview or file badge, and its name. */
+  .prose :where(figure[data-kind="document"] > a):not(:where(.not-prose, .not-prose *)) {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+    padding: 0.75em 1em;
+    border: 1px solid var(--border);
+    border-radius: var(--radius, 0.5rem);
+    color: var(--heading);
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .prose :where(figure[data-kind="document"] > a > img):not(:where(.not-prose, .not-prose *)) {
+    flex: none;
+    width: 3em;
+    height: auto;
+    border-radius: 0.25rem;
+  }
+
+  /* ── Blocks a component or another stylesheet draws ── */
+
+  /* An inset block is the component's to draw; this gives it its place in the
+     flow. A callout (`callout-tokens.css`) and display maths
+     (`math-tokens.css`) set their own. */
+  .prose :where([data-inset-block]):not(:where(.not-prose, .not-prose *)) {
+    margin-block: var(--prose-flow, var(--_prose-flow));
+  }
+
+  /* ── The flow's edges ── */
+
+  .prose :where(hr + *, h2 + *, h3 + *, h4 + *, h5 + *, h6 + *):not(:where(.not-prose, .not-prose *)) {
+    margin-top: 0;
+  }
+  .prose :where(.prose > :first-child):not(:where(.not-prose, .not-prose *)) {
+    margin-top: 0;
+  }
+  .prose :where(.prose > :last-child):not(:where(.not-prose, .not-prose *)) {
+    margin-bottom: 0;
+  }
+
+  /* Anchors land clear of a fixed site header when something scrolls to them —
+     a contents rail, or a link with a #fragment.
+
+     Figures, tables and display math are on this list because they became anchor
+     targets: an authored `{#fig-cells}` is emitted onto the element, and a
+     cross-reference links to it. Without them a `[#eq-binomial]` scrolls its
+     equation flush to the viewport top and the sticky header covers it — which is
+     exactly what happened the first time the feature was clicked. Headings had
+     the rule and nothing else did, because until then nothing else was a target. */
+  .prose :where(h1, h2, h3, h4, h5, h6, figure, table, .math-display) {
+    scroll-margin-top: calc(var(--header-height, 4rem) + 1rem);
+  }
+
+  /* Where a block sits in a flow — an author's `placement` on an image, a video or
+     a table, which <Render> writes as `data-placement` on the block's box: a
+     figure, or a table's scrolling box. This is a starting look; a foundation
+     restyles `[data-placement]`, or sets these:
+
+       --prose-side-width   how much of the column `left` and `right` take (50%)
+       --prose-wide-bleed   how far `wide` reaches past the column on each side
+       --prose-full-width   how wide `full` is. By default the nearest size
+                            container's width (`100cqi`), and the viewport's where
+                            there is none: a foundation makes the box its sections
+                            sit in a container (`container-type: inline-size`, the
+                            `@container` class), since the stylesheet cannot see it.
+
+     `left` and `right` sit beside the text, which wraps, and take the whole column
+     on a narrow screen, where there is no room beside anything. Their width is
+     set rather than taken from the picture, so a page does not reflow when a lazy
+     image arrives. `wide` and `full` are centred on the column — the section's
+     width for `full` wherever the column is centred in its section — and never
+     wider than the viewport. A block placed nowhere has no attribute and sits in
+     the column. */
+  .prose :where([data-placement="left"], [data-placement="right"]) {
+    width: var(--prose-side-width, 50%);
+    margin-top: 0.25em;
+    margin-bottom: 1em;
+  }
+  .prose :where([data-placement="left"]) {
+    float: left;
+    margin-inline-end: 1.5em;
+  }
+  .prose :where([data-placement="right"]) {
+    float: right;
+    margin-inline-start: 1.5em;
+  }
+  .prose :where([data-placement="wide"], [data-placement="full"]) {
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: none;
+  }
+  .prose :where([data-placement="wide"]) {
+    width: min(calc(100% + 2 * var(--prose-wide-bleed, 6rem)), calc(100vw - 2rem));
+  }
+  .prose :where([data-placement="full"]) {
+    width: min(var(--prose-full-width, 100cqi), 100vw);
+  }
+  .prose :where(figure[data-placement] img) {
+    width: 100%;
+  }
+  @media (max-width: 40rem) {
+    .prose :where([data-placement="left"], [data-placement="right"]) {
+      float: none;
+      width: auto;
+      margin-inline: 0;
+    }
   }
 }
+
+/*
+ * The values above start from Tailwind Typography's (github.com/tailwindlabs/tailwindcss-typography,
+ * 0.5.20), under its license:
+ *
+ * MIT License
+ *
+ * Copyright (c) Tailwind Labs, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */

@@ -138,7 +138,10 @@ describe("Image's filter values are numbers", () => {
 
 describe('prose-tokens.css lays out each placement', () => {
   const css = readFileSync(fileURLToPath(new URL('../src/prose-tokens.css', import.meta.url)), 'utf8')
+  // A rule of the prose container's, `.prose :where(…)` since the layer moved
+  // under `@layer components` (2026-10-19), so a utility can override it.
+  const selectors = [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{};]+)\{/g)].map((m) => m[1].trim())
   test.each(PLACEMENTS)('%s has a rule', (placement) => {
-    expect(css).toContain(`.prose [data-placement="${placement}"]`)
+    expect(selectors.some((s) => s.startsWith('.prose ') && s.includes(`[data-placement="${placement}"]`))).toBe(true)
   })
 })

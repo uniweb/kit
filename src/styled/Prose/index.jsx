@@ -1,17 +1,18 @@
 /**
  * Prose — content plus prose typography.
  *
- * `<Render>` walks the sequence; this adds the Tailwind Typography container
- * that styles the semantic markup it emits. Two concerns, deliberately separate:
- * a foundation with its own type system uses `<Render>` and lays out the
- * elements itself.
+ * `<Render>` walks the sequence; this adds the `prose` container that styles
+ * the semantic markup it emits. Two concerns, deliberately separate: a
+ * foundation with its own type system uses `<Render>` and lays out the elements
+ * itself.
  *
  * The typography is `@uniweb/kit/prose-tokens.css`, one import in the
- * foundation's stylesheet: it brings Tailwind Typography with it and points it
- * at the site's `theme.yml`. See that file for the two rules that bite:
- * one prose container per subtree (the variables are inherited, so a nested one
- * silently resets its subtree), and no palette modifier (`prose-gray` and
- * friends re-declare every variable and defeat the theme bridge).
+ * foundation's stylesheet: kit's own rules for the content vocabulary, colored
+ * by the section's theme tokens and scaled by the site's `--prose-*` variables.
+ * `size` picks a step of that scale. ⛔ Until 2026-10-19 it was Tailwind
+ * Typography, which re-declared its colors on every container — hence the old
+ * rules against nesting one and against palette modifiers, which no longer
+ * apply.
  *
  * Also works as a pure typography wrapper when given children instead of
  * content.

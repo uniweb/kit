@@ -116,14 +116,12 @@ export function Section({
             columns !== '1' && columnClass
           )}>
             {/*
-              `prose-gray` was here until 2026-07-30, and prose-tokens.css
-              forbids it in as many words: a palette modifier "re-declares every
-              variable below", so it overrode the bridge that makes a prose
-              container answer to the site's theme.yml — the one thing that file
-              exists to do. Every Section rendering its own content styled its
-              prose with fixed Tailwind greys instead of the site's palette.
-              no-fixed-palettes did not catch it because it matches colour
-              UTILITIES (bg-, text-, border-), and this is a Typography modifier.
+              `prose-gray` was here until 2026-07-30: under Tailwind Typography a
+              palette modifier re-declared every color variable, so every Section
+              rendering its own content styled its prose with fixed greys instead
+              of the site's palette. Since kit's own prose layer replaced the
+              plugin (2026-10-19) a palette modifier does nothing — the colors are
+              the section's theme tokens — so there is nothing to add here.
             */}
             {children || <Prose content={resolvedContent} />}
           </div>
