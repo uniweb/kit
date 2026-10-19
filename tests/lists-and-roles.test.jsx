@@ -111,6 +111,13 @@ describe("a link's role reaches its anchor", () => {
     expect(html(<Render content={pm([table])} />)).toMatch(/<td><a [^>]*data-role="button"[^>]*>Buy<\/a><\/td>/)
   })
 
+  it('a button labelled in two styles is one button', () => {
+    // `[**Go** now](/go){button}` — the parser used to make each run a link of its own.
+    const out = html(<Render content={pm([para(text('Go', button('/go'), { type: 'bold' }), text(' now', button('/go')))])} />)
+    expect(out.match(/<a /g)).toHaveLength(1)
+    expect(out).toMatch(/<a [^>]*data-role="button"[^>]*>Go now<\/a>/)
+  })
+
   it('CONTROL — a plain link has no data-role', () => {
     const out = html(<Render content={pm([para(text('Docs', { type: 'link', attrs: { href: '/d' } }))])} />)
     expect(out).not.toContain('data-role')
