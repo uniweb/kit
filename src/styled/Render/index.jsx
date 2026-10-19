@@ -49,6 +49,7 @@
 import React from 'react'
 import { getUniweb } from '@uniweb/core'
 import { parseContent } from '@uniweb/semantic-parser'
+import { isStyleName } from '@uniweb/semantic-parser/sanitize'
 import { PLACEMENTS } from '@uniweb/schemas/content'
 import { getChildBlockRenderer, headingId } from '../../utils/index.js'
 import { videoProps } from '../media-props.js'
@@ -248,6 +249,65 @@ function renderAll(sequence, block, components) {
 }
 
 /**
+ * A link's `role` — `button` for a `[Go](/x){button}`, or an authored hint such
+ * as `nav` — as the `data-role` its anchor carries: a style name or nothing, as
+ * the parser writes it on an inline link. It is what lets a stylesheet tell a
+ * button from a link. ⛔ Dropped until 2026-10-19.
+ */
+function roleOf(role) {
+  return isStyleName(role) ? role : undefined
+}
+
+/**
+ * A paragraph — or the `link` the parser promoted it to — drawn without its
+ * `<p>`, where the box around it is the block: a table cell, a tight list's item.
+ */
+function renderBare(element, block) {
+  if (element.type === 'link') {
+    const { href, label, role } = element.attrs || {}
+    return (
+      <Link to={href} data-role={roleOf(role)}>
+        {label}
+      </Link>
+    )
+  }
+  if (!element.text) return null
+  return hasInlineMarkers(element.text) ? (
+    renderParagraphWithInsets(element.text, block, element)
+  ) : (
+    <SafeHtml value={element.text} as="span" />
+  )
+}
+
+/**
+ * A tight list's item — the markdown default, no blank line between items —
+ * draws its text bare, as markdown does (`<li>One</li>`), and anything else it
+ * holds, a nested list, as written.
+ *
+ * `loose` is the author's: content-reader sets it, only when true, and the
+ * parser carries it in the list's `attrs`. ⛔ Until 2026-10-19 every item drew
+ * its paragraph's `<p>`, and a typography layer reads a paragraph in an item as
+ * a loose list — so every list was spaced like one, its items 1.25em apart
+ * instead of 0.5em.
+ *
+ * An item holding more than one paragraph is drawn as written whatever the flag
+ * says, since joined they would read as one; and an element the foundation
+ * renders its own way (`components`) is left to its renderer.
+ */
+function renderTightItem(sequence, block, components) {
+  const items = sequence || []
+  const bare = items.filter((element) => element?.type === 'paragraph' || element?.type === 'link')
+  if (bare.length !== 1 || components?.[bare[0].type]) return renderAll(items, block, components)
+  return items.map((element, i) =>
+    element === bare[0] ? (
+      <React.Fragment key={i}>{renderBare(element, block)}</React.Fragment>
+    ) : (
+      <SequenceElement key={i} element={element} block={block} components={components} />
+    )
+  )
+}
+
+/**
  * A table cell's contents, with a lone block UNWRAPPED.
  *
  * The schema declares `tableCell` as `paragraph+`, so a markdown cell is always
@@ -271,19 +331,7 @@ function renderCell(cell, block, components) {
 
   const [only] = children
 
-  if (only?.type === 'paragraph') {
-    if (!only.text) return null
-    return hasInlineMarkers(only.text) ? (
-      renderParagraphWithInsets(only.text, block, only)
-    ) : (
-      <SafeHtml value={only.text} as="span" />
-    )
-  }
-
-  if (only?.type === 'link') {
-    const { href, label } = only.attrs || {}
-    return <Link to={href}>{label}</Link>
-  }
+  if (only?.type === 'paragraph' || only?.type === 'link') return renderBare(only, block)
 
   if (only?.type === 'button') {
     return <Link to={only.attrs?.href}>{only.text}</Link>
@@ -444,10 +492,18 @@ export function SequenceElement({ element, block, components }) {
 
     case 'list': {
       const Tag = element.style === 'ordered' ? 'ol' : 'ul'
+      // The number an ordered list starts at is the author's (`3. Three`).
+      // ⛔ Dropped until 2026-10-19, so every ordered list counted from 1.
+      const start = element.attrs?.start
+      const tight = !element.attrs?.loose
       return (
-        <Tag>
+        <Tag start={Tag === 'ol' && Number.isInteger(start) && start !== 1 ? start : undefined}>
           {element.children?.map((itemSequence, i) => (
-            <li key={i}>{renderAll(itemSequence, block, components)}</li>
+            <li key={i}>
+              {tight
+                ? renderTightItem(itemSequence, block, components)
+                : renderAll(itemSequence, block, components)}
+            </li>
           ))}
         </Tag>
       )
@@ -551,10 +607,12 @@ export function SequenceElement({ element, block, components }) {
     // A link promoted out of a paragraph — it stood alone on its line, which is
     // how an author writes a call to action.
     case 'link': {
-      const { href, label } = element.attrs || {}
+      const { href, label, role } = element.attrs || {}
       return (
         <p>
-          <Link to={href}>{label}</Link>
+          <Link to={href} data-role={roleOf(role)}>
+            {label}
+          </Link>
         </p>
       )
     }
