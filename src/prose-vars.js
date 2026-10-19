@@ -27,30 +27,30 @@
 export const proseVars = {
   'prose-size': {
     default: '1rem',
-    description: 'Reading size of long-form text at the base step; the other steps are ratios of it',
+    description: 'Reading size of long-form text at the base step, in rem or px (1rem); the other steps are ratios of it',
   },
   'prose-leading': {
-    description: 'Line height of long-form text, at every step. Unset, each step uses its own',
+    description: 'Line height of long-form text, at every step — a number, such as 1.7. Unset, each step uses its own',
   },
   'prose-measure': {
     default: '65ch',
-    description: 'Line length of long-form text',
+    description: 'Line length of long-form text, in ch (65ch), where a component leaves it to the text — one that fills its column sets its own width',
   },
   'prose-flow': {
-    description: 'Space between paragraphs and lists, in em. Unset, each step uses its own',
+    description: 'Space between paragraphs and lists, in em, such as 1.25em. Unset, each step uses its own',
   },
   'prose-h1': {
-    description: 'Size of a first-level heading in long-form text, relative to the text. Unset, each step uses its own',
+    description: 'Size of a first-level heading in long-form text, in em of the text, such as 2.25em. Unset, each step uses its own',
   },
   'prose-h2': {
-    description: 'Size of a second-level heading in long-form text, relative to the text. Unset, each step uses its own',
+    description: 'Size of a second-level heading in long-form text, in em of the text, such as 1.5em. Unset, each step uses its own',
   },
   'prose-h3': {
-    description: 'Size of a third-level heading in long-form text, relative to the text. Unset, each step uses its own',
+    description: 'Size of a third-level heading in long-form text, in em of the text, such as 1.25em. Unset, each step uses its own',
   },
   'prose-h4': {
     default: '1em',
-    description: 'Size of a fourth-level heading in long-form text, relative to the text',
+    description: 'Size of a fourth-level heading in long-form text, in em of the text (1em)',
   },
 }
 

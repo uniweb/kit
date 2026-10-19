@@ -622,9 +622,14 @@ export function SequenceElement({ element, block, components }) {
     // that day. A button is a `link` with `role: 'button'`.
 
     // `type` is content — `---{type=dots}` is a different divider, not a
-    // differently-styled one — so this resolves it rather than emitting <hr>.
-    case 'divider':
-      return <Divider type={element.attrs?.type} />
+    // differently-styled one — so a typed divider resolves to <Divider>. A plain
+    // one is a bare <hr>, whose space is the stylesheet's like every other
+    // element's here. ⛔ Until 2026-10-19 it was <Divider>'s `<hr class="my-6">`,
+    // and that utility halved the prose layer's 3em.
+    case 'divider': {
+      const type = element.attrs?.type
+      return type && type !== 'hr' ? <Divider type={type} /> : <hr />
+    }
 
     default:
       return null

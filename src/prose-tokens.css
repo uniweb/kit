@@ -38,7 +38,8 @@
  * … — read where it is used. Nothing here declares a color variable, so a
  * section's context (light, medium, dark) and the site's theme.yml reach the
  * text directly, and the visitor's scheme flips them on its own. A `prose`
- * container nested inside another changes no color. There are no palette
+ * container nested inside another re-points no color: its text is `--body`, as
+ * the outer one's is (inside a quote, that is a change). There are no palette
  * modifiers and no `prose-invert`: `prose-gray`, `prose-slate` or a
  * `dark:prose-invert` left in a class list does nothing, and the theme's
  * colors apply.
@@ -50,7 +51,8 @@
  *
  *   --prose-size      the reading size at the base step (1rem)
  *   --prose-leading   line height, at every step (each step's own when unset)
- *   --prose-measure   line length (65ch); `max-w-none` still removes it
+ *   --prose-measure   line length (65ch); `max-w-none` still removes it, and
+ *                     `<Prose>` and `<Article>` carry it — they fill their box
  *   --prose-flow      the space between paragraphs and lists (each step's own)
  *   --prose-h1 … h4   heading sizes, relative to the text (each step's own;
  *                     h4 1em)
@@ -70,9 +72,20 @@
  */
 
 /*
+ * Tailwind's layers, in Tailwind's order, so `components` sits above the reset
+ * whichever of the two imports comes first. Without this line, this file
+ * imported before `@import "tailwindcss"` made `components` the first layer —
+ * beneath the reset — and every rule here lost to it: headings at text size,
+ * lists with no markers.
+ */
+@layer theme, base, components, utilities;
+
+/*
  * The element variants: `prose-a:text-primary` styles every link inside the
  * element that carries it. One per element, over the same elements Tailwind
- * Typography's covered, outside `not-prose`.
+ * Typography's covered, outside `not-prose`. `prose-a:` leaves a content button
+ * alone: a link color written for text would paint its label the color of its
+ * fill — `--link` and `--primary` are one shade in a light context.
  */
 @custom-variant prose-headings (& :where(h1, h2, h3, h4, h5, h6, th):not(:where(.not-prose, .not-prose *)));
 @custom-variant prose-h1 (& :where(h1):not(:where(.not-prose, .not-prose *)));
@@ -82,7 +95,7 @@
 @custom-variant prose-h5 (& :where(h5):not(:where(.not-prose, .not-prose *)));
 @custom-variant prose-h6 (& :where(h6):not(:where(.not-prose, .not-prose *)));
 @custom-variant prose-p (& :where(p):not(:where(.not-prose, .not-prose *)));
-@custom-variant prose-a (& :where(a):not(:where(.not-prose, .not-prose *)));
+@custom-variant prose-a (& :where(a:not([data-role="button"])):not(:where(.not-prose, .not-prose *)));
 @custom-variant prose-blockquote (& :where(blockquote):not(:where(.not-prose, .not-prose *)));
 @custom-variant prose-figure (& :where(figure):not(:where(.not-prose, .not-prose *)));
 @custom-variant prose-figcaption (& :where(figcaption):not(:where(.not-prose, .not-prose *)));
@@ -115,12 +128,12 @@
  */
 @utility prose-sm {
   --_prose-step: 0.875;
-  --_prose-leading: 1.714;
-  --_prose-flow: 1.143em;
-  --_prose-item: 0.286em;
-  --_prose-h1: 2.143em;
-  --_prose-h2: 1.429em;
-  --_prose-h3: 1.286em;
+  --_prose-leading: 1.7142857;
+  --_prose-flow: 1.1428571em;
+  --_prose-item: 0.2857143em;
+  --_prose-h1: 2.1428571em;
+  --_prose-h2: 1.4285714em;
+  --_prose-h3: 1.2857143em;
 }
 @utility prose-base {
   --_prose-step: 1;
@@ -133,12 +146,12 @@
 }
 @utility prose-lg {
   --_prose-step: 1.125;
-  --_prose-leading: 1.778;
-  --_prose-flow: 1.333em;
-  --_prose-item: 0.667em;
-  --_prose-h1: 2.667em;
-  --_prose-h2: 1.667em;
-  --_prose-h3: 1.333em;
+  --_prose-leading: 1.7777778;
+  --_prose-flow: 1.3333333em;
+  --_prose-item: 0.6666667em;
+  --_prose-h1: 2.6666667em;
+  --_prose-h2: 1.6666667em;
+  --_prose-h3: 1.3333333em;
 }
 @utility prose-xl {
   --_prose-step: 1.25;
@@ -151,10 +164,10 @@
 }
 @utility prose-2xl {
   --_prose-step: 1.5;
-  --_prose-leading: 1.667;
-  --_prose-flow: 1.333em;
+  --_prose-leading: 1.6666667;
+  --_prose-flow: 1.3333333em;
   --_prose-item: 0.5em;
-  --_prose-h1: 2.667em;
+  --_prose-h1: 2.6666667em;
   --_prose-h2: 2em;
   --_prose-h3: 1.5em;
 }
@@ -234,14 +247,14 @@
   .prose :where(h1):not(:where(.not-prose, .not-prose *)) {
     font-size: var(--prose-h1, var(--_prose-h1));
     font-weight: 800;
-    line-height: 1.111;
+    line-height: 1.1111111;
     margin-top: 0;
-    margin-bottom: 0.889em;
+    margin-bottom: 0.8888889em;
   }
   .prose :where(h2):not(:where(.not-prose, .not-prose *)) {
     font-size: var(--prose-h2, var(--_prose-h2));
     font-weight: 700;
-    line-height: 1.333;
+    line-height: 1.3333333;
     margin-top: 2em;
     margin-bottom: 1em;
   }
@@ -290,16 +303,31 @@
   .prose :where(ol):not(:where(.not-prose, .not-prose *)) {
     list-style-type: decimal;
   }
-  .prose :where(ol[type="A"], ol[type="A" s]):not(:where(.not-prose, .not-prose *)) {
+  /* In this order, as Typography's were: HTML matches `type` case-insensitively,
+     so `[type="a"]` matches `type="A"` too, and only the case-sensitive rules
+     after it — where a browser supports the `s` flag — tell the two apart. */
+  .prose :where(ol[type="A"]):not(:where(.not-prose, .not-prose *)) {
     list-style-type: upper-alpha;
   }
-  .prose :where(ol[type="a"], ol[type="a" s]):not(:where(.not-prose, .not-prose *)) {
+  .prose :where(ol[type="a"]):not(:where(.not-prose, .not-prose *)) {
     list-style-type: lower-alpha;
   }
-  .prose :where(ol[type="I"], ol[type="I" s]):not(:where(.not-prose, .not-prose *)) {
+  .prose :where(ol[type="A" s]):not(:where(.not-prose, .not-prose *)) {
+    list-style-type: upper-alpha;
+  }
+  .prose :where(ol[type="a" s]):not(:where(.not-prose, .not-prose *)) {
+    list-style-type: lower-alpha;
+  }
+  .prose :where(ol[type="I"]):not(:where(.not-prose, .not-prose *)) {
     list-style-type: upper-roman;
   }
-  .prose :where(ol[type="i"], ol[type="i" s]):not(:where(.not-prose, .not-prose *)) {
+  .prose :where(ol[type="i"]):not(:where(.not-prose, .not-prose *)) {
+    list-style-type: lower-roman;
+  }
+  .prose :where(ol[type="I" s]):not(:where(.not-prose, .not-prose *)) {
+    list-style-type: upper-roman;
+  }
+  .prose :where(ol[type="i" s]):not(:where(.not-prose, .not-prose *)) {
     list-style-type: lower-roman;
   }
   .prose :where(ol[type="1"]):not(:where(.not-prose, .not-prose *)) {
@@ -378,7 +406,7 @@
     font-weight: 500;
     font-size: 0.875em;
   }
-  .prose :where(a code, h1 code, h4 code, h5 code, h6 code, blockquote code, thead th code):not(:where(.not-prose, .not-prose *)) {
+  .prose :where(a code, h1 code, h2 code, h3 code, h4 code, h5 code, h6 code, blockquote code, thead th code):not(:where(.not-prose, .not-prose *)) {
     color: inherit;
   }
   .prose :where(h2 code):not(:where(.not-prose, .not-prose *)) {
@@ -387,19 +415,22 @@
   .prose :where(h3 code):not(:where(.not-prose, .not-prose *)) {
     font-size: 0.9em;
   }
-  /* A code block's box. Its colors are the highlighter's, which a site retunes
-     through `code:` in theme.yml; these are what shows before it paints, and
-     for a block it does not color. */
+  /* A code block's box, for a `<pre>` that brings nothing of its own — a
+     developer's. Kit's <Code> draws its own: before the highlighter paints, its
+     fallback's utility classes; after, the highlighter's inline colors (the
+     site's `code:` in theme.yml) and kit's `.shiki` padding. Only the size, line
+     height and spacing below reach it. ⛔ Until 2026-10-19 this said these colors
+     were what <Code> showed before the highlighter painted. */
   .prose :where(pre):not(:where(.not-prose, .not-prose *)) {
     color: var(--code-text, var(--body));
     background-color: var(--code-surface, var(--muted));
     overflow-x: auto;
     font-weight: 400;
     font-size: 0.875em;
-    line-height: 1.714;
-    margin-block: 1.714em;
+    line-height: 1.7142857;
+    margin-block: 1.7142857em;
     border-radius: 0.375rem;
-    padding: 0.857em 1.143em;
+    padding: 0.8571429em 1.1428571em;
   }
   .prose :where(pre code):not(:where(.not-prose, .not-prose *)) {
     background-color: transparent;
@@ -414,6 +445,7 @@
   }
   .prose :where(kbd):not(:where(.not-prose, .not-prose *)) {
     color: var(--heading);
+    font-family: inherit;
     font-size: 0.875em;
     font-weight: 500;
     border-radius: 0.3125rem;
@@ -430,12 +462,12 @@
     table-layout: auto;
     margin-block: 2em;
     font-size: 0.875em;
-    line-height: 1.714;
+    line-height: 1.7142857;
   }
   .prose :where(caption):not(:where(.not-prose, .not-prose *)) {
     color: var(--subtle);
     text-align: start;
-    padding-bottom: 0.571em;
+    padding-bottom: 0.5714286em;
   }
   .prose :where(thead):not(:where(.not-prose, .not-prose *)) {
     border-bottom: 1px solid var(--border);
@@ -444,8 +476,8 @@
     color: var(--heading);
     font-weight: 600;
     vertical-align: bottom;
-    padding-inline: 0.571em;
-    padding-bottom: 0.571em;
+    padding-inline: 0.5714286em;
+    padding-bottom: 0.5714286em;
   }
   .prose :where(tbody tr):not(:where(.not-prose, .not-prose *)) {
     border-bottom: 1px solid var(--border);
@@ -457,7 +489,7 @@
     vertical-align: baseline;
   }
   .prose :where(tbody td, tfoot td):not(:where(.not-prose, .not-prose *)) {
-    padding: 0.571em;
+    padding: 0.5714286em;
   }
   .prose :where(thead th:first-child, tbody td:first-child, tfoot td:first-child):not(:where(.not-prose, .not-prose *)) {
     padding-inline-start: 0;
@@ -477,7 +509,8 @@
 
   /* ── Media ── */
 
-  .prose :where(figure, img, picture, video):not(:where(.not-prose, .not-prose *)) {
+  /* A figure's own space is set after the flow's edges, below. */
+  .prose :where(img, picture, video):not(:where(.not-prose, .not-prose *)) {
     margin-block: 2em;
   }
   .prose :where(picture):not(:where(.not-prose, .not-prose *)) {
@@ -486,11 +519,19 @@
   .prose :where(figure > *, picture > img):not(:where(.not-prose, .not-prose *)) {
     margin-block: 0;
   }
+  /* The figure holds the space, so a picture or a video inside it holds none —
+     a video in its sized box, a document's preview in its link. ⛔ Until
+     2026-10-19 they kept the 2em above: a video sat 2em down a box that clips,
+     its controls cut off, and a document's card stood 2em taller than its
+     preview on each side. */
+  .prose :where(figure img, figure picture, figure video):not(:where(.not-prose, .not-prose *)) {
+    margin-block: 0;
+  }
   .prose :where(figcaption):not(:where(.not-prose, .not-prose *)) {
     color: var(--subtle);
     font-size: 0.875em;
-    line-height: 1.429;
-    margin-top: 0.857em;
+    line-height: 1.4285714;
+    margin-top: 0.8571429em;
   }
   /* An image's credit, after its caption. */
   .prose :where(figcaption [data-role="author"]):not(:where(.not-prose, .not-prose *)) {
@@ -528,6 +569,13 @@
 
   .prose :where(hr + *, h2 + *, h3 + *, h4 + *, h5 + *, h6 + *):not(:where(.not-prose, .not-prose *)) {
     margin-top: 0;
+  }
+  /* After the rule above, as Typography's figure rule was, so a picture keeps its
+     space below a heading (2em, not the heading's 0.5em–1em); before the edges
+     below, so a leading one still sits flush. ⛔ Until 2026-10-19 it came first,
+     and an image drew 8px under an h4. */
+  .prose :where(figure):not(:where(.not-prose, .not-prose *)) {
+    margin-block: 2em;
   }
   .prose :where(.prose > :first-child):not(:where(.not-prose, .not-prose *)) {
     margin-top: 0;

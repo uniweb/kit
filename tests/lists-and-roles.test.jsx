@@ -124,6 +124,17 @@ describe("a link's role reaches its anchor", () => {
   })
 })
 
+describe("a divider's space is the stylesheet's", () => {
+  // A utility on it outranks the prose layer, so a class here decides the space.
+  it('a plain one is a bare <hr>', () => {
+    expect(html(<Render content={pm([{ type: 'divider' }])} />)).toBe('<hr/>')
+  })
+
+  it('CONTROL — a typed one is a different divider, drawn by <Divider>', () => {
+    expect(html(<Render content={pm([{ type: 'divider', attrs: { type: 'dots' } }])} />)).toMatch(/^<div[^>]*role="separator"/)
+  })
+})
+
 describe('struck text reaches the page', () => {
   it('as an <s>', () => {
     const out = html(<Render content={pm([para(text('was '), text('gone', { type: 'strike' }), text(' now'))])} />)

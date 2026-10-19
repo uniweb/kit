@@ -78,7 +78,80 @@ describe('beneath every utility', () => {
         start = i + 1
       }
     }
-    expect(top.filter((head) => !/^(@custom-variant prose-|@utility prose-|@layer components$)/.test(head))).toEqual([])
+    expect(top.filter((head) => !/^(@layer theme, base, components, utilities$|@custom-variant prose-|@utility prose-|@layer components$)/.test(head))).toEqual([])
+  })
+
+  it('states the layer order before any rule, so it holds whichever import comes first', () => {
+    expect(code.trimStart()).toMatch(/^@layer theme, base, components, utilities;/)
+  })
+})
+
+describe("Tailwind Typography's values, where a step carries its own", () => {
+  // Typography 0.5.20's own numbers (src/styles.js, rounded there to 7 places) for
+  // what each step sets. Rounded to 3, they drifted by up to 0.01px.
+  const TYPOGRAPHY = {
+    sm: ['0.875', '1.7142857', '1.1428571em', '0.2857143em', '2.1428571em', '1.4285714em', '1.2857143em'],
+    base: ['1', '1.75', '1.25em', '0.5em', '2.25em', '1.5em', '1.25em'],
+    lg: ['1.125', '1.7777778', '1.3333333em', '0.6666667em', '2.6666667em', '1.6666667em', '1.3333333em'],
+    xl: ['1.25', '1.8', '1.2em', '0.6em', '2.8em', '1.8em', '1.5em'],
+    '2xl': ['1.5', '1.6666667', '1.3333333em', '0.5em', '2.6666667em', '2em', '1.5em'],
+  }
+  const NAMES = ['step', 'leading', 'flow', 'item', 'h1', 'h2', 'h3']
+  const declared = (body) => Object.fromEntries([...body.matchAll(/--_prose-([\w-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]))
+
+  for (const [step, values] of Object.entries(TYPOGRAPHY)) {
+    it(`prose-${step}`, () => {
+      const body = code.match(new RegExp(`@utility prose-${step} \\{([^}]*)\\}`))[1]
+      expect(declared(body)).toEqual(Object.fromEntries(NAMES.map((name, i) => [name, values[i]])))
+    })
+  }
+
+  it('the container starts at the base step', () => {
+    const body = code.match(/\n {2}\.prose \{([^}]*)\}/)[1]
+    expect(declared(body)).toEqual(Object.fromEntries(NAMES.map((name, i) => [name, TYPOGRAPHY.base[i]])))
+  })
+})
+
+describe('where the cascade decides, it decides as Typography did', () => {
+  const index = (selector) => {
+    const at = selectors.findIndex((s) => s.startsWith(`.prose :where(${selector}`))
+    expect(at, selector).toBeGreaterThan(-1)
+    return at
+  }
+
+  it('a figure keeps its space below a heading — its rule after the edges, before the first child', () => {
+    expect(index('figure)')).toBeGreaterThan(index('hr + *, h2 + *'))
+    expect(index('figure)')).toBeLessThan(index('.prose > :first-child'))
+  })
+
+  it('a picture or a video inside a figure holds no space of its own', () => {
+    expect(index('figure img, figure picture, figure video)')).toBeGreaterThan(index('img, picture, video)'))
+  })
+
+  it('typed lists — the case-sensitive rules after both case-insensitive ones', () => {
+    expect(index('ol[type="A" s])')).toBeGreaterThan(index('ol[type="a"])'))
+    expect(index('ol[type="I" s])')).toBeGreaterThan(index('ol[type="i"])'))
+  })
+
+  it('code in any heading takes the heading’s color', () => {
+    const rule = selectors.find((s) => s.includes('h1 code, h2 code'))
+    for (const tag of ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']) expect(rule, tag).toContain(`${tag} code`)
+  })
+
+  it('a key keeps the text’s font', () => {
+    expect(code).toMatch(/\.prose :where\(kbd\)[^{]*\{[^}]*font-family: inherit;/)
+  })
+})
+
+describe('the variables a foundation declares are the ones the rules read', () => {
+  it('each name, and each default the fallback the rule falls back to', async () => {
+    const { proseVars } = await import('../src/prose-vars.js')
+    for (const [name, { default: value }] of Object.entries(proseVars)) {
+      // A declared default is written on :root, so it must be the rule's own
+      // fallback; one that differed would override every step without a word.
+      const read = value === undefined ? `var(--${name}, var(--_${name}))` : `var(--${name}, ${value})`
+      expect(code, name).toContain(read)
+    }
   })
 })
 
@@ -96,7 +169,7 @@ describe('the class names a developer writes keep working', () => {
   it('the 33 element variants, each outside not-prose', () => {
     expect(VARIANTS).toHaveLength(33)
     for (const name of VARIANTS) {
-      expect(code, `prose-${name}:`).toMatch(new RegExp(`@custom-variant prose-${name} \\(& :where\\([^)]*\\):not\\(:where\\(\\.not-prose, \\.not-prose \\*\\)\\)\\);`))
+      expect(code, `prose-${name}:`).toMatch(new RegExp(`@custom-variant prose-${name} \\(& :where\\((?:[^()]|\\([^()]*\\))*\\):not\\(:where\\(\\.not-prose, \\.not-prose \\*\\)\\)\\);`))
     }
   })
 })
@@ -208,8 +281,22 @@ describe('compiled with Tailwind', () => {
   it('the variants and a responsive step compile, over the right elements', async () => {
     const out = await build(['prose', 'prose-headings:underline', 'prose-a:text-heading', 'lg:prose-xl'])
     expect(out).toMatch(/\.prose-headings\\:underline :where\(h1, h2, h3, h4, h5, h6, th\)/)
-    expect(out).toMatch(/\.prose-a\\:text-heading :where\(a\)/)
+    expect(out).toMatch(/\.prose-a\\:text-heading :where\(a:not\(\[data-role="button"\]\)\)/)
     expect(out).toMatch(/\.lg\\:prose-xl \{\s*--_prose-step: 1\.25;/)
+  })
+
+  it('imported before Tailwind, the rules still sit above the reset', async () => {
+    const compiler = await compile(`@import "${files.prose}";\n@import "tailwindcss";`, {
+      base: process.cwd(),
+      loadStylesheet: async (id) => {
+        const path = id === 'tailwindcss' ? files.tailwindcss : id
+        return { path, base: process.cwd(), content: readFileSync(path, 'utf8') }
+      },
+    })
+    const out = compiler.build(['prose'])
+    // The first layer the output names — in a statement or a block — fixes the
+    // order. Without the statement it was this file's `@layer components {`.
+    expect(out.match(/@layer [^;{]+[;{]/)[0]).toBe('@layer theme, base, components, utilities;')
   })
 
   it('what it no longer has emits nothing — a palette modifier or prose-invert left in a class list is inert', async () => {
