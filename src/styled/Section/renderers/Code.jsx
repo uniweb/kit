@@ -82,8 +82,12 @@ export const CODE_FACE_CLASS = 'font-[family-name:var(--font-code,var(--default-
  *
  * `lineNumber` and `selection` are deliberately absent. They are editor chrome,
  * not token scopes, and Shiki's HTML has neither.
+ *
+ * With `background` and `foreground`, these keys are what a `code:` block may
+ * set — the list `@uniweb/theming` checks a `theme.yml` against, held to this
+ * one by a cross-package test.
  */
-const SCOPE_MAP = {
+export const SCOPE_MAP = {
   comment: ['comment', 'punctuation.definition.comment'],
   string: ['string', 'string.quoted', 'constant.other.symbol'],
   keyword: ['keyword', 'storage', 'storage.type', 'keyword.control'],
