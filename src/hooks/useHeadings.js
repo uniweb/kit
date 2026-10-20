@@ -131,22 +131,40 @@ function nest(flat) {
 }
 
 /**
- * Height of the fixed site header, so anchors are not scrolled under it.
+ * A CSS length, as a page measures it, in px — `64px`, `4rem`, `3.5em` — or 0.
+ */
+export function lengthInPx(value, rootFontSize = 16) {
+  const match = /^\s*(-?[\d.]+)(px|rem|em)?\s*$/.exec(String(value ?? ''))
+  if (!match) return 0
+  const number = parseFloat(match[1])
+  return match[2] === 'rem' || match[2] === 'em' ? number * rootFontSize : number
+}
+
+/**
+ * How far down the viewport the site's header reaches, so anchors are not scrolled under it:
+ * what is stuck at the top, as the runtime measures it (`--uw-sticky-top`, a header that is a
+ * sticky section), else the foundation's declared `--header-height` — plus a little room.
+ * ⛔ Until 2026-10-20 the declared value was read with `parseInt`, so `4rem` — how the starter
+ * templates declare it — offset 4px, not 64.
  */
 function headerOffset(explicit) {
   if (typeof explicit === 'number') return explicit
   if (typeof document === 'undefined') return 0
 
-  const declared = getComputedStyle(document.documentElement).getPropertyValue('--header-height')
-  return (parseInt(declared, 10) || 0) + 16
+  const root = getComputedStyle(document.documentElement)
+  const rootFontSize = parseFloat(root.fontSize) || 16
+  const stuck = root.getPropertyValue('--uw-sticky-top').trim()
+  const reach = stuck ? lengthInPx(stuck, rootFontSize) : lengthInPx(root.getPropertyValue('--header-height'), rootFontSize)
+  return reach + 16
 }
 
 /**
  * @param {Object} [options]
  * @param {number[]} [options.levels=[2,3]] - Heading levels to collect
  * @param {string} [options.root='main'] - Selector to scan, for the DOM fallback
- * @param {number} [options.offset] - Scroll offset in px; defaults to the site
- *   header's height read from `--header-height`, plus a little breathing room
+ * @param {number} [options.offset] - Scroll offset in px; defaults to how far the
+ *   site's header reaches — `--uw-sticky-top` when a sticky header was measured, else
+ *   `--header-height` — plus a little breathing room
  * @returns {{ headings: Array, activeId: string, scrollTo: (id: string) => void }}
  *   `headings` is nested — each entry carries `{ id, text, level, children }`
  */

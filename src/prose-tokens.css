@@ -810,7 +810,9 @@
   }
 
   /* Anchors land clear of a fixed site header when something scrolls to them —
-     a contents rail, or a link with a #fragment.
+     a contents rail, or a link with a #fragment. Clear of what is stuck at the top,
+     when the runtime has measured it (`--uw-sticky-top`: a header that is a sticky
+     section); else of the foundation's declared `--header-height`.
 
      Figures, tables and display math are on this list because they became anchor
      targets: an authored `{#fig-cells}` is emitted onto the element, and a
@@ -819,7 +821,7 @@
      exactly what happened the first time the feature was clicked. Headings had
      the rule and nothing else did, because until then nothing else was a target. */
   .prose :where(h1, h2, h3, h4, h5, h6, figure, table, .math-display) {
-    scroll-margin-top: calc(var(--header-height, 4rem) + 1rem);
+    scroll-margin-top: calc(var(--uw-sticky-top, var(--header-height, 4rem)) + 1rem);
   }
 
   /* Where a block sits in a flow — an author's `placement` on an image, a video or
