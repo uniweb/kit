@@ -7,20 +7,30 @@
  * browser can animate header, sidebars and body independently instead of
  * crossfading the whole page. That is on by default.
  *
- * A `view-transition-name` makes the element **a stacking context** and **a
- * containing block for fixed-position descendants**. Both consequences bite
- * the most ordinary thing a foundation builds: a modal opened from the header.
+ * A `view-transition-name` makes the element **a stacking context**, and the
+ * runtime stacks every area but the body on one layer above it. That bites the
+ * most ordinary thing a foundation builds: a modal opened from the header.
  *
- *   div[view-transition-name: uw-header]     ← area wrapper, z-index: auto
+ *   div[view-transition-name: uw-header]     ← area wrapper, z-index: 1
  *     └ div.fixed.inset-0.z-[100]            ← your modal
- *   div[view-transition-name: uw-body]       ← sibling area, z-index: auto
+ *   div[view-transition-name: uw-body]       ← the body, unlayered
+ *   div[view-transition-name: uw-footer]     ← sibling area, z-index: 1
  *
- * The modal's `z-index: 100` is scoped *inside* `uw-header`. Both wrappers sit
- * at `auto` in the root stacking context, so they paint in DOM order — and the
- * body comes second. No z-index a foundation can write will lift the modal
- * above the page content, because the two are not competing in the same
- * stacking context. Raising the number looks like it should work and never
- * does, which is what makes this worth a component rather than a doc note.
+ * The modal's `z-index: 100` is scoped *inside* `uw-header`. It paints over
+ * the body, and under the footer, which shares the header's layer and comes
+ * later in the DOM — and a modal opened from a body section paints under every
+ * area. No z-index a foundation can write will lift the modal above them,
+ * because they are not competing in the same stacking context. Raising the
+ * number looks like it should work and never does, which is what makes this
+ * worth a component rather than a doc note.
+ *
+ * ⛔ Until 2026-10-19 this said a `view-transition-name` also makes its element
+ * a containing block for fixed-position descendants, and that was read as part
+ * of why a modal is trapped. It is not one: measured in Chrome, a `fixed` child
+ * of an area wrapper is laid out against the viewport. The stacking context is
+ * the whole of it. The diagram also showed the areas at `auto`, painting in DOM
+ * order with the body over the header, as they did until the runtime gave the
+ * areas layers (2026-07-31).
  *
  * Rendering into `document.body` leaves every area wrapper behind, so the
  * overlay competes in the root stacking context where its z-index means what
