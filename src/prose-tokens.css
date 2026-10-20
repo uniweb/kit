@@ -637,11 +637,15 @@
     color: inherit;
   }
   /* A code block's box, for a `<pre>` that brings nothing of its own — a
-     developer's. Kit's <Code> draws its own: before the highlighter paints, its
-     fallback's utility classes; after, the highlighter's inline colors (the
-     site's `code:` in theme.yml) and kit's `.shiki` padding. Only the size, line
-     height and spacing below reach it. ⛔ Until 2026-10-19 this said these colors
-     were what <Code> showed before the highlighter painted. */
+     developer's. Kit's <Code> draws its own chrome — padding, corners, the
+     theme's colors — with utility classes, the same before and after the
+     highlighter paints, and reads its size and line height from this layer's
+     `--_prose-small` and `--_prose-pre-leading` (Code.jsx `CODE_BLOCK_CLASS`), so
+     the step reaches it; the spacing below reaches it directly. ⛔ Rename either
+     variable and code blocks in prose fall back to kit's outside-prose size. ⛔
+     Until 2026-10-19 this said <Code> drew its fallback's utilities before the
+     highlighter painted and kit's `.shiki` padding after — two boxes, so the
+     page moved when the colors arrived. */
   .prose :where(pre):not(:where(.not-prose, .not-prose *)) {
     color: var(--code-text, var(--body));
     background-color: var(--code-surface, var(--muted));

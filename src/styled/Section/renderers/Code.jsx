@@ -1,10 +1,25 @@
 /**
  * Code Block Renderer
  *
- * Renders syntax-highlighted code blocks using Shiki, lazy-loaded only when a
- * page actually has one. A site's `theme.yml` `code:` block becomes a Shiki
- * theme layered over the default, so the colours a site declares are the
+ * Renders code blocks, syntax-highlighted by Shiki, which is lazy-loaded only
+ * when a page actually has one. A site's `theme.yml` `code:` block becomes a
+ * Shiki theme layered over the default, so the colours a site declares are the
  * colours Shiki writes.
+ *
+ * ⭐ ONE <pre>, BEFORE AND AFTER THE HIGHLIGHTER PAINTS. The prerender and the
+ * browser's first render write the code as plain text; when Shiki arrives, the
+ * same <pre> and <code> stay, and only the text inside <code> becomes coloured
+ * spans — Shiki's tokens (`codeToTokens`) rendered as React children. The box
+ * is static classes both states share: kit's padding and corners, the prose
+ * step's size and line height inside prose (kit's 14px on 20px lines outside
+ * it), and the theme's ground and text colour wherever they are known without
+ * loading it (`knownCodeColors`). So nothing on the page moves when the colours
+ * arrive. ⛔ Until 2026-10-19 the highlighted block was Shiki's HTML in a
+ * wrapper <div>, padded by a stylesheet injected at mount: inside prose the
+ * code shrank from 14px to 12.25px (the prose rule's 0.875em of the wrapper's
+ * `text-sm`), its margins stopped collapsing with the paragraphs' (the wrapper
+ * was a scroll container, so it held them), and each block took 34px more
+ * room, plus 1px a line, when Shiki loaded.
  *
  * @module @uniweb/kit/Section/renderers/Code
  */
@@ -15,7 +30,7 @@ import { cn } from '../../../utils/index.js'
 import { getUniweb } from '@uniweb/core'
 
 // Module-level state to track CSS injection and Shiki loading
-let cssInjected = false
+let pairCssInjected = false
 let shikiInstance = null
 let shikiLoadPromise = null
 const loadedDerived = new Set()
@@ -23,6 +38,28 @@ const loadedDerived = new Set()
 // What a site gets when it declares no `code:` block of its own, and the base
 // every declaration layers over.
 const DEFAULT_THEME = 'github-dark'
+
+/**
+ * The default theme's ground and text, so a block paints them before the theme
+ * has loaded. github-dark's own, as the Shiki release kit loads writes them —
+ * kit's tests compare the two, so a Shiki upgrade that moves them fails there
+ * rather than on a page.
+ */
+export const DEFAULT_THEME_COLORS = Object.freeze({ background: '#24292e', foreground: '#e1e4e8' })
+
+/**
+ * The block's classes, in both states. The chrome is kit's — padding, corners,
+ * scrolling — and a foundation's `className` overrides it. The size and line
+ * height read the prose step's variables (`prose-tokens.css` sets them on
+ * `.prose`), so a block in prose takes the step's — 14px on 24px lines at the
+ * base step — and one outside prose kit's 14px on 20px lines. They are
+ * utilities, so they outrank the prose layer's own `pre` rule; reading its
+ * variables is what keeps the two in step. The surface classes paint the site's
+ * code surface until the theme's colours are known. `shiki` is on the <pre> from
+ * the first paint, so a foundation's `.shiki` rules apply in both states.
+ */
+export const CODE_BLOCK_CLASS =
+  'shiki overflow-x-auto rounded-lg p-4 text-[length:var(--_prose-small,0.875rem)] leading-[var(--_prose-pre-leading,1.4285714)] bg-[var(--code-surface,var(--muted))] text-[color:var(--code-text,var(--body))]'
 
 /**
  * Where each documented `theme.code` key lands in TextMate scope terms.
@@ -93,39 +130,30 @@ export function buildCodeTheme(base, code) {
 }
 
 /**
- * Layout for the highlighted block. Colour is not set here — Shiki writes the
- * theme's own inline, and the theme is now the site's (see buildCodeTheme).
- * What is left is spacing and the code face, so a listing is legible before a
- * foundation styles it, without kit deciding what colour anything is.
+ * The rules that read a light/dark pair's colours. A site that named a pair
+ * gets CSS variables per token instead of inline colour (`defaultColor: false`),
+ * so one rendered block follows the visitor's scheme; these read them. Scoped to
+ * `.shiki-themes`, which a block carries only once a pair has highlighted it, so
+ * a single-theme listing is untouched. Injected the first time a pair paints —
+ * colours only, so injecting them late moves nothing. ⛔ Until 2026-10-19 this
+ * stylesheet also held the block's padding, corners and code face, injected at
+ * mount and unlayered, so it outranked a foundation's `className` and was
+ * missing from the prerendered page.
  */
-function injectCodeLayoutCSS() {
-  if (cssInjected || typeof document === 'undefined') return
+function injectThemePairCSS() {
+  if (pairCssInjected || typeof document === 'undefined') return
 
-  const styleId = 'uniweb-code-layout'
+  const styleId = 'uniweb-code-theme-pair'
 
   // Check if already injected (e.g., by another component instance)
   if (document.getElementById(styleId)) {
-    cssInjected = true
+    pairCssInjected = true
     return
   }
 
   const style = document.createElement('style')
   style.id = styleId
   style.textContent = `
-.shiki {
-  padding: 1rem;
-  border-radius: 0.5rem;
-  overflow-x: auto;
-}
-
-.shiki code {
-  display: block;
-  font-family: var(--font-code, ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace);
-}
-
-/* A site that named a light/dark pair gets CSS variables per token instead of
-   inline colour, and these are what read them. Scoped to .shiki-themes, the
-   class Shiki adds only in that mode, so a single-theme listing is untouched. */
 .shiki-themes {
   background-color: var(--shiki-light-bg);
 }
@@ -142,7 +170,7 @@ function injectCodeLayoutCSS() {
 }
 `
   document.head.appendChild(style)
-  cssInjected = true
+  pairCssInjected = true
 }
 
 /**
@@ -172,7 +200,7 @@ async function loadShiki() {
 
       // Languages are registered on demand. The DEFAULT theme is not: it is what
       // `resolveThemeOptions` falls back to when a site's `theme.code` cannot be
-      // applied, and `codeToHtml` throws on a theme name it has not loaded — so
+      // applied, and `codeToTokens` throws on a theme name it has not loaded — so
       // the fallback would fail exactly when it is needed. One small fetch, and
       // only once a code block has already asked for a highlighter.
       shikiInstance = await createHighlighterCore({
@@ -228,6 +256,28 @@ export function parseCodeConfig(code) {
 }
 
 /**
+ * The ground and text colour a block can paint before its theme has loaded —
+ * the colours the theme will paint, so its arrival changes neither. Known for
+ * the default theme (`DEFAULT_THEME_COLORS`) and for the colours a site
+ * declares (`background`, `foreground`); a site that names another theme
+ * without its colours, or a light/dark pair, paints its code surface until the
+ * theme loads. Both colours or neither: a theme's text colour on a ground it was
+ * not made for can be unreadable.
+ *
+ * @param {string|Object} [code] - the `code:` declaration
+ * @returns {{ background: string, foreground: string }|null}
+ */
+export function knownCodeColors(code) {
+  const config = parseCodeConfig(code)
+  if (config.dark) return null
+  const { base, overrides } = config.light
+  const theme = base === DEFAULT_THEME ? DEFAULT_THEME_COLORS : {}
+  const background = overrides.background ?? theme.background
+  const foreground = overrides.foreground ?? theme.foreground
+  return background && foreground ? { background, foreground } : null
+}
+
+/**
  * Make sure a side's theme is registered, and answer the name to highlight by.
  * A side with no overrides is just the bundled theme; one with overrides gets a
  * derived theme built from it.
@@ -250,12 +300,12 @@ async function registerSide(highlighter, side, name) {
 }
 
 /**
- * Resolve the `code:` declaration into codeToHtml options.
+ * Resolve the `code:` declaration into the highlighter's theme options.
  *
  * One theme highlights the same in both schemes — right for a site whose code
  * blocks are a terminal. A pair makes Shiki emit CSS variables per token
  * (`defaultColor: false`) instead of inline colour, so one rendered block can
- * follow the visitor's choice; injectCodeLayoutCSS supplies the rules that read
+ * follow the visitor's choice; injectThemePairCSS supplies the rules that read
  * them.
  */
 async function resolveThemeOptions(highlighter, code) {
@@ -274,36 +324,123 @@ async function resolveThemeOptions(highlighter, code) {
 }
 
 /**
- * Highlight code using Shiki
+ * A token's own style, as Shiki's HTML renderer writes it — or a pair's per-token
+ * variables.
  */
-async function highlightCode(code, language, highlighter, codeTheme) {
+function tokenStyle(token) {
+  if (token.htmlStyle) return token.htmlStyle
+  const style = {}
+  if (token.color) style.color = token.color
+  if (token.bgColor) style.backgroundColor = token.bgColor
+  const flags = token.fontStyle > 0 ? token.fontStyle : 0
+  if (flags & 1) style.fontStyle = 'italic'
+  if (flags & 2) style.fontWeight = 'bold'
+  const decoration = [flags & 4 && 'underline', flags & 8 && 'line-through'].filter(Boolean).join(' ')
+  if (decoration) style.textDecoration = decoration
+  return style
+}
+
+/** A pair's root style — `--shiki-light:#…;--shiki-dark-bg:#…` — as a style object. */
+function parseRootStyle(rootStyle) {
+  const style = {}
+  for (const declaration of String(rootStyle || '').split(';')) {
+    const colon = declaration.indexOf(':')
+    if (colon > 0) style[declaration.slice(0, colon).trim()] = declaration.slice(colon + 1).trim()
+  }
+  return style
+}
+
+/**
+ * What a highlighted block draws, from `codeToTokens`: its lines of tokens, and
+ * the colours the theme puts on the <pre> — inline for one theme, as variables
+ * for a pair.
+ *
+ * @param {Object} result - Shiki's TokensResult
+ * @param {boolean} pair - whether it was highlighted with a light/dark pair
+ * @returns {{ tokens: Array<Array<Object>>, style: Object, pair: boolean }}
+ */
+export function toHighlighted(result, pair) {
+  const style = pair
+    ? parseRootStyle(result.rootStyle)
+    : { backgroundColor: result.bg, color: result.fg }
+  return { tokens: result.tokens, style, pair }
+}
+
+/**
+ * Highlight code to tokens, or null when Shiki or the theme cannot.
+ */
+async function highlightTokens(code, language, highlighter, codeTheme) {
   if (!highlighter) return null
 
   try {
     const themeOptions = await resolveThemeOptions(highlighter, codeTheme)
+    const pair = Boolean(themeOptions.themes)
 
     // Load language if not already loaded
     const loadedLangs = highlighter.getLoadedLanguages()
-    const lang = language?.toLowerCase() || 'plaintext'
+    let lang = language?.toLowerCase() || 'plaintext'
+    if (lang === 'plaintext') lang = 'text'
 
-    if (!loadedLangs.includes(lang) && lang !== 'plaintext') {
+    if (lang !== 'text' && !loadedLangs.includes(lang)) {
       try {
         await highlighter.loadLanguage(await loadGrammar(lang))
       } catch {
         // Not in the corpus, not reachable, or not compilable by the JS engine —
         // all three are "cannot highlight this", and a readable block beats none.
-        return highlighter.codeToHtml(code, { lang: 'plaintext', ...themeOptions })
+        lang = 'text'
       }
     }
 
-    return highlighter.codeToHtml(code, {
-      lang: lang === 'plaintext' ? 'text' : lang,
-      ...themeOptions,
-    })
+    return toHighlighted(highlighter.codeToTokens(code, { lang, ...themeOptions }), pair)
   } catch (error) {
     console.warn('[Code] Highlighting failed:', error)
     return null
   }
+}
+
+/**
+ * The block, in either state: one <pre> and its <code>, the same element, classes
+ * and box before and after the highlighter paints. Before, the code is its text;
+ * after, the same text as Shiki's tokens — a `.line` span per line, joined by the
+ * line breaks the text has — so the block's size cannot change.
+ *
+ * @param {Object} props
+ * @param {string} props.content - the code
+ * @param {string} props.lang - its language, normalized
+ * @param {{ background: string, foreground: string }|null} [props.colors] - what to paint before the theme loads
+ * @param {{ tokens: Array<Array<Object>>, style: Object, pair: boolean }|null} [props.highlighted]
+ * @param {string} [props.className]
+ */
+export function CodeBlock({ content, lang, colors, highlighted, className, ...props }) {
+  const style = highlighted
+    ? highlighted.style
+    : colors
+      ? { backgroundColor: colors.background, color: colors.foreground }
+      : undefined
+
+  return (
+    <pre
+      className={cn(CODE_BLOCK_CLASS, highlighted?.pair && 'shiki-themes', className)}
+      style={style}
+      tabIndex={0}
+      {...props}
+    >
+      <code className={`language-${lang}`}>
+        {highlighted
+          ? highlighted.tokens.map((line, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && '\n'}
+                <span className="line">
+                  {line.map((token, j) => (
+                    <span key={j} style={tokenStyle(token)}>{token.content}</span>
+                  ))}
+                </span>
+              </React.Fragment>
+            ))
+          : content}
+      </code>
+    </pre>
+  )
 }
 
 /**
@@ -312,10 +449,10 @@ async function highlightCode(code, language, highlighter, codeTheme) {
  * @param {Object} props
  * @param {string} props.content - Code content
  * @param {string} [props.language='plaintext'] - Programming language
- * @param {string} [props.className] - Additional CSS classes
+ * @param {string} [props.className] - Additional CSS classes, on the <pre>
  */
-export function Code({ content, language = 'plaintext', className, ...props }) {
-  const [highlightedHtml, setHighlightedHtml] = useState(null)
+export function Code({ content = '', language = 'plaintext', className, ...props }) {
+  const [highlighted, setHighlighted] = useState(null)
 
   // Get theme from website context (getUniweb is a regular function, not a hook)
   const codeTheme = useMemo(() => {
@@ -327,6 +464,10 @@ export function Code({ content, language = 'plaintext', className, ...props }) {
       return null
     }
   }, [])
+
+  // What the block paints before the theme loads: the theme's own colours where
+  // they are known without loading it, so their arrival changes nothing.
+  const colors = useMemo(() => knownCodeColors(codeTheme), [codeTheme])
 
   // Normalize language
   const lang = useMemo(() => {
@@ -342,12 +483,6 @@ export function Code({ content, language = 'plaintext', className, ...props }) {
     return aliases[l] || l
   }, [language])
 
-  // Inject layout CSS on first render (if in browser). Unlike the colours, this
-  // is wanted whether or not the site declared a `code:` block.
-  useEffect(() => {
-    injectCodeLayoutCSS()
-  }, [])
-
   // Load Shiki and highlight code
   useEffect(() => {
     let cancelled = false
@@ -357,9 +492,10 @@ export function Code({ content, language = 'plaintext', className, ...props }) {
       if (cancelled) return
 
       if (highlighter && content) {
-        const html = await highlightCode(content, lang, highlighter, codeTheme)
-        if (!cancelled) {
-          setHighlightedHtml(html)
+        const result = await highlightTokens(content, lang, highlighter, codeTheme)
+        if (!cancelled && result) {
+          if (result.pair) injectThemePairCSS()
+          setHighlighted({ ...result, content, lang })
         }
       }
     }
@@ -371,33 +507,21 @@ export function Code({ content, language = 'plaintext', className, ...props }) {
     }
   }, [content, lang, codeTheme])
 
-  // Render highlighted code or fallback
-  if (highlightedHtml) {
-    return (
-      <div
-        className={cn('overflow-x-auto rounded-lg text-sm', className)}
-        dangerouslySetInnerHTML={{ __html: highlightedHtml }}
-        {...props}
-      />
-    )
-  }
+  // Tokens made for other text — the content changed and its own are on their
+  // way — are not drawn: the block shows its text until they arrive.
+  const current = highlighted?.content === content && highlighted?.lang === lang ? highlighted : null
 
-  // Fallback: plain code block (shown before Shiki loads or if it fails).
-  // No loading indicator — the code is already readable, and the syntax colours
-  // arrive when Shiki does. Semantic tokens, so the wait looks like the site
-  // rather than like a fixed grey no theme asked for.
+  // No loading indicator: the code is readable from the first paint, and the
+  // syntax colours arrive when Shiki does.
   return (
-    <pre
-      className={cn(
-        'overflow-x-auto rounded-lg bg-muted p-4 text-sm text-body',
-        className
-      )}
+    <CodeBlock
+      content={content}
+      lang={lang}
+      colors={colors}
+      highlighted={current}
+      className={className}
       {...props}
-    >
-      <code className={`language-${lang}`}>
-        {content}
-      </code>
-    </pre>
+    />
   )
 }
 
