@@ -62,6 +62,16 @@ export const CODE_BLOCK_CLASS =
   'shiki overflow-x-auto rounded-lg p-4 text-[length:var(--_prose-small,0.875rem)] leading-[var(--_prose-pre-leading,1.4285714)] bg-[var(--code-surface,var(--muted))] text-[color:var(--code-text,var(--body))]'
 
 /**
+ * The code's face, on the <code> in both states: the site's code role
+ * (`--font-code`, which theming always defines — the role's default when the
+ * site sets none), else the reset's monospace stack. On the <code>, because the
+ * reset gives <code> a family of its own, which a family on the <pre> would not
+ * reach. ⛔ Until 2026-10-19 only the highlighted block read `--font-code` (an
+ * injected `.shiki code` rule), so the face could change when Shiki loaded.
+ */
+export const CODE_FACE_CLASS = 'font-[family-name:var(--font-code,var(--default-mono-font-family,monospace))]'
+
+/**
  * Where each documented `theme.code` key lands in TextMate scope terms.
  *
  * Shiki colours by scope, so a declaration only reaches the output by becoming
@@ -425,7 +435,7 @@ export function CodeBlock({ content, lang, colors, highlighted, className, ...pr
       tabIndex={0}
       {...props}
     >
-      <code className={`language-${lang}`}>
+      <code className={`language-${lang} ${CODE_FACE_CLASS}`}>
         {highlighted
           ? highlighted.tokens.map((line, i) => (
               <React.Fragment key={i}>

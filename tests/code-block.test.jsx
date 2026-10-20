@@ -16,6 +16,7 @@ import {
   Code,
   CodeBlock,
   CODE_BLOCK_CLASS,
+  CODE_FACE_CLASS,
   DEFAULT_THEME_COLORS,
   buildCodeTheme,
   knownCodeColors,
@@ -162,7 +163,8 @@ describe('what the first render writes — the prerender’s page', () => {
     expect(openTag(html, 'pre')).toContain('style="background-color:#24292e;color:#e1e4e8"')
     expect(openTag(html, 'pre')).toContain('rounded-none')
     expect(openTag(html, 'pre')).not.toContain('rounded-lg') // the className wins over kit's corners
-    expect(openTag(html, 'code')).toBe('<code class="language-javascript">')
+    // The face is the site's code role, on the <code> itself — the reset gives <code> its own.
+    expect(openTag(html, 'code')).toBe(`<code class="language-javascript ${CODE_FACE_CLASS}">`)
     expect(textOf(html)).toBe(SOURCE)
   })
 })
