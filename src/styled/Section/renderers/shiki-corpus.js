@@ -106,14 +106,43 @@ function corpusBase() {
   return DEFAULT_SHIKI_BASE
 }
 
-/** URL of one language's grammar module. */
-export async function grammarUrl(lang) {
-  return `${corpusBase()}/@shikijs/langs@${await shikiVersion()}/dist/${lang}.mjs`
+/**
+ * ⛔ A NAME, NEVER A PATH. A grammar's name comes from content — a code fence's
+ * language, written by whoever writes the page — and a theme's from `theme.yml`,
+ * and each becomes part of a URL this module IMPORTS, whose code then runs on
+ * the page. So a name is written into a URL only when it has the shape every
+ * name in the corpus has: lowercase letters and digits, in words joined by
+ * single hyphens (`javascript`, `objective-cpp`, `github-dark`; measured on
+ * Shiki 3.23, all 346 grammars and 65 themes). Any other is refused, and the
+ * block renders as plain text, or with the default theme. ⛔ Until 2026-10-19
+ * the name went into the URL as written, so a language holding path segments
+ * addressed a module outside the corpus.
+ */
+const CORPUS_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+/**
+ * Whether a string can name a grammar or a theme in the corpus.
+ *
+ * @param {*} name
+ * @returns {boolean}
+ */
+export function isCorpusName(name) {
+  return typeof name === 'string' && CORPUS_NAME.test(name)
 }
 
-/** URL of one theme module. */
+function corpusUrl(pkg, name) {
+  if (!isCorpusName(name)) throw new Error(`[Code] ${JSON.stringify(name)} is not a ${pkg === 'langs' ? 'grammar' : 'theme'} name`)
+  return shikiVersion().then((version) => `${corpusBase()}/@shikijs/${pkg}@${version}/dist/${name}.mjs`)
+}
+
+/** URL of one language's grammar module. Throws for a string that is not a grammar's name. */
+export async function grammarUrl(lang) {
+  return corpusUrl('langs', lang)
+}
+
+/** URL of one theme module. Throws for a string that is not a theme's name. */
 export async function themeUrl(name) {
-  return `${corpusBase()}/@shikijs/themes@${await shikiVersion()}/dist/${name}.mjs`
+  return corpusUrl('themes', name)
 }
 
 /**

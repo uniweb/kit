@@ -25,7 +25,7 @@
  */
 
 import React, { useEffect, useState, useMemo } from 'react'
-import { loadGrammar, loadThemeByName } from './shiki-corpus.js'
+import { loadGrammar, loadThemeByName, isCorpusName } from './shiki-corpus.js'
 import { cn } from '../../../utils/index.js'
 import { getUniweb } from '@uniweb/core'
 
@@ -416,7 +416,8 @@ async function highlightTokens(code, language, highlighter, codeTheme) {
  *
  * @param {Object} props
  * @param {string} props.content - the code
- * @param {string} props.lang - its language, normalized
+ * @param {string} props.lang - its language, normalized — named in a `language-*`
+ *   class only when it is a grammar's name, so a fence's language adds no other class
  * @param {{ background: string, foreground: string }|null} [props.colors] - what to paint before the theme loads
  * @param {{ tokens: Array<Array<Object>>, style: Object, pair: boolean }|null} [props.highlighted]
  * @param {string} [props.className]
@@ -435,7 +436,7 @@ export function CodeBlock({ content, lang, colors, highlighted, className, ...pr
       tabIndex={0}
       {...props}
     >
-      <code className={`language-${lang} ${CODE_FACE_CLASS}`}>
+      <code className={cn(isCorpusName(lang) && `language-${lang}`, CODE_FACE_CLASS)}>
         {highlighted
           ? highlighted.tokens.map((line, i) => (
               <React.Fragment key={i}>

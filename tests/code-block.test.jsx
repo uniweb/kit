@@ -169,6 +169,15 @@ describe('what the first render writes — the prerender’s page', () => {
   })
 })
 
+describe('a fence’s language is a name, never markup', () => {
+  it('a language that is not a grammar’s name adds no class to the block', () => {
+    for (const lang of ['js fixed inset-0', '../../x', 'c#']) {
+      const code = openTag(renderToStaticMarkup(<CodeBlock content={SOURCE} lang={lang} />), 'code')
+      expect(code, lang).toBe(`<code class="${CODE_FACE_CLASS}">`)
+    }
+  })
+})
+
 describe('the size reads the prose step', () => {
   it('every variable the block’s classes read is one the prose layer sets on `.prose`', () => {
     const css = readFileSync(new URL('../src/prose-tokens.css', import.meta.url), 'utf8')
