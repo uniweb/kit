@@ -2,12 +2,11 @@
  * Snippet and Highlighting Utilities
  *
  * A result's snippet is rendered by `@uniweb/projections/search/snippet`, the one
- * renderer every lane that answers search shares, and escaped by
- * `@uniweb/core/escape-html`. Both are re-exported here, as kit has always offered them.
+ * renderer every lane that answers search shares, with its escaping. Both are
+ * re-exported here, as kit has always offered them.
  */
 
-import { buildSnippet } from '@uniweb/projections/search/snippet'
-import { escapeHtml } from '@uniweb/core/escape-html'
+import { buildSnippet, escapeHtml } from '@uniweb/projections/search/snippet'
 
 export { buildSnippet, escapeHtml }
 export { highlightMatches } from '@uniweb/projections/search/snippet'
