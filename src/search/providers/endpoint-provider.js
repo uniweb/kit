@@ -13,7 +13,7 @@
  * seam — the same escalation `fetcher:` offers.
  */
 
-import { emptyResult } from './result.js'
+import { emptyResult } from '@uniweb/projections/search/result'
 import { resolveServiceUrl } from '../../utils/services.js'
 
 /**

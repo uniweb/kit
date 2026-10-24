@@ -46,10 +46,11 @@
  *     preload?() → Promise<void>,
  *     clearCache?() → void }
  *
- * See ./providers/result.js for the result contract.
+ * The result contract is `@uniweb/projections/search/result`'s, one shape for every lane that
+ * answers search.
  */
 
-import { emptyResult } from './providers/result.js'
+import { emptyResult } from '@uniweb/projections/search/result'
 import { resolveService } from '../utils/services.js'
 
 // Re-exported so existing importers of these keep working; they live with the

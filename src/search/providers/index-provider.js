@@ -37,9 +37,6 @@
  * never loads it.
  */
 
-import { buildSnippet } from '../snippets.js'
-import { emptyResult } from './result.js'
-
 // In-memory caches, keyed by index URL. Module-scope is correct here: this
 // only ever runs in one browser tab, unlike the edge's per-PoP isolates.
 const indexCache = new Map()
@@ -51,38 +48,6 @@ const structureCache = new Map()
 const STORAGE_VERSION = 'v2'
 const STORAGE_PREFIX = 'uniweb:search:'
 const STORAGE_KEY = (cacheKey) => `${STORAGE_PREFIX}${STORAGE_VERSION}:${cacheKey}`
-
-/**
- * Where in the ORIGINAL text a query term first appears, in the shape
- * `buildSnippet` reads.
- *
- * ⛔ **THE ENGINE CANNOT SUPPLY THIS, AND SHOULD NOT.** It scores a whole corpus;
- * computing highlight offsets for every candidate would be exactly the work that
- * inverting the index exists to avoid. This runs for the handful of results
- * actually shown.
- *
- * ⚠️ **Deliberately matched against the RAW text, case-insensitively, not against
- * the engine's folded form.** Folding changes lengths — a `ﬁ` ligature becomes
- * two characters — so an offset computed on folded text points at the wrong span
- * in the string being highlighted. A term that only matches after folding (a
- * diacritic difference, or a fuzzy correction) therefore finds no offset, and the
- * snippet falls back to a plain truncation — which is what it already did when
- * nothing matched. **Degrading to the existing behaviour is the right failure**;
- * the alternative is a highlight on the wrong characters.
- */
-function matchIndices(item, tokens) {
-  const text = String(item?.content ?? '')
-  if (!text || !tokens.length) return undefined
-  const hay = text.toLowerCase()
-  const indices = []
-  for (const t of tokens) {
-    const at = hay.indexOf(t)
-    if (at >= 0) indices.push([at, at + t.length - 1])
-  }
-  if (!indices.length) return undefined
-  indices.sort((a, b) => a[0] - b[0])
-  return [{ key: 'content', indices }]
-}
 
 /**
  * Get localStorage safely (handles SSR and access errors)
@@ -304,7 +269,8 @@ export function createIndexProvider(website, options = {}) {
     // ⛔ THE LEAF, NOT THE BARREL. `@uniweb/projections/search` re-exports the
     // build-time generators too, and `extract.js` reaches `insets.js` and
     // `pages.js` — site-content extraction a browser search box has no use for.
-    // `engine.js` imports nothing at all, which is what makes it safe here.
+    // `engine.js` imports only the result shape and its snippet, which is what
+    // makes it safe here.
     // (Same reasoning as `search/generate.js` importing `@uniweb/core/locale-config`
     // rather than the package root, and for the same kind of reason.)
     //
@@ -347,29 +313,15 @@ export function createIndexProvider(website, options = {}) {
       // slice.
       const total = results.length
 
-      const tokens = engine.tokenize(text)
-      const page = results.slice(0, limit).map(({ item }) => {
-        const matches = matchIndices(item, tokens)
-        const snippet = buildSnippet(item.content, matches, { key: 'content' })
-
-        return {
-          ...emptyResult(),
-          id: item.id,
-          type: item.type,
-          route: item.route,
-          sectionId: item.sectionId ?? null,
-          anchor: item.anchor ?? null,
-          href: item.anchor ? `${item.route}#${item.anchor}` : item.route,
-          title: item.title ?? '',
-          pageTitle: item.pageTitle ?? '',
-          description: item.description ?? null,
-          excerpt: item.excerpt ?? '',
-          component: item.component ?? null,
-          snippetText: snippet.text,
-          snippetHtml: snippet.html,
-          matches
-        }
-      })
+      // ⭐ THE ENGINE SHAPES THE RESULT (`searchResult`), and a server answering
+      // search shapes its own with the same call, so a result reads the same
+      // wherever it was answered. Its snippet marks the terms the ranking scored
+      // with, found by the engine's fold. ⛔ Until 2026-10-23 this matched with a
+      // lowercase `indexOf`, so `cafe` ranked a page holding "café" and marked
+      // nothing, and a record's `group` and `item` never reached its result.
+      const page = results
+        .slice(0, limit)
+        .map(({ item }) => engine.searchResult(item, { terms: ranked.terms }))
 
       return { results: page, total }
     },

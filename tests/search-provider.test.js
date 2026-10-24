@@ -10,7 +10,7 @@ import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createSearchClient } from '../src/search/client.js'
 import { clearSearchCache } from '../src/search/providers/index-provider.js'
 import { resolveEndpointUrl, createEndpointProvider } from '../src/search/providers/endpoint-provider.js'
-import { emptyResult } from '../src/search/providers/result.js'
+import { emptyResult } from '@uniweb/projections/search/result'
 
 /** Minimal Website stand-in — only what the search path reads. */
 /**
