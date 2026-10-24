@@ -168,3 +168,38 @@ describe('<Link> — tooltip', () => {
     expect(titleOf(render(makeWebsite(), <Link href="https://example.com" title="Partner">P</Link>))).toBe('Partner')
   })
 })
+
+// ⛔ Until 2026-10-24 only an external link kept its target: an internal page, a reload link, an
+// email or a router link dropped it, so `[Docs](/docs){target=_blank}` opened in this tab.
+describe('<Link> — target', () => {
+  const targetOf = (markup) => markup.match(/target="([^"]*)"/)?.[1]
+  const routed = () => ({
+    ...makeWebsite(),
+    getRoutingComponents: () => ({ Link: ({ to, children, ...rest }) => <a href={to} {...rest}>{children}</a> }),
+  })
+
+  it.each([
+    ['an internal page', <Link href="/about" target="_blank">About</Link>],
+    ['a reload link', <Link reload href="/fr/about" target="_blank">FR</Link>],
+    ['an email', <Link href="mailto:hello@example.com" target="_blank">Write</Link>],
+  ])('keeps the target of %s', (_, element) => {
+    expect(targetOf(render(makeWebsite(), element))).toBe('_blank')
+  })
+
+  it('keeps it on a router link', () => {
+    expect(targetOf(render(routed(), <Link href="/about" target="_blank">About</Link>))).toBe('_blank')
+  })
+
+  it('keeps an external link or a download in this tab when told to', () => {
+    expect(targetOf(render(makeWebsite(), <Link href="https://example.com" target="_self">E</Link>))).toBe('_self')
+    expect(targetOf(render(makeWebsite(), <Link href="/files/report.pdf" target="_self">R</Link>))).toBe('_self')
+  })
+
+  // CONTROL: without one, the defaults are what they were.
+  it('without one: a new tab for an external link and a download, none for the rest', () => {
+    expect(targetOf(render(makeWebsite(), <Link href="https://example.com">E</Link>))).toBe('_blank')
+    expect(targetOf(render(makeWebsite(), <Link href="/files/report.pdf">R</Link>))).toBe('_blank')
+    expect(targetOf(render(makeWebsite(), <Link href="/about">About</Link>))).toBeUndefined()
+    expect(targetOf(render(routed(), <Link href="/about">About</Link>))).toBeUndefined()
+  })
+})

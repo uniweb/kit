@@ -128,7 +128,9 @@ function generateTitle(href, localize) {
  * @param {string} [props.title] - Custom title/tooltip. Without one, a link that leaves the
  *   site, downloads, writes an email or places a call gets one saying so; an internal
  *   link gets none
- * @param {string} [props.target] - Link target (_blank, _self, etc.)
+ * @param {string} [props.target] - Where the link opens (_self, _blank, _parent, _top), on
+ *   every kind of link. Without one, an external link or a download opens in a new tab
+ *   and any other link in this one
  * @param {string} [props.className] - CSS classes
  * @param {boolean} [props.download] - Force download behavior
  * @param {boolean} [props.reload] - Force full page reload (renders <a> with basePath prefix)
@@ -192,6 +194,7 @@ export function Link({
     return (
       <a
         href={applyBasePath(linkHref, basePath)}
+        target={target}
         title={linkTitle}
         className={className}
         data-reload="true"
@@ -211,7 +214,7 @@ export function Link({
       <a
         href={applyBasePath(linkHref, website?.basePath || '')}
         download
-        target="_blank"
+        target={target || '_blank'}
         rel="noopener noreferrer"
         title={linkTitle}
         className={className}
@@ -243,6 +246,7 @@ export function Link({
     return (
       <a
         href={linkHref}
+        target={target}
         title={linkTitle}
         className={className}
         {...props}
@@ -257,6 +261,7 @@ export function Link({
     return (
       <RouterLink
         to={linkHref}
+        target={target}
         title={linkTitle}
         className={className}
         {...props}
@@ -271,6 +276,7 @@ export function Link({
   return (
     <a
       href={applyBasePath(linkHref, basePath)}
+      target={target}
       title={linkTitle}
       className={className}
       {...props}
