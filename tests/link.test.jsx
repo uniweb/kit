@@ -203,3 +203,34 @@ describe('<Link> — target', () => {
     expect(targetOf(render(routed(), <Link href="/about">About</Link>))).toBeUndefined()
   })
 })
+
+// ⛔ Until 2026-10-26 a relative path went to the router, which resolves it against the route,
+// while the prerender — no router — wrote it as given, for the browser to resolve against the
+// page's URL: one link, two places. Measured on a docs site's link-only table cells.
+describe('<Link> — a relative path', () => {
+  // Stands in for React Router: it would resolve `to` against the route, so it must not be asked.
+  const routed = () => ({
+    ...makeWebsite({ basePath: '/sub' }),
+    getRoutingComponents: () => ({
+      Link: ({ to, children, ...rest }) => <a href={`/route/${to}`} data-router="" {...rest}>{children}</a>,
+    }),
+  })
+
+  it.each(['about', './about', '../reference/content-structure', 'deploying.md#when-to-choose'])(
+    'is written as given, with a router as without one, and gets no base: %s',
+    (href) => {
+      for (const website of [makeWebsite({ basePath: '/sub' }), routed()]) {
+        const html = render(website, <Link href={href}>Go</Link>)
+        expect(hrefOf(html)).toBe(href)
+        expect(html).not.toContain('data-router')
+      }
+    }
+  )
+
+  // CONTROL: a site path, a fragment and a query are still the router's.
+  it('leaves a site path, a fragment and a query to the router', () => {
+    for (const href of ['/about', '#top', '?tab=2']) {
+      expect(render(routed(), <Link href={href}>Go</Link>)).toContain('data-router')
+    }
+  })
+})

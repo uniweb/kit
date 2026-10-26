@@ -3,6 +3,7 @@
  *
  * A smart link wrapper that handles:
  * - Internal navigation via React Router
+ * - A relative path, where the browser takes it
  * - External links with appropriate attributes
  * - File downloads
  * - A generated tooltip where a link does something its text may not say:
@@ -117,6 +118,17 @@ function generateTitle(href, localize) {
   }
 
   return ''
+}
+
+/**
+ * A relative path — `about`, `../guide`, `deploying.md#setup` — as opposed to a site path
+ * (`/about`), a fragment, a query, or anything with a scheme.
+ *
+ * @param {string} href
+ * @returns {boolean}
+ */
+function isRelativePath(href) {
+  return !!href && !/^(?:[a-z][a-z0-9+.-]*:|[/#?])/i.test(href)
 }
 
 /**
@@ -243,6 +255,29 @@ export function Link({
 
   // Special protocols (mailto:, tel:)
   if (linkHref.startsWith('mailto:') || linkHref.startsWith('tel:')) {
+    return (
+      <a
+        href={linkHref}
+        target={target}
+        title={linkTitle}
+        className={className}
+        {...props}
+      >
+        {children}
+      </a>
+    )
+  }
+
+  // A relative path goes where the browser takes it: resolved against this page's URL, as a
+  // link written in prose is — the runtime's link interceptor routes either click the same way.
+  // No base path: the page's URL already holds it.
+  //
+  // ⛔ Until 2026-10-26 it went to React Router, which resolves it against the route instead:
+  // `../reference/x` from /docs/getting-started/quickstart was /reference/x in the browser's
+  // render and /docs/reference/x in the prerendered page, which has no router. A link-only
+  // table cell or a link on its own line, which the parser makes a `link`, reaches the page
+  // through here; a link inside a sentence never did.
+  if (isRelativePath(linkHref)) {
     return (
       <a
         href={linkHref}
