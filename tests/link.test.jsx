@@ -248,7 +248,7 @@ describe('<Link> — the home under a base path', () => {
 
   it('is the base itself, as the prerender writes it, with a router as without one', () => {
     for (const website of [makeWebsite({ basePath: '/shop' }), routed('/shop')]) {
-      const html = render(website, <Link to="/">Bijou</Link>)
+      const html = render(website, <Link to="/">Shop</Link>)
       expect(hrefOf(html)).toBe('/shop/')
       expect(html).not.toContain('data-router')
     }
