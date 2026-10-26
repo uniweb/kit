@@ -234,3 +234,29 @@ describe('<Link> — a relative path', () => {
     }
   })
 })
+
+// ⛔ Until 2026-10-26 the home under a base path was `/shop/` in the prerendered page and `/shop` in
+// the browser's render — React Router writes its basename without the slash.
+describe('<Link> — the home under a base path', () => {
+  // Stands in for React Router under a basename: the root is the basename, with no slash.
+  const routed = (basePath) => ({
+    ...makeWebsite({ basePath }),
+    getRoutingComponents: () => ({
+      Link: ({ to, children, ...rest }) => <a href={to === '/' ? basePath || '/' : `${basePath}${to}`} data-router="" {...rest}>{children}</a>,
+    }),
+  })
+
+  it('is the base itself, as the prerender writes it, with a router as without one', () => {
+    for (const website of [makeWebsite({ basePath: '/shop' }), routed('/shop')]) {
+      const html = render(website, <Link to="/">Bijou</Link>)
+      expect(hrefOf(html)).toBe('/shop/')
+      expect(html).not.toContain('data-router')
+    }
+  })
+
+  // CONTROLS: another page under the base, and the home with no base, are still the router's.
+  it('leaves another page, and the home at the root, to the router', () => {
+    expect(render(routed('/shop'), <Link to="/finds">Finds</Link>)).toContain('data-router')
+    expect(render(routed(''), <Link to="/">Home</Link>)).toContain('data-router')
+  })
+})

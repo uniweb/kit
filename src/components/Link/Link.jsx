@@ -291,6 +291,26 @@ export function Link({
     )
   }
 
+  // The site's home under a base path is the base itself, `/shop/`: what the prerender writes, and
+  // where a static host serves the home. React Router writes its basename without the slash, so
+  // the browser's render named the home `/shop`, and a link copied or opened in a new tab took a
+  // redirect, or a 404 on a host that makes none. A plain <a> says the same in both renderers; the
+  // runtime's link interceptor routes the click (measured 2026-10-26 on a shop built under
+  // `/shop/`, where every page's logo link differed).
+  if (RouterLink && website?.basePath && linkHref === '/') {
+    return (
+      <a
+        href={applyBasePath(linkHref, website.basePath)}
+        target={target}
+        title={linkTitle}
+        className={className}
+        {...props}
+      >
+        {children}
+      </a>
+    )
+  }
+
   // Internal links - use React Router if available
   if (RouterLink) {
     return (
