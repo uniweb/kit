@@ -137,13 +137,20 @@ export function useFormSubmit(defaults = {}) {
  * because something moved above it. Keys with no value are dropped rather than
  * sent as null, so they never mask a caller-supplied one.
  *
+ * The page is the one the visitor was on when they sent the form. A section in a
+ * layout area — a header, a footer, a promo band — lives on an area page that
+ * every page shares, so its own page names the area ("Promo"), not where the
+ * visitor was. The page being shown (`website.activePage`, read here, at submit
+ * time) is. Core's `Block#getNextBlockInfo` resolves a layout block the same way.
+ *
  * @param {object} [block]
  * @returns {object}
  */
 function contextFromBlock(block) {
   if (!block) return {}
 
-  const page = block.page
+  const active = block.website?.activePage
+  const page = active && active !== block.page ? active : block.page
   const fields = {
     sectionType: block.type,
     sectionId: block.stableId || block.id,

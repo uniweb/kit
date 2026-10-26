@@ -125,6 +125,65 @@ describe('useFormSubmit', () => {
     expect(JSON.parse(fetchFn.calls[0].init.body)).not.toHaveProperty('formId')
   })
 
+  // A section in a layout area lives on an area page every page shares, so its
+  // own page names the area ("Promo"). Every sign-up from a site-wide newsletter
+  // band arrived saying it came from "Promo", whatever page the visitor was on.
+  it('names the page being shown, not the layout area, for a block in a layout area', async () => {
+    const fetchFn = fakeFetch()
+    const promo = { id: 'layout-default-promo', title: 'Promo' }
+    const block = {
+      type: 'Newsletter',
+      stableId: 'promo',
+      page: promo,
+      website: { activePage: { id: 11, title: 'Talks' } },
+    }
+    setWebsite(makeWebsite({ submit: '/forms' }))
+
+    const { result } = renderHook(() => useFormSubmit({ block, fetchFn }))
+    await act(async () => { await result.current.submit({ email: 'ada@example.com' }) })
+    await waitFor(() => expect(result.current.status).toBe('success'))
+
+    const { metadata } = JSON.parse(fetchFn.calls[0].init.body)
+    expect(metadata).toMatchObject({
+      sectionType: 'Newsletter',
+      sectionId: 'promo',
+      pageId: 11,
+      pageLabel: 'Talks',
+    })
+  })
+
+  // The same layout block stays mounted while the visitor moves between pages,
+  // so the page is read when the form is sent, not when it was drawn.
+  it('reads the page being shown when the form is sent', async () => {
+    const fetchFn = fakeFetch()
+    const website = { activePage: { id: 0, title: 'Home' } }
+    const block = { type: 'Newsletter', page: { id: 'layout-default-footer', title: 'Footer' }, website }
+    setWebsite(makeWebsite({ submit: '/forms' }))
+
+    const { result } = renderHook(() => useFormSubmit({ block, fetchFn }))
+    website.activePage = { id: 4, title: 'Books' }
+    await act(async () => { await result.current.submit({ email: 'ada@example.com' }) })
+    await waitFor(() => expect(result.current.status).toBe('success'))
+
+    const { metadata } = JSON.parse(fetchFn.calls[0].init.body)
+    expect(metadata).toMatchObject({ pageId: 4, pageLabel: 'Books' })
+  })
+
+  // Control: a section of the page itself keeps its own page.
+  it('keeps the page of a block that is on the page being shown', async () => {
+    const fetchFn = fakeFetch()
+    const about = { id: 'about', title: 'About Us' }
+    const block = { type: 'ContactForm', stableId: 'contact', page: about, website: { activePage: about } }
+    setWebsite(makeWebsite({ submit: '/forms' }))
+
+    const { result } = renderHook(() => useFormSubmit({ block, fetchFn }))
+    await act(async () => { await result.current.submit({ Name: 'Ada' }) })
+    await waitFor(() => expect(result.current.status).toBe('success'))
+
+    const { metadata } = JSON.parse(fetchFn.calls[0].init.body)
+    expect(metadata).toMatchObject({ pageId: 'about', pageLabel: 'About Us' })
+  })
+
   it('falls back to the positional id when a block has no stable one', async () => {
     const fetchFn = fakeFetch()
     const block = { type: 'ContactForm', stableId: null, id: '3', page: {} }
