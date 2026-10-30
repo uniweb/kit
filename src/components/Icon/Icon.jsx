@@ -121,7 +121,7 @@ function parseSvg(svgContent) {
  * 3. Built-in icons (name prop, no library)
  * 4. Library-based via resolver (library + name props)
  *
- * SSR: Renders sized placeholder, hydrates with SVG client-side
+ * SSR: Renders the SVG when the render holds it (`getIconSync`), otherwise a sized placeholder that the browser fills
  *
  * @param {Object} props
  * @param {string} [props.library] - Icon family: lucide, heroicons, etc.
