@@ -16,7 +16,14 @@
  *
  * Foundations that want custom Tailwind names can skip this import and declare
  * their own @theme inline block.
+ *
+ * Kit's own classes are in its source, so Tailwind reads that source from here, relative to this
+ * file. A line for it in a foundation's styles.css depends on where the package manager put kit:
+ * npm hoists it, so the scaffold's ./node_modules/@uniweb/kit/src found nothing and every class
+ * only kit uses was missing from the CSS. A foundation that skips this import names kit itself.
  */
+
+@source "./**/*.{js,jsx}";
 
 @theme inline {
   /* ── Semantic tokens ── */
