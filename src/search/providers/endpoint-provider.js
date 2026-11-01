@@ -124,7 +124,7 @@ export function createEndpointProvider(website, options = {}) {
   const { endpoint } = options
 
   return {
-    async query(text, { limit = 10, type, route, signal } = {}) {
+    async query(text, { limit = 10, type, route, keep, signal } = {}) {
       // ⛔ No declared target, nowhere to go. With no default endpoint (see
       // `resolveEndpointUrl`) an empty resolution would otherwise become a
       // request to the site's own root, which answers HTML and parses as no
@@ -210,6 +210,7 @@ export function createEndpointProvider(website, options = {}) {
       let filtered = results
       if (type) filtered = filtered.filter(r => r.type === type)
       if (route) filtered = filtered.filter(r => r.route?.startsWith(route))
+      if (keep) filtered = filtered.filter(r => keep(r.route))
 
       // How many matched, when the endpoint says. Null when it does not, and
       // null is a real answer — see `total` in client.js.

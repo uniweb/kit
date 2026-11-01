@@ -283,11 +283,11 @@ export function createIndexProvider(website, options = {}) {
   }
 
   return {
-    async query(text, { limit = 10, type, route } = {}) {
+    async query(text, { limit = 10, type, route, keep } = {}) {
       const { engine, entries, structure } = await getEngine()
 
-      // ⛔ RANK FIRST, FILTER SECOND, AND DO NOT PASS `limit` DOWN. `type` and
-      // `route` are applied here, so a limit applied inside the engine would cut
+      // ⛔ RANK FIRST, FILTER SECOND, AND DO NOT PASS `limit` DOWN. `type`, `route`
+      // and `keep` are applied here, so a limit applied inside the engine would cut
       // the ranking before this filter sees it, and a filtered search would come
       // back short of results that exist.
       const ranked = engine.rankSearchEntries(structure, text, entries)
@@ -298,6 +298,9 @@ export function createIndexProvider(website, options = {}) {
       }
       if (route) {
         results = results.filter(({ item }) => item.route?.startsWith(route))
+      }
+      if (keep) {
+        results = results.filter(({ item }) => keep(item.route))
       }
 
       // ⭐ NO LITERAL TIER. There was one, sorting pages that contain the words

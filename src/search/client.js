@@ -52,6 +52,7 @@
 
 import { emptyResult } from '@uniweb/projections/search/result'
 import { resolveService } from '../utils/services.js'
+import { readVersion } from '../utils/versions.js'
 
 // Re-exported so existing importers of these keep working; they live with the
 // provider that owns them now.
@@ -123,6 +124,17 @@ function normalizeQueryResult(returned) {
   const results = Array.isArray(returned?.results) ? returned.results : []
   const total = Number.isInteger(returned?.total) ? returned.total : null
   return { results, total }
+}
+
+/**
+ * A result list kept to a filter. Our providers apply it before their `limit`, so this changes
+ * nothing for them; a foundation's transport doesn't know about it, and its count then describes a
+ * set the reader isn't shown, so it goes.
+ */
+function keptTo(keep, answer) {
+  if (!keep) return answer
+  const results = answer.results.filter((result) => keep(result.route))
+  return results.length === answer.results.length ? answer : { results, total: null }
 }
 
 export function createSearchClient(website, options = {}) {
@@ -403,11 +415,21 @@ export function createSearchClient(website, options = {}) {
       // account for the decline, i.e. any website that is not a real `Website`.
       if (hostDeclined) return { results: [], total: 0 }
 
-      const opts = { limit, type, route, signal }
+      // ⭐ A search keeps to the version being read, for every foundation. With no match there, on
+      // an older version, it answers from the latest: an index may hold no older versions at all,
+      // and a reader looking for something added since is better off finding it.
+      const version = readVersion(website, website.activePage?.route)
+      const keep = version.hasVersions ? version.holds : undefined
+      const opts = { limit, type, route, signal, keep }
+      const ask = async (provider) => {
+        const answer = keptTo(keep, normalizeQueryResult(await provider.query(trimmed, opts)))
+        if (answer.results.length || !version.isOlderVersion) return answer
+        const latest = { ...opts, keep: version.isInLatest }
+        return keptTo(version.isInLatest, normalizeQueryResult(await provider.query(trimmed, latest)))
+      }
 
       try {
-        const provider = await getProvider()
-        return normalizeQueryResult(await provider.query(trimmed, opts))
+        return await ask(await getProvider())
       } catch (err) {
         // An aborted query is a caller decision, not a provider failure.
         if (err?.name === 'AbortError') throw err
@@ -418,7 +440,7 @@ export function createSearchClient(website, options = {}) {
           return { results: [], total: null }
         }
         try {
-          return normalizeQueryResult(await fallback.query(trimmed, opts))
+          return await ask(fallback)
         } catch (fallbackErr) {
           console.warn(`[uniweb] Search fallback failed: ${fallbackErr?.message}`)
           return { results: [], total: null }
