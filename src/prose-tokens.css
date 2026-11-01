@@ -620,6 +620,26 @@
     margin-block: var(--_prose-hr);
   }
 
+  /* ── Footnotes ── */
+
+  .prose :where(.footnote-ref):not(:where(.not-prose, .not-prose *)) {
+    font-size: 0.75em;
+    line-height: 0;
+  }
+  .prose :where(.footnote-ref a):not(:where(.not-prose, .not-prose *)) {
+    text-decoration: none;
+  }
+  .prose :where(ol.footnotes):not(:where(.not-prose, .not-prose *)) {
+    color: var(--subtle);
+    font-size: 0.875em;
+    border-block-start: 1px solid var(--border);
+    margin-block-start: var(--_prose-hr);
+    padding-block-start: 1em;
+  }
+  .prose :where(.footnote-back):not(:where(.not-prose, .not-prose *)) {
+    text-decoration: none;
+  }
+
   /* ── Code ── */
 
   /* Inline code reads as a chip on whatever surface it sits on, at 0.875em of

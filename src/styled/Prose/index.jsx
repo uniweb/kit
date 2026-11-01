@@ -14,6 +14,9 @@
  * rules against nesting one and against palette modifiers, which no longer
  * apply.
  *
+ * Markdown footnotes (`[^1]` and `[^1]: the note`) are resolved here, with the notes listed at
+ * the end (`./footnotes.js`). A foundation that uses `<Render>` lays those out itself.
+ *
  * Also works as a pure typography wrapper when given children instead of
  * content.
  *
@@ -22,7 +25,9 @@
 
 import React from 'react'
 import { cn } from '../../utils/index.js'
-import { Render } from '../Render/index.jsx'
+import { SafeHtml } from '../../components/SafeHtml/index.js'
+import { Render, toSequence } from '../Render/index.jsx'
+import { footnotesIn } from './footnotes.js'
 
 /** Prose sizes */
 const SIZE_CLASSES = {
@@ -79,9 +84,31 @@ export function Prose({
 }) {
   const sizeClass = SIZE_CLASSES[size] || SIZE_CLASSES.lg
 
+  if (children != null) {
+    return (
+      <Component className={cn('prose', sizeClass, 'max-w-none', className)} {...props}>
+        {children}
+      </Component>
+    )
+  }
+
+  const { sequence, notes } = footnotesIn(toSequence(content, block), block?.stableId ?? block?.id)
+
   return (
     <Component className={cn('prose', sizeClass, 'max-w-none', className)} {...props}>
-      {children ?? <Render content={content} block={block} components={components} />}
+      <Render content={sequence ? { sequence } : content} block={block} components={components} />
+      {notes.length > 0 && (
+        <ol className="footnotes">
+          {notes.map((note) => (
+            <li key={note.id} id={note.id}>
+              <SafeHtml value={note.html} as="span" />{' '}
+              <a href={`#${note.backId}`} className="footnote-back" aria-label="Back to the text">
+                ↩
+              </a>
+            </li>
+          ))}
+        </ol>
+      )}
     </Component>
   )
 }

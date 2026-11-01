@@ -166,7 +166,7 @@ function parseOptionsFor(block) {
  * document is run through the parser rather than walked directly — that is the
  * whole point of having one table, and it is what makes inline marks work.
  */
-function toSequence(content, block) {
+export function toSequence(content, block) {
   if (Array.isArray(content?.sequence)) return content.sequence
 
   if (content?.type === 'doc') return parseContent(content, parseOptionsFor(block)).sequence
