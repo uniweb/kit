@@ -108,11 +108,13 @@ export function buildXrefRegistry(website, options = {}) {
     function nextHierarchical(level) {
         if (topLevel == null || level < topLevel) topLevel = level
         const depth = level - topLevel + 1
-        while (sectionStack.length >= depth) sectionStack.pop()
+        // Deeper counters end with their parent; this one counts on. A level
+        // skipped on the way down reads as 1.
+        if (sectionStack.length > depth) sectionStack.length = depth
         while (sectionStack.length < depth - 1) sectionStack.push(1)
-        sectionStack.push((sectionStack[depth - 1] || 0) + 1)
-        sectionStack.length = depth
-        return sectionStack.slice().join('.')
+        if (sectionStack.length === depth) sectionStack[depth - 1] += 1
+        else sectionStack.push(1)
+        return sectionStack.join('.')
     }
 
     function inferKind(el) {
@@ -179,17 +181,31 @@ export function buildXrefRegistry(website, options = {}) {
         entries[id] = entry
     }
 
+    // A section can be the numbered thing itself: a theorem's file, with
+    // `id: thm-main` in its frontmatter and no heading to carry it. Only a
+    // foundation-declared prefix counts, because a section also has an id
+    // made from its file name that nobody wrote to be referenced.
+    function visitSection(block, sourcePath) {
+        const id = block.stableId
+        if (!id || !id.includes('-') || entries[id]) return
+        const kind = prefixToKind[id.slice(0, id.indexOf('-'))]
+        if (!kind) return
+        const counter = nextFlat(kind)
+        entries[id] = { id, kind, counter, counterText: String(counter), sourcePath: sourcePath || '' }
+    }
+
     // Walk the Website's object graph: pages → bodyBlocks. Each Block's
     // `parsedContent.sequence` is a flat document-order array of
     // semantic elements (heading, paragraph, image, list, blockquote,
-    // codeBlock, table, math, divider, …). Iterating the sequence is
-    // enough — the registry's id-bearing kinds (heading, image,
-    // math (display:true), table) all live at sequence level.
+    // codeBlock, table, math, divider, …). The registry's other id-bearing
+    // kinds (heading, image, math (display:true), table) all live at
+    // sequence level.
     //
     // Website.pages, Page.bodyBlocks, and Block.parsedContent.sequence
     // are framework invariants — always arrays. No defensive guards.
     for (const page of website.pages) {
         for (const block of page.bodyBlocks) {
+            visitSection(block, page.route)
             for (const el of block.parsedContent.sequence) {
                 visit(el, page.route)
             }

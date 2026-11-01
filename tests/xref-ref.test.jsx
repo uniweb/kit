@@ -30,6 +30,56 @@ function render(website, key) {
   return renderToStaticMarkup(<Ref params={{ key }} block={block} />)
 }
 
+describe('what the registry numbers', () => {
+  const heading = (level, id) => ({ type: 'heading', level, attrs: { id } })
+
+  it('counts sections on, at every depth', () => {
+    const website = websiteWith(
+      heading(1, 'sec-a'),
+      heading(2, 'sec-a1'),
+      heading(2, 'sec-a2'),
+      heading(1, 'sec-b'),
+      heading(2, 'sec-b1'),
+      heading(1, 'sec-c'),
+    )
+    const { entries } = buildXrefRegistry(website)
+    expect(['sec-a', 'sec-a1', 'sec-a2', 'sec-b', 'sec-b1', 'sec-c'].map((id) => entries[id].counterText)).toEqual([
+      '1',
+      '1.1',
+      '1.2',
+      '2',
+      '2.1',
+      '3',
+    ])
+  })
+
+  it('reads a skipped level as 1', () => {
+    const { entries } = buildXrefRegistry(websiteWith(heading(1, 'sec-a'), heading(3, 'sec-deep')))
+    expect(entries['sec-deep'].counterText).toBe('1.1.1')
+  })
+
+  const kinds = { theorem: { prefix: 'thm', label: 'Theorem' } }
+  const sectionWith = (stableId) => ({ stableId, parsedContent: { sequence: [] } })
+
+  it("registers a section by the id in its frontmatter, under a foundation's prefix", () => {
+    const website = {
+      config: {},
+      pages: [{ route: '/p', bodyBlocks: [sectionWith('thm-first'), sectionWith('thm-second')] }],
+    }
+    const { entries } = buildXrefRegistry(website, { foundationKinds: kinds })
+    expect(entries['thm-first']).toMatchObject({ kind: 'theorem', counterText: '1' })
+    expect(entries['thm-second']).toMatchObject({ kind: 'theorem', counterText: '2' })
+  })
+
+  it('leaves out an id made from a file name', () => {
+    const website = {
+      config: {},
+      pages: [{ route: '/p', bodyBlocks: [sectionWith('main-result'), sectionWith('intro')] }],
+    }
+    expect(buildXrefRegistry(website, { foundationKinds: kinds }).entries).toEqual({})
+  })
+})
+
 describe('a resolved reference is navigable', () => {
   it('links a single target to its anchor', () => {
     const website = websiteWith({ type: 'math', display: true, id: 'eq-energy', latex: 'E=mc^2' })
