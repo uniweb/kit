@@ -15,7 +15,7 @@ import { useHeadings, headingAt } from '../src/hooks/useHeadings.js'
 vi.mock('../src/hooks/useWebsite.js', () => ({ useWebsite: () => ({ website: { activePage: globalThis.__page } }) }))
 vi.mock('../src/hooks/useActiveRoute.js', () => ({ useActiveRoute: () => ({ route: globalThis.__route }) }))
 
-const heading = (text) => ({ type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text }] })
+const heading = (text) => ({ type: 'heading', level: 2, text })
 
 /** A page whose headings sit at these distances from its top, and which can scroll `room` far. */
 function layOut(tops, room) {
@@ -28,7 +28,7 @@ function layOut(tops, room) {
   }
   Object.defineProperty(document.documentElement, 'scrollHeight', { configurable: true, value: room + window.innerHeight })
   globalThis.__page = {
-    getBodyBlocks: () => [{ rawContent: { content: Object.keys(tops).map(heading) }, parsedContent: {} }],
+    getBodyBlocks: () => [{ parsedContent: { sequence: Object.keys(tops).map(heading) } }],
   }
 }
 

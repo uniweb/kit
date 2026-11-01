@@ -51,7 +51,7 @@ import { getUniweb } from '@uniweb/core'
 import { parseContent } from '@uniweb/semantic-parser'
 import { isStyleName } from '@uniweb/semantic-parser/sanitize'
 import { PLACEMENTS } from '@uniweb/schemas/content'
-import { getChildBlockRenderer, headingId } from '../../utils/index.js'
+import { getChildBlockRenderer, headingAnchor } from '../../utils/index.js'
 import { videoProps } from '../media-props.js'
 import { SafeHtml } from '../../components/SafeHtml/index.js'
 import { Image } from '../../components/Image/index.js'
@@ -378,10 +378,10 @@ export function SequenceElement({ element, block, components }) {
       const Tag = `h${level}`
       // The id is the anchor `useHeadings()` and every in-page nav link
       // resolve against, so it is behaviour rather than decoration.
-      // headingId() runs stripTags() first, so a marker in the text does not
+      // `headingId()` runs stripTags() first, so a marker in the text does not
       // change the anchor — an icon in a heading keeps the id the TOC links to.
       return (
-        <Tag id={authoredId(element) || headingId(element.text || '')}>
+        <Tag id={headingAnchor(element)}>
           {hasInlineMarkers(element.text) ? (
             renderParagraphWithInsets(element.text, block, element)
           ) : (

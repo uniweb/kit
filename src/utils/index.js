@@ -273,6 +273,17 @@ export function headingId(text) {
     .replace(/^-|-$/g, '')
 }
 
+/**
+ * The anchor of a heading in a parsed sequence: the id its author wrote, else one made from its text.
+ * What `<Render>` stamps and what a contents list points at, so the two can't disagree.
+ *
+ * @param {Object} element - A `heading` element of `content.sequence`
+ * @returns {string}
+ */
+export function headingAnchor(element) {
+  return element?.attrs?.id || element?.id || headingId(element?.text || '')
+}
+
 // Service predicates — the one thing to call before rendering UI for a service.
 export {
   isBackendEnabled,

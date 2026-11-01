@@ -89,26 +89,19 @@ describe('nodeText', () => {
 })
 
 describe('headingsFromContent', () => {
-  const heading = (level, text) => ({
-    type: 'heading',
-    attrs: { level },
-    content: [{ type: 'text', text }],
-  })
-
+  const heading = (level, text) => ({ type: 'heading', level, text })
   const pageOf = (blocks) => ({ getBodyBlocks: () => blocks })
+  const texts = (page) => headingsFromContent(page).map((h) => h.text)
 
   it('lists the body headings of a plain document', () => {
     // No title or subtitle, so the parser claims nothing, and every heading counts.
     const page = pageOf([
       {
-        rawContent: { content: [heading(2, 'Prerequisites'), heading(3, 'Node'), heading(2, 'Install')] },
-        parsedContent: {},
+        parsedContent: { sequence: [heading(2, 'Prerequisites'), heading(3, 'Node'), heading(2, 'Install')] },
       },
     ])
 
-    expect(headingsFromContent(page).map((h) => h.text)).toEqual([
-      'Prerequisites', 'Node', 'Install',
-    ])
+    expect(texts(page)).toEqual(['Prerequisites', 'Node', 'Install'])
   })
 
   it('skips the headings the parser took as the section\'s own structure', () => {
@@ -118,8 +111,11 @@ describe('headingsFromContent', () => {
     // them opened every contents rail with two entries no reader recognised.
     const page = pageOf([
       {
-        rawContent: {
-          content: [
+        parsedContent: {
+          pretitle: 'Guide',
+          title: 'Overview',
+          subtitle: 'Comprehensive guide to the platform',
+          sequence: [
             heading(3, 'Guide'),
             heading(1, 'Overview'),
             heading(2, 'Comprehensive guide to the platform'),
@@ -127,17 +123,36 @@ describe('headingsFromContent', () => {
             heading(2, 'Who is this for?'),
           ],
         },
+      },
+    ])
+
+    expect(texts(page)).toEqual(['Topics covered', 'Who is this for?'])
+  })
+
+  it('skips a claimed heading with marks in it too', () => {
+    const page = pageOf([
+      {
         parsedContent: {
-          pretitle: 'Guide',
           title: 'Overview',
-          subtitle: 'Comprehensive guide to the platform',
+          subtitle: 'The <em>whole</em> guide',
+          sequence: [heading(1, 'Overview'), heading(2, 'The <em>whole</em> guide'), heading(2, 'Topics')],
         },
       },
     ])
 
-    expect(headingsFromContent(page).map((h) => h.text)).toEqual([
-      'Topics covered', 'Who is this for?',
+    expect(texts(page)).toEqual(['Topics'])
+  })
+
+  it('never lists a label line, which is drawn as a paragraph with no anchor', () => {
+    const page = pageOf([
+      {
+        parsedContent: {
+          sequence: [{ type: 'heading', level: 2, text: 'A label', attrs: { role: 'pretitle' } }, heading(2, 'Real')],
+        },
+      },
     ])
+
+    expect(texts(page)).toEqual(['Real'])
   })
 
   it('counts every heading of a file that names no type, the `##` under its `#` too', () => {
@@ -147,23 +162,26 @@ describe('headingsFromContent', () => {
     const blockOf = (type) => ({
       type,
       website: { getDefaultBlockType: () => 'Section' },
-      rawContent: { content: [heading(1, 'Install'), heading(2, 'Homebrew'), heading(2, 'Windows')] },
-      parsedContent: { title: 'Install', subtitle: 'Homebrew' },
+      parsedContent: {
+        title: 'Install',
+        subtitle: 'Homebrew',
+        sequence: [heading(1, 'Install'), heading(2, 'Homebrew'), heading(2, 'Windows')],
+      },
     })
 
-    expect(headingsFromContent(pageOf([blockOf('Section')])).map((h) => h.text)).toEqual(['Homebrew', 'Windows'])
+    expect(texts(pageOf([blockOf('Section')]))).toEqual(['Homebrew', 'Windows'])
     // A section of its own type draws its subtitle as one.
-    expect(headingsFromContent(pageOf([blockOf('Article')])).map((h) => h.text)).toEqual(['Windows'])
+    expect(texts(pageOf([blockOf('Article')]))).toEqual(['Windows'])
   })
 
   it('holds on core\'s own objects, with the parser\'s own fields', () => {
     const doc = {
       type: 'doc',
       content: [
-        heading(1, 'Install'),
-        heading(2, 'Homebrew'),
+        { type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: 'Install' }] },
+        { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'Homebrew' }] },
         { type: 'paragraph', content: [{ type: 'text', text: 'Run it.' }] },
-        heading(2, 'Windows'),
+        { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'Windows' }] },
       ],
     }
     const website = new Website({
@@ -186,18 +204,18 @@ describe('headingsFromContent', () => {
   it('handles a multi-line title, which the parser gives as an array', () => {
     const page = pageOf([
       {
-        rawContent: { content: [heading(2, 'Build the site.'), heading(2, 'Real heading')] },
-        parsedContent: { title: ['Build the site.', 'Get the platform.'] },
+        parsedContent: {
+          title: ['Build the site.', 'Get the platform.'],
+          sequence: [heading(2, 'Build the site.'), heading(2, 'Real heading')],
+        },
       },
     ])
 
-    expect(headingsFromContent(page).map((h) => h.text)).toEqual(['Real heading'])
+    expect(texts(page)).toEqual(['Real heading'])
   })
 
   it('stamps ids that match what the renderers produce', () => {
-    const page = pageOf([
-      { rawContent: { content: [heading(2, 'Using site.yml')] }, parsedContent: {} },
-    ])
+    const page = pageOf([{ parsedContent: { sequence: [heading(2, 'Using site.yml')] } }])
 
     expect(headingsFromContent(page)[0].id).toBe(headingId('Using site.yml'))
   })

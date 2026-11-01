@@ -35,12 +35,26 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { headingId, nodeText } from '../utils/index.js'
+import { headingAnchor, headingId, stripTags } from '../utils/index.js'
 import { useWebsite } from './useWebsite.js'
 import { useActiveRoute } from './useActiveRoute.js'
 
 /**
+ * A heading's characters, as a reader sees them, from the markup the parser gives it. A formula's
+ * MathML carries its LaTeX source as well, which no reader sees.
+ */
+function headingText(html) {
+  return stripTags(String(html ?? '').replace(/<annotation[\s\S]*?<\/annotation>/g, '')).trim()
+}
+
+/**
  * Pull headings out of the page's own content — available during prerender.
+ *
+ * ⭐ FROM THE SEQUENCE THE PAGE IS DRAWN FROM, with the anchor it draws (`headingAnchor`), so an entry
+ * can't name an id the page doesn't have. ⛔ Until 2026-11-01 this worked from the raw nodes and made
+ * each id again, and the two disagreed: the characters of `<path>` in a heading read as an element and
+ * were dropped, an authored `{#id}` and a formula were left out, and on a page of error messages most
+ * of the rail led nowhere.
  *
  * In a section of its own type, skips the headings the semantic parser claimed
  * as the section's title/pretitle/subtitle. In this framework a `#>` label line
@@ -60,27 +74,28 @@ export function headingsFromContent(page, levels = [2, 3]) {
   const found = []
 
   for (const block of blocks) {
-    const nodes = block?.rawContent?.content
-    if (!Array.isArray(nodes)) continue
+    const parsed = block?.parsedContent
+    if (!Array.isArray(parsed?.sequence)) continue
 
     const namesNoType = block.type && block.type === block.website?.getDefaultBlockType?.()
-    const parsed = namesNoType ? {} : block.parsedContent || {}
     const claimed = new Set(
-      [parsed.title, parsed.pretitle, parsed.subtitle]
-        .flat()
-        .filter(Boolean)
-        .map(value => String(value).trim())
+      namesNoType
+        ? []
+        : [parsed.title, parsed.pretitle, parsed.subtitle]
+            .flat()
+            .filter(Boolean)
+            .map(value => String(value).trim())
     )
 
-    for (const node of nodes) {
-      if (node?.type !== 'heading') continue
-      const level = node.attrs?.level ?? 1
+    for (const element of parsed.sequence) {
+      // `<Render>` draws a `#>` label line as a paragraph, so it has no anchor.
+      if (element?.type !== 'heading' || element.attrs?.role === 'pretitle') continue
+      const level = element.level ?? 1
       if (!levels.includes(level)) continue
+      if (claimed.has(String(element.text ?? '').trim())) continue
 
-      const text = nodeText(node).trim()
-      if (!text || claimed.has(text)) continue
-
-      found.push({ id: headingId(text), text, level })
+      const text = headingText(element.text)
+      if (text) found.push({ id: headingAnchor(element), text, level })
     }
   }
 
