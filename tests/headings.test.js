@@ -97,7 +97,7 @@ describe('headingsFromContent', () => {
   const pageOf = (blocks) => ({ getBodyBlocks: () => blocks })
 
   it('lists the body headings of a plain document', () => {
-    // An untyped section: the parser claims nothing, so every heading counts.
+    // No title or subtitle, so the parser claims nothing, and every heading counts.
     const page = pageOf([
       {
         rawContent: { content: [heading(2, 'Prerequisites'), heading(3, 'Node'), heading(2, 'Install')] },
@@ -137,6 +137,22 @@ describe('headingsFromContent', () => {
     expect(headingsFromContent(page).map((h) => h.text)).toEqual([
       'Topics covered', 'Who is this for?',
     ])
+  })
+
+  it('counts every heading of a file that names no type, the `##` under its `#` too', () => {
+    // `# Install`, `## Homebrew`: the parser calls the second a subtitle, and the
+    // site's default section type draws it as a heading. Skipping it opened the
+    // rail at the page's second section.
+    const blockOf = (type) => ({
+      type,
+      website: { getDefaultBlockType: () => 'Section' },
+      rawContent: { content: [heading(1, 'Install'), heading(2, 'Homebrew'), heading(2, 'Windows')] },
+      parsedContent: { title: 'Install', subtitle: 'Homebrew' },
+    })
+
+    expect(headingsFromContent(pageOf([blockOf('Section')])).map((h) => h.text)).toEqual(['Homebrew', 'Windows'])
+    // A section of its own type draws its subtitle as one.
+    expect(headingsFromContent(pageOf([blockOf('Article')])).map((h) => h.text)).toEqual(['Windows'])
   })
 
   it('handles a multi-line title, which the parser gives as an array', () => {

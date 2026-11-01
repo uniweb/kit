@@ -42,13 +42,18 @@ import { useActiveRoute } from './useActiveRoute.js'
 /**
  * Pull headings out of the page's own content — available during prerender.
  *
- * Skips the headings the semantic parser claimed as the section's own
- * title/pretitle/subtitle. In this framework a `#>` label line is a pretitle
- * (as is a smaller ordinary heading above the title, the older spelling) and
- * the `##` after the title is a subtitle — structure, not body headings — so a
- * typed section would otherwise open every contents rail with two entries no
- * reader recognises as sections of the article. An untyped document has none of
- * those fields set, and everything in it counts.
+ * In a section of its own type, skips the headings the semantic parser claimed
+ * as the section's title/pretitle/subtitle. In this framework a `#>` label line
+ * is a pretitle (as is a smaller ordinary heading above the title, the older
+ * spelling) and the `##` after the title is a subtitle — structure, not body
+ * headings — so a typed section would otherwise open every contents rail with
+ * two entries no reader recognises as sections of the article.
+ *
+ * A file that names no type lands on the site's default section type, which
+ * draws it as written, so everything in it counts, the `##` straight under its
+ * `#` too. ⛔ Until 2026-11-01 this skipped the parser's fields there as well, on
+ * the belief that an untyped document has none. It has them: the rail of a page
+ * opening `# Install`, `## Homebrew` started at its second section.
  */
 export function headingsFromContent(page, levels = [2, 3]) {
   const blocks = page?.getBodyBlocks?.() ?? []
@@ -58,7 +63,8 @@ export function headingsFromContent(page, levels = [2, 3]) {
     const nodes = block?.rawContent?.content
     if (!Array.isArray(nodes)) continue
 
-    const parsed = block.parsedContent || {}
+    const namesNoType = block.type && block.type === block.website?.getDefaultBlockType?.()
+    const parsed = namesNoType ? {} : block.parsedContent || {}
     const claimed = new Set(
       [parsed.title, parsed.pretitle, parsed.subtitle]
         .flat()
