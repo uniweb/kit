@@ -7,6 +7,7 @@
  * decided whether a heading containing a link got a usable anchor at all.
  */
 
+import { Website } from '@uniweb/core'
 import { headingId, nodeText } from '../src/utils/index.js'
 import { headingsFromContent } from '../src/hooks/useHeadings.js'
 
@@ -153,6 +154,33 @@ describe('headingsFromContent', () => {
     expect(headingsFromContent(pageOf([blockOf('Section')])).map((h) => h.text)).toEqual(['Homebrew', 'Windows'])
     // A section of its own type draws its subtitle as one.
     expect(headingsFromContent(pageOf([blockOf('Article')])).map((h) => h.text)).toEqual(['Windows'])
+  })
+
+  it('holds on core\'s own objects, with the parser\'s own fields', () => {
+    const doc = {
+      type: 'doc',
+      content: [
+        heading(1, 'Install'),
+        heading(2, 'Homebrew'),
+        { type: 'paragraph', content: [{ type: 'text', text: 'Run it.' }] },
+        heading(2, 'Windows'),
+      ],
+    }
+    const website = new Website({
+      content: {
+        config: { name: 'T', defaultLanguage: 'en' },
+        pages: [
+          { route: '/plain', title: 'Plain', sections: [{ content: doc }] },
+          { route: '/typed', title: 'Typed', sections: [{ type: 'Article', content: doc }] },
+        ],
+      },
+      foundation: { default: {} },
+    })
+    const listed = (route) => headingsFromContent(website.pages.find((p) => p.route === route)).map((h) => h.text)
+
+    expect(website.pages.find((p) => p.route === '/plain').getBodyBlocks()[0].parsedContent.subtitle).toBe('Homebrew')
+    expect(listed('/plain')).toEqual(['Homebrew', 'Windows'])
+    expect(listed('/typed')).toEqual(['Windows'])
   })
 
   it('handles a multi-line title, which the parser gives as an array', () => {
