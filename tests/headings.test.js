@@ -15,6 +15,23 @@ describe('headingId', () => {
     expect(headingId('Getting Started')).toBe('getting-started')
   })
 
+  it('keeps a letter in any language', () => {
+    expect(headingId('Été 2026')).toBe('été-2026')
+    expect(headingId('Résumé des Résultats')).toBe('résumé-des-résultats')
+    expect(headingId('日本語の見出し')).toBe('日本語の見出し')
+    expect(headingId('Über uns: 3 Schritte')).toBe('über-uns-3-schritte')
+    expect(headingId('हिन्दी शीर्षक')).toBe('हिन्दी-शीर्षक')
+  })
+
+  it('gives one anchor however the text was typed', () => {
+    expect(headingId('Cafe\u0301 noir')).toBe(headingId('Caf\u00e9 noir'))
+  })
+
+  it('leaves a heading in plain English as it was', () => {
+    expect(headingId("It doesn't — matter")).toBe('it-doesn-t-matter')
+    expect(headingId('C++ & friends')).toBe('c-friends')
+  })
+
   it('strips markup before slugifying', () => {
     // The divergence between the two old generators. Render fed it plain text
     // and Prose fed it HTML, so only one of them stripped — and a heading with

@@ -257,13 +257,19 @@ export function nodeText(node) {
  * stripped markup first, which decided whether a heading containing a link got
  * a usable anchor.
  *
+ * A letter is a letter in any language, so `Été 2026` is `été-2026`, and a heading in Japanese
+ * has an anchor at all. ⛔ It used to keep only a-z and 0-9, which made `Été` the anchor `t` and left
+ * a heading with no such letter none. Marks stay too, or Hindi and Thai lose their vowels, and NFC
+ * makes one text one anchor however it was typed. A heading in plain English is unchanged.
+ *
  * @param {string} text - Heading text, plain or containing markup
  * @returns {string}
  */
 export function headingId(text) {
   return stripTags(String(text ?? ''))
+    .normalize('NFC')
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/[^\p{L}\p{M}\p{N}]+/gu, '-')
     .replace(/^-|-$/g, '')
 }
 
