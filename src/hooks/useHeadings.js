@@ -34,7 +34,7 @@
  * }
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { headingId, nodeText } from '../utils/index.js'
 import { useWebsite } from './useWebsite.js'
 import { useActiveRoute } from './useActiveRoute.js'
@@ -152,6 +152,12 @@ export function lengthInPx(value, rootFontSize = 16) {
  * sticky section), else the foundation's declared `--header-height` — plus a little room.
  * ⛔ Until 2026-10-20 the declared value was read with `parseInt`, so `4rem` — how the starter
  * templates declare it — offset 4px, not 64.
+ *
+ * ⛔ Read it each time, never once at mount. The runtime measures in the effect of the layout
+ * around this hook's component, and a parent's effect runs after its children's, so at mount the
+ * variable isn't there. It also moves when the header wraps. Until 2026-11-01 the highlight took it
+ * once, at mount: a heading had to pass 45px under a 65px header to count, and every click left
+ * the entry before it marked.
  */
 function headerOffset(explicit) {
   if (typeof explicit === 'number') return explicit
@@ -162,6 +168,56 @@ function headerOffset(explicit) {
   const stuck = root.getPropertyValue('--uw-sticky-top').trim()
   const reach = stuck ? lengthInPx(stuck, rootFontSize) : lengthInPx(root.getPropertyValue('--header-height'), rootFontSize)
   return reach + 16
+}
+
+// How long the page has to stand still to count as at rest. A smooth scroll moves every frame.
+const REST_MS = 200
+
+/**
+ * Which heading a reader at `scrollY` is level with: the last to have come up to the line under
+ * the header.
+ *
+ * A page usually ends before its last headings can get there, since its last section is shorter
+ * than the window, and they would never be marked. So over the last stretch of scrolling the line
+ * comes down the screen, and reaches the last heading where the page ends. Each heading gets its
+ * turn, in order, whatever the page's length.
+ *
+ * @param {Array<{ id: string, top: number }>} positions - the headings in order, each with its
+ *   distance from the top of the page
+ * @param {Object} at
+ * @param {number} at.scrollY - how far the page is scrolled
+ * @param {number} at.room - how far it can scroll
+ * @param {number} at.gap - how far below the window's top the line sits
+ * @returns {string} the heading's id, the first heading's until one has come up; '' with none
+ */
+export function headingAt(positions, { scrollY, room, gap }) {
+  if (!positions.length) return ''
+
+  const short = positions[positions.length - 1].top - (room + gap)
+  const stretch = Math.min(short, room)
+  const into = scrollY - (room - stretch)
+  const line = scrollY + gap + 4 + (stretch > 0 && into > 0 ? (short * into) / stretch : 0)
+
+  let current = positions[0].id
+  for (const { id, top } of positions) {
+    if (top <= line) current = id
+  }
+  return current
+}
+
+/**
+ * Hold a heading the reader asked for until the page has come to rest, wherever that is: a page
+ * that ends early stops short of the line, and what the page does on the way is not the reader's.
+ * Each scroll on the way starts the wait again. Where it rests is `rest`, and a move from there
+ * is the reader's own.
+ */
+function holdUntilRest(asked) {
+  clearTimeout(asked.current?.timer)
+  const hold = { rest: null }
+  hold.timer = setTimeout(() => {
+    hold.rest = window.scrollY
+  }, REST_MS)
+  asked.current = hold
 }
 
 /**
@@ -179,6 +235,8 @@ export function useHeadings({ levels = [2, 3], root = 'main', offset } = {}) {
   const { route } = useActiveRoute()
   const [domHeadings, setDomHeadings] = useState(null)
   const [activeId, setActiveId] = useState('')
+  // The hold on a heading the reader asked for (`holdUntilRest`), while it stays marked.
+  const asked = useRef(null)
 
   // The content path runs during render, so it is available server-side.
   const contentHeadings = useMemo(
@@ -207,28 +265,58 @@ export function useHeadings({ levels = [2, 3], root = 'main', offset } = {}) {
   useEffect(() => {
     if (!flat.length || typeof window === 'undefined') return
 
-    const gap = headerOffset(offset)
-
     function onScroll() {
-      const line = window.scrollY + gap + 4
-      let current = ''
+      // A heading the reader asked for stays marked until they move the page on from it (a pixel
+      // of give, for a page resting between two pixels).
+      if (asked.current) {
+        if (asked.current.rest === null) return holdUntilRest(asked)
+        if (Math.abs(window.scrollY - asked.current.rest) <= 1) return
+        asked.current = null
+      }
+
+      const positions = []
       for (const { id } of flat) {
         const el = document.getElementById(id)
-        if (el && el.getBoundingClientRect().top + window.scrollY <= line) current = id
+        if (el) positions.push({ id, top: el.getBoundingClientRect().top + window.scrollY })
       }
-      setActiveId(current || flat[0].id)
+      setActiveId(
+        headingAt(positions, {
+          scrollY: window.scrollY,
+          room: document.documentElement.scrollHeight - window.innerHeight,
+          gap: headerOffset(offset),
+        }) || flat[0].id
+      )
     }
 
+    // A frame on, so the layout around this component has measured its header (`headerOffset`).
+    // The address may name a heading, and the browser and the runtime are taking the page there.
+    // ⛔ Not `:target`: the browser renders over the prerendered page, so that element is gone.
+    const frame = requestAnimationFrame(() => {
+      const hash = window.location.hash.slice(1)
+      const named = hash && flat.find(({ id }) => encodeURI(id) === hash)
+      if (named) {
+        holdUntilRest(asked)
+        setActiveId(named.id)
+      } else {
+        onScroll()
+      }
+    })
     window.addEventListener('scroll', onScroll, { passive: true })
-    onScroll()
-    return () => window.removeEventListener('scroll', onScroll)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', onScroll)
+      clearTimeout(asked.current?.timer)
+      asked.current = null
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [flat.map(h => h.id).join(), offset])
+  }, [route, flat.map(h => h.id).join(), offset])
 
   const scrollTo = useCallback(
     id => {
       const el = typeof document !== 'undefined' && document.getElementById(id)
       if (!el) return
+      holdUntilRest(asked)
+      setActiveId(id)
       window.scrollTo({
         top: el.getBoundingClientRect().top + window.scrollY - headerOffset(offset),
         behavior: 'smooth',
