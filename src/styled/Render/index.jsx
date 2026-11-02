@@ -228,8 +228,17 @@ function renderParagraphWithInsets(html, block, element) {
       // was drawn nowhere.
       const picture = pictures[Number(pictureIndex)]
       if (picture) {
-        const { url, src, alt, caption } = picture.attrs || {}
-        parts.push(<Image key={`im${pictureIndex}`} src={url || src} alt={alt || caption || ''} />)
+        const { url, src, alt, caption, width, height, loading } = picture.attrs || {}
+        parts.push(
+          <Image
+            key={`im${pictureIndex}`}
+            src={url || src}
+            alt={alt || caption || ''}
+            width={width}
+            height={height}
+            loading={loading}
+          />
+        )
       }
     }
 
@@ -406,11 +415,14 @@ export function SequenceElement({ element, block, components }) {
     // The caption line holds the caption and the image's author — its credit —
     // as a document's holds its author and description.
     case 'image': {
-      const { url, src, alt, caption, author, role } = element.attrs || {}
+      const { url, src, alt, caption, author, role, width, height, loading } = element.attrs || {}
       if (role === 'icon') return <Icon {...element.attrs} />
       return (
         <figure id={authoredId(element)} data-placement={placementOf(element)}>
-          <Image src={url || src} alt={alt || caption || ''} />
+          {/* The size holds the picture's place on the page while its file loads. ⛔ Until
+              2026-11-02 only `<Visual>` passed it on, so what's under a picture in a page's
+              body jumped when the file arrived, whatever its author wrote. */}
+          <Image src={url || src} alt={alt || caption || ''} width={width} height={height} loading={loading} />
           {(caption || author) && (
             <figcaption>
               {caption}
