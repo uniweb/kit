@@ -115,3 +115,16 @@
   /* Context-aware accent color (light: accent-600, dark: accent-400) */
   --color-accent: var(--accent);
 }
+
+/*
+ * A word wider than its box breaks, rather than pan the whole page sideways. The usual one is a
+ * heading on a phone: "Troubleshooting" at 3rem, or a German compound. This only touches a word
+ * that can't fit otherwise, and `break-word` leaves a box's minimum width alone, so columns and
+ * table cells size as they did. `whitespace-nowrap`, `truncate` and code blocks don't wrap at all,
+ * so it doesn't reach them.
+ */
+@layer base {
+  html {
+    overflow-wrap: break-word;
+  }
+}
