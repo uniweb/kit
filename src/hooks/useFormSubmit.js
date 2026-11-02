@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
+import { getUniweb } from '@uniweb/core'
 import { submitForm } from '../utils/submitForm.js'
 import { resolveSubmitTarget } from '../utils/submitTarget.js'
 import { useWebsite } from './useWebsite.js'
@@ -57,7 +58,7 @@ export function useFormSubmit(defaults = {}) {
   const [response, setResponse] = useState(null)
 
   const { website } = useWebsite()
-  const { url: target } = resolveSubmitTarget(website)
+  const { url: target, source } = resolveSubmitTarget(website)
 
   // `defaults` is a fresh object every render, so listing it as a dependency
   // would rebuild the callback on each one. A ref is what actually makes "the
@@ -87,6 +88,9 @@ export function useFormSubmit(defaults = {}) {
         }
 
         const result = await submitForm(merged)
+        // A host's own submit address counts what it accepts, so reporting it here
+        // too would count it twice. Anywhere else, only this code knows it was accepted.
+        if (source !== 'host') reportAccepted(merged.context.formId)
         setStatus('success')
         setResponse(result)
         return result
@@ -96,7 +100,7 @@ export function useFormSubmit(defaults = {}) {
         throw err
       }
     },
-    [target],
+    [target, source],
   )
 
   const reset = useCallback(() => {
@@ -126,6 +130,20 @@ export function useFormSubmit(defaults = {}) {
     canUploadFiles: !!target,
     submit,
     reset,
+  }
+}
+
+/**
+ * Report a form the site's own provider accepted, as a conversion — with no code in the
+ * foundation. Automatic, so it asks `arms` as the runtime's automatic events do: a site's
+ * `emit` and its host's list both apply. Only the name crosses the wire, never a field.
+ *
+ * @param {string} [formId] - the foundation's own id for the form
+ */
+function reportAccepted(formId) {
+  const tracking = getUniweb()?.tracking
+  if (tracking?.arms?.('conversion')) {
+    tracking.track('conversion', { name: formId ? `form_${formId}` : 'form' })
   }
 }
 

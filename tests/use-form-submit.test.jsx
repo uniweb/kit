@@ -291,4 +291,56 @@ describe('useFormSubmit — file uploads', () => {
     expect(result.current.canSubmit).toBe(false)
     expect(result.current.canUploadFiles).toBe(false)
   })
+
+  describe('reporting an accepted form', () => {
+    const tracking = (selected = true) => ({ arms: vi.fn((event) => selected && event === 'conversion'), track: vi.fn() })
+
+    const send = async ({ website, options = {} }, tracker) => {
+      globalThis.uniweb = { activeWebsite: website, routingComponents: {}, tracking: tracker }
+      const { result } = renderHook(() => useFormSubmit({ fetchFn: fakeFetch(), ...options }))
+      await act(async () => { await result.current.submit({ Name: 'Ada', Email: 'ada@example.com' }) })
+    }
+
+    it('reports a conversion for a form the site\'s own provider accepted', async () => {
+      const tracker = tracking()
+      await send({ website: makeWebsite({ submit: 'https://forms.test/f' }) }, tracker)
+      expect(tracker.track.mock.calls).toEqual([['conversion', { name: 'form' }]])
+    })
+
+    it('names it by the foundation\'s form id, and sends no field', async () => {
+      const tracker = tracking()
+      await send(
+        { website: makeWebsite({ submit: '/forms' }), options: { context: { formId: 'contact' } } },
+        tracker
+      )
+      expect(tracker.track.mock.calls).toEqual([['conversion', { name: 'form_contact' }]])
+      expect(JSON.stringify(tracker.track.mock.calls)).not.toContain('ada@example.com')
+    })
+
+    it('reports nothing for a host\'s submit address, which counts what it accepts', async () => {
+      const tracker = tracking()
+      const website = { basePath: '', config: { services: { submit: { endpoint: '/_submit' } } } }
+      await send({ website }, tracker)
+      expect(tracker.track).not.toHaveBeenCalled()
+    })
+
+    it('reports nothing when the event is not armed', async () => {
+      const tracker = tracking(false)
+      await send({ website: makeWebsite({ submit: '/forms' }) }, tracker)
+      expect(tracker.track).not.toHaveBeenCalled()
+    })
+
+    it('reports nothing for a refused form', async () => {
+      const tracker = tracking()
+      globalThis.uniweb = { activeWebsite: makeWebsite({ submit: '/forms' }), routingComponents: {}, tracking: tracker }
+      const fetchFn = async () => ({ ok: false, status: 422, json: async () => ({ error: 'no' }), text: async () => 'no' })
+      const { result } = renderHook(() => useFormSubmit({ fetchFn }))
+      await act(async () => { await result.current.submit({ Name: 'Ada' }).catch(() => {}) })
+      expect(tracker.track).not.toHaveBeenCalled()
+    })
+
+    it('does nothing on a site with no tracker', async () => {
+      await expect(send({ website: makeWebsite({ submit: '/forms' }) }, undefined)).resolves.toBeUndefined()
+    })
+  })
 })
