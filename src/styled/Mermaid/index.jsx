@@ -32,8 +32,9 @@
  * Read from the section's tokens where the diagram sits, so it follows `theme.yml`,
  * the section's context and the visitor's scheme, and is drawn again when the
  * scheme changes. An image can't inherit CSS variables, and Mermaid's theme reads
- * only hex, which is why they are resolved here. A diagram's own `%%{init}%%` still
- * wins, as an author asking for it would expect.
+ * only hex, which is why they are resolved here. A diagram can still choose its own:
+ * a `classDef` for its nodes, or a `%%{init}%%` that names a theme. Mermaid ignores
+ * `themeVariables` there unless the line names a theme too (all measured).
  *
  * The labels use the system's font: a picture can't reach a site's web fonts, and
  * the engine must measure the font that will show. See `./sandbox.js` for why the
