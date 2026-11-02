@@ -198,6 +198,15 @@ describe('resolveRoute — locale', () => {
     expect(resolveRoute('/about', makeLocalizedWebsite())).toBe('/es/about')
   })
 
+  it('leaves a file alone, whatever its extension', () => {
+    expect(resolveRoute('/records/glossary.md', makeLocalizedWebsite())).toBe('/records/glossary.md')
+    expect(resolveRoute('/records/route.geojson', makeLocalizedWebsite())).toBe('/records/route.geojson')
+  })
+
+  it('prefixes the folder of a version, which is a page', () => {
+    expect(resolveRoute('/docs/v2.1', makeLocalizedWebsite())).toBe('/es/docs/v2.1')
+  })
+
   it('translates the slug before prefixing', () => {
     const site = makeLocalizedWebsite({ routes: { '/about': '/acerca-de' } })
 

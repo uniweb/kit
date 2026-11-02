@@ -52,7 +52,7 @@ export function isExternalUrl(url) {
   return false
 }
 
-// Extensions that mark an href as a file rather than a page route.
+// Extensions that mark any URL as a file. On another site, only these do.
 const FILE_EXTENSIONS = [
   '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
   '.zip', '.rar', '.7z', '.tar', '.gz',
@@ -62,14 +62,37 @@ const FILE_EXTENSIONS = [
   '.txt', '.csv', '.json', '.xml'
 ]
 
+// A path on this site that ends in one of these is a page some other way.
+const PAGE_EXTENSIONS = ['.html', '.htm']
+
 /**
- * Check if a URL points to a downloadable file
+ * What a URL's last segment ends in, in lower case, with its query and fragment aside: `.pdf`, or ''.
+ * It starts with a letter, or the folder of a version like `/docs/v2.1` would have one.
+ */
+function extensionOf(url) {
+  const path = url.split(/[?#]/)[0]
+  const match = /\.[a-z][a-z0-9]*$/i.exec(path.slice(path.lastIndexOf('/') + 1))
+  return match ? match[0].toLowerCase() : ''
+}
+
+/**
+ * Check if a URL points to a downloadable file.
+ *
+ * ⭐ A path on this site that ends in an extension is a file, whichever one: a site's records and
+ * `public/` hold whatever their authors put there, and a route has no extension. ⛔ Until 2026-11-02
+ * only the list counted, so a link to `/records/glossary.md` read as a page, and on a French page
+ * took a locale prefix to a path that doesn't exist: `.md`, `.yml` and `.geojson` all did.
+ *
+ * On another site the list decides, since `/wiki/Node.js` and `/index.php` are pages there.
+ *
  * @param {string} url
  * @returns {boolean}
  */
 export function isFileUrl(url) {
   if (!url || typeof url !== 'string') return false
 
-  const lowerUrl = url.toLowerCase()
-  return FILE_EXTENSIONS.some(ext => lowerUrl.includes(ext))
+  const extension = extensionOf(url)
+  if (!extension) return false
+  if (FILE_EXTENSIONS.includes(extension)) return true
+  return /^\/(?!\/)/.test(url) && !PAGE_EXTENSIONS.includes(extension)
 }

@@ -109,4 +109,36 @@ describe('isFileUrl', () => {
     expect(isFileUrl('/about')).toBe(false)
     expect(isFileUrl('/blog/my-post')).toBe(false)
   })
+
+  it('a path on this site that ends in any extension is a file', () => {
+    expect(isFileUrl('/records/uniweb/file/glossary.md')).toBe(true)
+    expect(isFileUrl('/records/uniweb/file/route.geojson')).toBe(true)
+    expect(isFileUrl('/records/uniweb/file/map-style.yml?v=2')).toBe(true)
+    expect(isFileUrl('/files/ATTENDEE-SHEET.PDF#page=2')).toBe(true)
+  })
+
+  it('reads the extension where it is, not anywhere in the URL', () => {
+    expect(isFileUrl('/guides/report.pdf-notes')).toBe(false)
+    expect(isFileUrl('/guides/report.pdf/notes')).toBe(false)
+    expect(isFileUrl('/data.json/')).toBe(false)
+  })
+
+  it('a folder of a version is a route', () => {
+    expect(isFileUrl('/docs/v2.1')).toBe(false)
+    expect(isFileUrl('/docs/v2.1/guide')).toBe(false)
+  })
+
+  it('a page written with its own extension stays a page', () => {
+    expect(isFileUrl('/legal/terms.html')).toBe(false)
+    expect(isFileUrl('/legal/terms.htm')).toBe(false)
+  })
+
+  it('on another site, only the list says file', () => {
+    expect(isFileUrl('https://example.com/report.pdf')).toBe(true)
+    expect(isFileUrl('//example.com/report.pdf')).toBe(true)
+    expect(isFileUrl('https://en.wikipedia.org/wiki/Node.js')).toBe(false)
+    expect(isFileUrl('https://example.com/index.php')).toBe(false)
+    expect(isFileUrl('https://example.com')).toBe(false)
+    expect(isFileUrl('//example.com/notes.md')).toBe(false)
+  })
 })
