@@ -108,7 +108,7 @@ export function Image({
     href,
     rounded,
     filter,
-    loading = "lazy",
+    loading,
     className,
     ariaHidden,
     onError,
@@ -121,13 +121,17 @@ export function Image({
     let resolvedSrc = src || url || "";
     let resolvedAlt = alt;
 
-    // Handle value as direct source
+    // Handle value as direct source. ⭐ An image from content brings what its author wrote or a host
+    // filled in: the size holds its place on the page while its file loads. ⛔ Until 2026-11-02 only its
+    // address and alt text were read, so a section drawing `<Image value={image} />` held no place.
+    let authored = null;
     if (!resolvedSrc && value) {
         if (typeof value === "string") {
             resolvedSrc = value;
         } else if (value.url || value.src) {
             resolvedSrc = value.url || value.src;
             resolvedAlt = value.alt || resolvedAlt;
+            authored = value;
         }
     }
 
@@ -171,7 +175,9 @@ export function Image({
         <img
             src={resolvedSrc}
             alt={resolvedAlt}
-            loading={loading}
+            width={authored?.width}
+            height={authored?.height}
+            loading={loading ?? authored?.loading ?? "lazy"}
             className={imageClasses}
             style={filterStyle ? { filter: filterStyle } : undefined}
             onError={handleError}
