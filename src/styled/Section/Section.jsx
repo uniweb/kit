@@ -56,6 +56,7 @@ const PADDING_CLASSES = {
  * @param {string} [props.padding='lg'] - Vertical padding: none, sm, md, lg, xl
  * @param {string} [props.as='section'] - HTML element to render as
  * @param {string} [props.className] - Additional CSS classes
+ * @param {Object} [props.components] - Per-element-type renderer overrides, for the content it renders
  * @param {React.ReactNode} [props.children] - Child elements
  *
  * @example
@@ -75,6 +76,7 @@ export function Section({
   padding = 'lg',
   as: Component = 'section',
   className,
+  components,
   children,
   ...props
 }) {
@@ -123,7 +125,7 @@ export function Section({
               plugin (2026-10-19) a palette modifier does nothing — the colors are
               the section's theme tokens — so there is nothing to add here.
             */}
-            {children || <Prose content={resolvedContent} />}
+            {children || <Prose content={resolvedContent} components={components} />}
           </div>
         )}
       </div>
