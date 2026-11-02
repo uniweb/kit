@@ -163,6 +163,7 @@ export { Disclaimer } from './styled/Disclaimer/index.js'
 export { Visual } from './styled/Visual/index.jsx'
 export { ChildGrid } from './styled/ChildGrid/index.jsx'
 export { Scene } from './styled/Scene/index.jsx'
+export { Mermaid } from './styled/Mermaid/index.jsx'
 
 // ============================================================================
 // Search

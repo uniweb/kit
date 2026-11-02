@@ -93,8 +93,11 @@ export const DEFAULT_SHIKI_BASE = 'https://cdn.jsdelivr.net/npm'
  *
  * Read per call rather than cached: it is a property of the site being
  * rendered, and one module instance can outlive one site in a dev server.
+ *
+ * It is where kit reads an npm package it doesn't bundle, so `<Mermaid>`'s
+ * engine comes from the same base (`../../Mermaid/sandbox.js`).
  */
-function corpusBase() {
+export function corpusBase() {
   try {
     const declared = getUniweb()?.activeWebsite?.config?.syntax?.cdnUrl
     if (typeof declared === 'string' && declared.trim()) {

@@ -45,6 +45,9 @@ export { Visual } from './Visual/index.jsx'
 // ChildGrid - A section's child sections in the columns its `grid:` chose
 export { ChildGrid } from './ChildGrid/index.jsx'
 
+// Mermaid - A diagram drawn from its source, in a sandboxed frame
+export { Mermaid } from './Mermaid/index.jsx'
+
 // Media - Video player with styled play button facade
 export { Media } from './Media/index.js'
 

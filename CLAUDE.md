@@ -43,6 +43,7 @@ src/components/Image/
   `@tailwindcss/typography` and re-pointed its colors; that dependency is gone.*
 - `temml` — **CSS only.** `math-tokens.css` does `@import "temml/dist/Temml-Local.css"`; kit never imports Temml's JS
 - React 19 as peer dependency
+- `mermaid` — **not a dependency, and nothing imports it.** `<Mermaid>` runs one exact release, from the same CDN base as Shiki's grammars, inside a sandboxed frame (`src/styled/Mermaid/sandbox.js`, which says why). Keep it out of `package.json`: it's 122 MB to install, and bundled it adds about 60 files and 5 MB to every release of a foundation that uses it
 
 **`shiki` and `temml` are direct dependencies on purpose, not peers.** Kit is bundled *into* a foundation by that foundation's Vite build, so kit's own imports have to resolve from the foundation's `node_modules`. Declaring them as peers would leave them absent there. They stay lazy-loaded and code-split — direct just means resolvable. See the framework scope's gotcha on the foundation/site build architecture.
 

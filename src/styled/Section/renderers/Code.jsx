@@ -465,8 +465,10 @@ export function CodeBlock({ content, lang, colors, highlighted, className, ...pr
  * @param {string} props.content - Code content
  * @param {string} [props.language='plaintext'] - Programming language
  * @param {string} [props.className] - Additional CSS classes, on the <pre>
+ * @param {boolean} [props.highlight=true] - Set it false to draw the code as plain text, loading
+ *   no highlighter: for a block that stands only until something replaces it
  */
-export function Code({ content = '', language = 'plaintext', className, ...props }) {
+export function Code({ content = '', language = 'plaintext', className, highlight: highlighting = true, ...props }) {
   const [highlighted, setHighlighted] = useState(null)
 
   // Get theme from website context (getUniweb is a regular function, not a hook)
@@ -500,6 +502,8 @@ export function Code({ content = '', language = 'plaintext', className, ...props
 
   // Load Shiki and highlight code
   useEffect(() => {
+    if (!highlighting) return
+
     let cancelled = false
 
     async function highlight() {
@@ -520,7 +524,7 @@ export function Code({ content = '', language = 'plaintext', className, ...props
     return () => {
       cancelled = true
     }
-  }, [content, lang, codeTheme])
+  }, [content, lang, codeTheme, highlighting])
 
   // Tokens made for other text — the content changed and its own are on their
   // way — are not drawn: the block shows its text until they arrive.

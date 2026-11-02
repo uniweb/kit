@@ -62,9 +62,21 @@ const SIZE_CLASSES = {
  * <Prose content={content} block={block} components={{ concept_block: Faq }} />
  *
  * @example
- * // Access data blocks separately — they are deliberately not rendered
+ * // A fence by its language: everything else stays kit's
+ * function CodeBlock({ element: { text, attrs } }) {
+ *   return attrs?.language === 'mermaid'
+ *     ? <Mermaid source={text} />
+ *     : <Code content={text} language={attrs?.language} />
+ * }
+ * <Prose content={content} block={block} components={{ codeBlock: CodeBlock }} />
+ *
+ * @example
+ * // Data blocks aren't drawn by default: read one, or draw it where the author put it
  * <Prose content={content} block={block} />
  * {content.data.quiz && <Quiz data={content.data.quiz} />}
+ * <Prose content={content} block={block} components={{
+ *   dataBlock: ({ element }) => (element.tag === 'quiz' ? <Quiz data={element.data} /> : null),
+ * }} />
  *
  * @example
  * // Pure typography wrapper

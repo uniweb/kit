@@ -91,7 +91,8 @@ function hasInlineMarkers(html) {
  */
 export const NOT_RENDERED = {
   dataBlock:
-    'structured data, not prose — a component reads it from content.data[tag]',
+    'structured data, not prose — a component reads it from content.data[tag], ' +
+    'or draws it where the author put it with `components={{ dataBlock }}`',
   inset_ref:
     'the stored form of a leaf inset (`![](@Component)`, `[@key]`, `[#id]`). ' +
     '@uniweb/core lifts it when it builds a Block — a placeholder in place, a ' +
