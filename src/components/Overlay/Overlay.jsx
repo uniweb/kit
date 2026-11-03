@@ -3,21 +3,17 @@
  *
  * ## Why this exists (it is not "a portal wrapper")
  *
- * The runtime gives every layout area its own `view-transition-name` so the
- * browser can animate header and sidebars on their own instead of crossfading
- * the whole page. That is on by default.
+ * The runtime stacks every layout area on one layer above the body, so chrome
+ * paints over content. That layer makes an area's wrapper **a stacking context**,
+ * and the body's wrapper is one too. It bites the most ordinary thing a foundation
+ * builds: a modal opened from the header.
  *
- * A `view-transition-name` makes the element **a stacking context**, the body's
- * wrapper is one too, and the runtime stacks every area on one layer above the
- * body. That bites the most ordinary thing a foundation builds: a modal opened
- * from the header.
- *
- *   div[view-transition-name: uw-header]     ← area wrapper, z-index: 1
+ *   div[position: relative; z-index: 1]      ← the header's wrapper
  *     └ div.fixed.inset-0.z-[100]            ← your modal
  *   div[isolation: isolate]                  ← the body, unlayered
- *   div[view-transition-name: uw-footer]     ← sibling area, z-index: 1
+ *   div[position: relative; z-index: 1]      ← the footer's wrapper
  *
- * The modal's `z-index: 100` is scoped *inside* `uw-header`. It paints over
+ * The modal's `z-index: 100` is scoped *inside* the header's wrapper. It paints over
  * the body, and under the footer, which shares the header's layer and comes
  * later in the DOM — and a modal opened from a body section paints under every
  * area. No z-index a foundation can write will lift the modal above them,
