@@ -11,7 +11,6 @@
 import React, { useCallback, forwardRef, useImperativeHandle } from 'react'
 import { cn } from '../../utils/index.js'
 import { FileLogo } from '../FileLogo/index.js'
-import { useWebsite } from '../../hooks/useWebsite.js'
 
 /**
  * Asset - File download component (plain/unstyled)
@@ -37,7 +36,6 @@ export const Asset = forwardRef(function Asset(
   { value, showIcon = true, iconSize = '24', className, iconClassName, children, ...props },
   ref
 ) {
-  const { localize } = useWebsite()
 
   // Resolve asset info
   let src = ''
@@ -87,10 +85,7 @@ export const Asset = forwardRef(function Asset(
       href={src}
       onClick={handleDownload}
       className={cn('inline-flex items-center gap-2', className)}
-      title={localize({
-        en: `Download ${filename}`,
-        fr: `Télécharger ${filename}`
-      })}
+      title={filename}
       {...props}
     >
       {showIcon && (

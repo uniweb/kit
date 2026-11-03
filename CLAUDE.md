@@ -29,6 +29,12 @@ src/components/Image/
   index.js     # Re-export
 ```
 
+## Kit brings no words
+
+Kit is bundled into foundations for sites in any language and knows none of them, so a word in kit is English on a site in Korean. Prefer what needs none: a role, a symbol, what the author wrote. Where a word would help, take it as a prop with no default, and let the foundation decide where it comes from. Some foundations are made for one site and know their words, and others read them from content.
+
+`tests/no-forced-words.test.js` enforces it. The escape is `kit-words-ok: <why>` in a comment just above, for text that reads the same in every language (a service's name) or that no visitor meets (what an operator reads). An `Error`'s message is for a developer. `src/xref/styles.js` is a different thing: named typographic styles a document picks and overrides, as with a citation style.
+
 ## Dependencies
 
 - `@uniweb/core`, `@uniweb/semantic-parser`, `@uniweb/scene`, `@uniweb/schemas`, `@uniweb/projections` — sibling packages, referenced as `workspace:~` (resolved from the monorepo during development; pnpm writes a tilde range of the real version at publish). ⛔ *This said `workspace:*` and named three of the five until 2026-10-15; `package.json` is the list.*

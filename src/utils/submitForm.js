@@ -317,6 +317,7 @@ export function deriveSummary(data) {
     ([, v]) => typeof v === 'string' && v.trim().length > 0,
   )
   return {
+    // kit-words-ok: what a site's operator reads in the list of submissions, never a visitor
     title: entries[0]?.[1] || 'Submission',
     subtitle: entries[1]?.[1] || '',
   }

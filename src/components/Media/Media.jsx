@@ -52,7 +52,8 @@ function YouTubePlayer({ videoId, autoplay, muted, loop, className }) {
             className={className}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
-            title="YouTube video"
+            // kit-words-ok: a service's name, the same in every language
+            title="YouTube"
         />
     );
 }
@@ -74,7 +75,8 @@ function VimeoPlayer({ videoId, autoplay, muted, loop, className }) {
             className={className}
             allow="autoplay; fullscreen; picture-in-picture"
             allowFullScreen
-            title="Vimeo video"
+            // kit-words-ok: a service's name, the same in every language
+            title="Vimeo"
         />
     );
 }

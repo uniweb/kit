@@ -10,7 +10,6 @@ import React, { useState, useCallback, forwardRef, useImperativeHandle } from 'r
 import { cn } from '../../utils/index.js'
 import { FileLogo } from '../../components/FileLogo/index.js'
 import { Image } from '../../components/Image/index.js'
-import { useWebsite } from '../../hooks/useWebsite.js'
 
 /**
  * Check if file is an image
@@ -38,10 +37,9 @@ function isImageFile(filename) {
  * <Asset value={{ src: "/files/report.pdf", filename: "report.pdf" }} />
  */
 export const Asset = forwardRef(function Asset(
-  { value, withDownload = true, className, ...props },
+  { value, withDownload = true, downloadLabel, className, ...props },
   ref
 ) {
-  const { localize } = useWebsite()
   const [imageError, setImageError] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
 
@@ -136,10 +134,7 @@ export const Asset = forwardRef(function Asset(
             'bg-black/50 text-white transition-opacity',
             isHovered ? 'opacity-100' : 'opacity-0'
           )}
-          aria-label={localize({
-            en: 'Download file',
-            fr: 'Télécharger le fichier'
-          })}
+          aria-label={downloadLabel || filename || undefined}
         >
           <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />

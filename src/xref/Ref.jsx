@@ -110,7 +110,7 @@ export function Ref({ params, block }) {
 
     const ids = splitKeys(params?.key)
     if (ids.length === 0) {
-        return <span className="xref xref--missing" title="No id">[?]</span>
+        return <span className="xref xref--missing">[?]</span>
     }
 
     const resolved = ids.map((id) => {
@@ -120,7 +120,7 @@ export function Ref({ params, block }) {
 
     if (resolved.length === 1 && resolved[0].missing) {
         return (
-            <span className="xref xref--missing" title={`Missing label: ${resolved[0].id}`}>
+            <span className="xref xref--missing">
                 [?{resolved[0].id}]
             </span>
         )

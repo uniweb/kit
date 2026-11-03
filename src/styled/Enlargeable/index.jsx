@@ -22,22 +22,41 @@
  * The same bytes opened as a document, in a new tab or from a `blob:` address, would run whatever is
  * in them as this site. That rules out the simplest version of this feature.
  *
+ * ⭐ **It says nothing of its own.** The button and the open picture are named by what the author
+ * wrote, in the page's language: the picture's alt text, or the heading above it when that alt is a
+ * diagram's source (`nameOf`). `aria-haspopup` tells a screen reader what the button does, in its
+ * reader's language. The close button is a `×`. With no alt and no heading there is nothing to name
+ * the button by, so it stays a target for a pointer and out of the way of everything else.
+ *
  * Overlay owns Escape, a click on the scrim, the scroll lock and focus. Its portal leaves the
  * section behind, and with it the tokens the picture was drawn for, so the ground comes along.
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { getUniweb } from '@uniweb/core'
 import { Overlay } from '../../components/Overlay/index.js'
 import { enlargedWidth } from './size.js'
 
 /** The room left around the picture, and Overlay's `p-4`. */
 const GUTTER = 16
 
-const LABELS = {
-  enlarge: { en: 'Enlarge', fr: 'Agrandir' },
-  enlarged: { en: 'Enlarged picture', fr: 'Image agrandie' },
-  close: { en: 'Close', fr: 'Fermer' },
+/** An alt longer than this, or on several lines, is a diagram's source and not a name. */
+const LONGEST_NAME = 150
+
+/**
+ * What to call a picture, from what its author wrote.
+ *
+ * @param {HTMLImageElement} img
+ * @returns {string} its alt, or the heading above it when the alt won't do, or nothing
+ */
+function nameOf(img) {
+  const alt = img.alt.trim()
+  if (alt && alt.length <= LONGEST_NAME && !alt.includes('\n')) return alt
+  let above = null
+  for (const heading of document.querySelectorAll('h1, h2, h3, h4, h5, h6')) {
+    if (!(heading.compareDocumentPosition(img) & Node.DOCUMENT_POSITION_FOLLOWING)) break
+    above = heading
+  }
+  return above?.textContent.trim() || alt
 }
 
 function windowRoom() {
@@ -53,17 +72,13 @@ function windowRoom() {
  * @param {number} [props.minScale] - the smallest it opens at, against its own size, for a picture
  *   with words in it. Past that the reader scrolls. Without it, a picture fits the window
  * @param {boolean} [props.disabled] - draw the picture and offer nothing
- * @param {{enlarge?: string, enlarged?: string, close?: string}} [props.labels] - what the button, the
- *   open picture and its close button are called, for a language kit doesn't say them in
  * @param {string} [props.className]
  * @param {Object} [props.style]
  */
-export function Enlargeable({ children, minScale, disabled, labels, className, style, ...props }) {
+export function Enlargeable({ children, minScale, disabled, className, style, ...props }) {
   const box = useRef(null)
   const [offer, setOffer] = useState(null)
   const [opened, setOpened] = useState(null)
-
-  const say = (name) => labels?.[name] || getUniweb()?.activeWebsite?.localize?.(LABELS[name], LABELS[name].en) || LABELS[name].en
 
   const measure = useCallback(() => {
     const img = box.current?.querySelector('img')
@@ -87,7 +102,8 @@ export function Enlargeable({ children, minScale, disabled, labels, className, s
     const outer = box.current.getBoundingClientRect()
     const top = Math.round(shown.top - outer.top)
     const right = Math.round(outer.right - shown.right)
-    setOffer((was) => (was?.width === width && was.top === top && was.right === right ? was : { width, top, right }))
+    const name = nameOf(img)
+    setOffer((was) => (was?.width === width && was.top === top && was.right === right && was.name === name ? was : { width, top, right, name }))
   }, [disabled, minScale])
 
   useEffect(() => {
@@ -107,8 +123,10 @@ export function Enlargeable({ children, minScale, disabled, labels, className, s
     setOpened({
       src: img.currentSrc || img.src,
       alt: img.alt,
+      name: nameOf(img),
       naturalWidth: img.naturalWidth,
       naturalHeight: img.naturalHeight,
+      // kit-words-ok: a CSS system colour
       ground: getComputedStyle(box.current).getPropertyValue('--section').trim() || 'Canvas',
     })
   }
@@ -141,8 +159,8 @@ export function Enlargeable({ children, minScale, disabled, labels, className, s
           <button
             type="button"
             onClick={open}
-            aria-label={say('enlarge')}
-            title={say('enlarge')}
+            aria-haspopup="dialog"
+            {...(offer.name ? { 'aria-label': offer.name } : { 'aria-hidden': true, tabIndex: -1 })}
             className="absolute flex size-7 cursor-pointer items-center justify-center rounded-md border border-border bg-section text-body opacity-80 transition-opacity hover:opacity-100 focus-visible:opacity-100 print:hidden"
             style={{ top: offer.top + 8, right: offer.right + 8 }}
           >
@@ -154,7 +172,7 @@ export function Enlargeable({ children, minScale, disabled, labels, className, s
       </div>
       {/* Beside the box and not in it: a portal's clicks bubble through the React tree. */}
       {opened && (
-        <Overlay data-enlarged="" onClose={close} className="items-center p-4" role="dialog" aria-modal="true" aria-label={say('enlarged')}>
+        <Overlay data-enlarged="" onClose={close} className="items-center p-4" role="dialog" aria-modal="true" aria-label={opened.name || undefined}>
           {/* Focusable, and first, so the arrow keys pan a picture too big for the window. */}
           <div
             tabIndex={0}
@@ -171,13 +189,10 @@ export function Enlargeable({ children, minScale, disabled, labels, className, s
           <button
             type="button"
             onClick={close}
-            aria-label={say('close')}
-            title={say('close')}
-            className="absolute top-3 right-3 flex size-9 cursor-pointer items-center justify-center rounded-full border border-border bg-section text-body"
+            aria-keyshortcuts="Escape"
+            className="absolute top-3 right-3 flex size-9 cursor-pointer items-center justify-center rounded-full border border-border bg-section text-xl leading-none text-body"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
+            ×
           </button>
         </Overlay>
       )}

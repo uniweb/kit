@@ -54,69 +54,25 @@ function detectSocialPlatform(url) {
 }
 
 /**
- * The tooltip a link gets when its caller gives none — only where the link does
- * something its text may not say. An internal link gets none: its text names where
- * it goes.
+ * The tooltip a link gets when its caller gives none: the service, address or number it reaches,
+ * which is the same in every language and all a link holding only an icon has for a name. Anything
+ * else is left to its text.
  *
- * ⛔ Until 2026-09-30 an internal link got `Go to <its path>`, dashes as spaces —
- * `Go to blog/writing for the web` on every card of a blog [Diego: "stop adding it
- * to internal links"].
+ * ⛔ Until 2026-11-02 it was a sentence kit wrote: `Open external link`, `Download file`, `Send email
+ * to …`, `View on …`, in up to three languages and English on any other. A screen reader took it over
+ * the link's own text on some sites, so a foundation had to work around it [Diego: kit shouldn't force
+ * English]. And until 2026-09-30 an internal link got `Go to <its path>` [Diego: "stop adding it to
+ * internal links"].
  *
  * @param {string} href - The link URL
- * @param {Function} localize - Localization function
  * @returns {string} the tooltip, or '' for none
  */
-function generateTitle(href, localize) {
+function generateTitle(href) {
   if (!href) return ''
-
-  // Social media links
   const platform = detectSocialPlatform(href)
-  if (platform) {
-    return localize({
-      en: `View on ${platform}`,
-      fr: `Voir sur ${platform}`,
-      es: `Ver en ${platform}`
-    })
-  }
-
-  // Email links
-  if (href.startsWith('mailto:')) {
-    const email = href.replace('mailto:', '').split('?')[0]
-    return localize({
-      en: `Send email to ${email}`,
-      fr: `Envoyer un e-mail à ${email}`,
-      es: `Enviar correo a ${email}`
-    })
-  }
-
-  // Phone links
-  if (href.startsWith('tel:')) {
-    const phone = href.replace('tel:', '')
-    return localize({
-      en: `Call ${phone}`,
-      fr: `Appeler ${phone}`,
-      es: `Llamar a ${phone}`
-    })
-  }
-
-  // File downloads
-  if (isFileUrl(href)) {
-    return localize({
-      en: 'Download file',
-      fr: 'Télécharger le fichier',
-      es: 'Descargar archivo'
-    })
-  }
-
-  // External links
-  if (isExternalUrl(href)) {
-    return localize({
-      en: 'Open external link',
-      fr: 'Ouvrir le lien externe',
-      es: 'Abrir enlace externo'
-    })
-  }
-
+  if (platform) return platform
+  if (href.startsWith('mailto:')) return href.replace('mailto:', '').split('?')[0]
+  if (href.startsWith('tel:')) return href.replace('tel:', '')
   return ''
 }
 
@@ -137,9 +93,9 @@ function isRelativePath(href) {
  * @param {Object} props
  * @param {string} [props.to] - Destination URL (alias for href)
  * @param {string} [props.href] - Destination URL
- * @param {string} [props.title] - Custom title/tooltip. Without one, a link that leaves the
- *   site, downloads, writes an email or places a call gets one saying so; an internal
- *   link gets none
+ * @param {string} [props.title] - Custom title/tooltip. Without one, a link to a social
+ *   service, an email address or a phone number shows that name, address or number, and any
+ *   other link has none
  * @param {string} [props.target] - Where the link opens (_self, _blank, _parent, _top), on
  *   every kind of link. Without one, an external link or a download opens in a new tab
  *   and any other link in this one
@@ -171,7 +127,7 @@ export function Link({
   reload,
   ...props
 }) {
-  const { website, localize, getRoutingComponents } = useWebsite()
+  const { website, getRoutingComponents } = useWebsite()
   const RouterLink = getRoutingComponents()?.Link
 
   // Normalize href
@@ -197,7 +153,7 @@ export function Link({
   const isExternal = isExternalUrl(linkHref)
 
   // A generated tooltip when none is given — none at all rather than an empty one.
-  const linkTitle = title || generateTitle(linkHref, localize) || undefined
+  const linkTitle = title || generateTitle(linkHref) || undefined
 
   // Links with reload: render plain <a> for full page navigation
   // Used for locale switches (same-domain or cross-domain)

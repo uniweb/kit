@@ -106,7 +106,6 @@ describe('in the browser', () => {
     rect.mockRestore()
     for (const name of props) delete HTMLImageElement.prototype[name]
     document.body.style.overflow = ''
-    delete globalThis.uniweb
   })
 
   const picture = (natural = [1550, 419], extra = {}) => (
@@ -115,7 +114,7 @@ describe('in the browser', () => {
 
   it('offers it when opening shows it larger', () => {
     render(<Enlargeable>{picture()}</Enlargeable>)
-    expect(screen.getByRole('button', { name: 'Enlarge' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'The diagram' })).toBeTruthy()
   })
 
   it('measures again when a lazy picture arrives', () => {
@@ -125,7 +124,7 @@ describe('in the browser', () => {
     img.dataset.naturalWidth = '1550'
     img.dataset.naturalHeight = '419'
     fireEvent.load(img)
-    expect(screen.getByRole('button', { name: 'Enlarge' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'The diagram' })).toBeTruthy()
   })
 
   it.each([
@@ -142,9 +141,8 @@ describe('in the browser', () => {
 
   it('opens the same picture, as an image, from the button and from the picture', () => {
     const { container } = render(<Enlargeable>{picture()}</Enlargeable>)
-    fireEvent.click(screen.getByRole('button', { name: 'Enlarge' }))
-    // Named shortly: a diagram's alt can be its whole source, and the picture inside says that.
-    const dialog = screen.getByRole('dialog', { name: 'Enlarged picture' })
+    fireEvent.click(screen.getByRole('button', { name: 'The diagram' }))
+    const dialog = screen.getByRole('dialog', { name: 'The diagram' })
     const big = dialog.querySelector('img')
     expect(big.getAttribute('src')).toBe('data:image/svg+xml,x')
     expect(big.alt).toBe('The diagram')
@@ -158,10 +156,10 @@ describe('in the browser', () => {
 
   it('closes from its button, from the scrim, and from a picture that fits', () => {
     render(<Enlargeable>{picture()}</Enlargeable>)
-    const button = screen.getByRole('button', { name: 'Enlarge' })
+    const button = screen.getByRole('button', { name: 'The diagram' })
 
     fireEvent.click(button)
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    fireEvent.click(screen.getByRole('button', { name: '×' }))
     expect(screen.queryByRole('dialog')).toBeNull()
 
     fireEvent.click(button)
@@ -176,7 +174,7 @@ describe('in the browser', () => {
   it('stays open on a click on a picture the reader is panning across', () => {
     Object.defineProperty(document.documentElement, 'clientWidth', { configurable: true, value: 390 })
     render(<Enlargeable minScale={0.75}>{picture()}</Enlargeable>)
-    fireEvent.click(screen.getByRole('button', { name: 'Enlarge' }))
+    fireEvent.click(screen.getByRole('button', { name: 'The diagram' }))
     const big = screen.getByRole('dialog').querySelector('img')
     expect(big.style.width).toBe('1163px')
     fireEvent.click(big)
@@ -185,7 +183,7 @@ describe('in the browser', () => {
 
   it('moves focus in, and gives it back', () => {
     render(<Enlargeable>{picture()}</Enlargeable>)
-    const button = screen.getByRole('button', { name: 'Enlarge' })
+    const button = screen.getByRole('button', { name: 'The diagram' })
     button.focus()
     fireEvent.click(button)
     expect(screen.getByRole('dialog').contains(document.activeElement)).toBe(true)
@@ -195,16 +193,62 @@ describe('in the browser', () => {
 
   it('takes the ground the picture sits on, which the portal leaves behind', () => {
     render(<Enlargeable style={{ '--section': 'rgb(1, 2, 3)' }}>{picture()}</Enlargeable>)
-    fireEvent.click(screen.getByRole('button', { name: 'Enlarge' }))
+    fireEvent.click(screen.getByRole('button', { name: 'The diagram' }))
     expect(screen.getByRole('dialog').firstElementChild.style.background).toBe('rgb(1, 2, 3)')
   })
 
-  it("says its labels in the site's language, or as a foundation says them", () => {
-    globalThis.uniweb = { activeWebsite: { localize: (value) => value.fr } }
-    render(<Enlargeable>{picture()}</Enlargeable>)
-    expect(screen.getByRole('button', { name: 'Agrandir' })).toBeTruthy()
-    cleanup()
-    render(<Enlargeable labels={{ enlarge: '拡大' }}>{picture()}</Enlargeable>)
-    expect(screen.getByRole('button', { name: '拡大' })).toBeTruthy()
+  describe('says nothing of its own', () => {
+    const source = `flowchart LR\n  a --> b`
+
+    it('tells a screen reader what the button does by its role, not in words', () => {
+      render(<Enlargeable>{picture()}</Enlargeable>)
+      const button = screen.getByRole('button', { name: 'The diagram' })
+      expect(button.getAttribute('aria-haspopup')).toBe('dialog')
+      expect(button.hasAttribute('title')).toBe(false)
+    })
+
+    it('closes with a symbol, and says which key does the same', () => {
+      render(<Enlargeable>{picture()}</Enlargeable>)
+      fireEvent.click(screen.getByRole('button', { name: 'The diagram' }))
+      const close = screen.getByRole('button', { name: '×' })
+      expect(close.getAttribute('aria-keyshortcuts')).toBe('Escape')
+      expect(close.hasAttribute('title')).toBe(false)
+    })
+
+    it('takes the heading above a picture whose alt is a diagram\'s source', () => {
+      render(
+        <>
+          <h2>Before</h2>
+          <h2>How records flow</h2>
+          <Enlargeable>{picture(undefined, { alt: source })}</Enlargeable>
+          <h2>After</h2>
+        </>,
+      )
+      fireEvent.click(screen.getByRole('button', { name: 'How records flow' }))
+      const dialog = screen.getByRole('dialog', { name: 'How records flow' })
+      // The picture inside keeps all of what its author wrote.
+      expect(dialog.querySelector('img').alt).toBe(source)
+    })
+
+    it('takes the heading over an alt too long to be a name, and keeps the alt when there is none', () => {
+      const long = 'x'.repeat(151)
+      render(<><h3>Short</h3><Enlargeable>{picture(undefined, { alt: long })}</Enlargeable></>)
+      expect(screen.getByRole('button', { name: 'Short' })).toBeTruthy()
+      cleanup()
+      render(<Enlargeable>{picture(undefined, { alt: long })}</Enlargeable>)
+      expect(screen.getByRole('button', { name: long })).toBeTruthy()
+    })
+
+    it('with nothing to be named by, stays a target for a pointer alone', () => {
+      const { container } = render(<Enlargeable>{picture(undefined, { alt: '' })}</Enlargeable>)
+      expect(screen.queryByRole('button')).toBeNull()
+      const button = container.querySelector('button')
+      expect(button.getAttribute('aria-hidden')).toBe('true')
+      expect(button.tabIndex).toBe(-1)
+
+      fireEvent.click(button)
+      const dialog = screen.getByRole('dialog')
+      expect(dialog.hasAttribute('aria-label')).toBe(false)
+    })
   })
 })

@@ -14,7 +14,7 @@ import { SafeHtml } from '../../components/SafeHtml/index.js'
 /**
  * Disclaimer Modal
  */
-function DisclaimerModal({ isOpen, onClose, title, content, className }) {
+function DisclaimerModal({ isOpen, onClose, title, content, closeLabel, className }) {
   // Handle escape key
   useEffect(() => {
     const handleEscape = (e) => {
@@ -64,7 +64,7 @@ function DisclaimerModal({ isOpen, onClose, title, content, className }) {
             <button
               onClick={onClose}
               className="rounded-md p-1 text-subtle hover:text-heading focus:outline-none focus:ring-2 focus:ring-ring"
-              aria-label="Close"
+              aria-label={closeLabel || '×'}
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -81,15 +81,17 @@ function DisclaimerModal({ isOpen, onClose, title, content, className }) {
             )}
           </div>
 
-          {/* Footer */}
-          <div className="border-t border-border px-4 py-3 flex justify-end">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              Close
-            </button>
-          </div>
+          {/* Footer: a button that says something, when there are words for it. The × above closes either way. */}
+          {closeLabel && (
+            <div className="border-t border-border px-4 py-3 flex justify-end">
+              <button
+                onClick={onClose}
+                          className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                {closeLabel}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -104,6 +106,8 @@ function DisclaimerModal({ isOpen, onClose, title, content, className }) {
  * @param {string} props.title - Disclaimer title
  * @param {string|React.ReactNode} props.content - Disclaimer content
  * @param {string} [props.triggerText] - Text for the trigger element
+ * @param {string} [props.closeLabel] - The word for closing it, for a screen reader and for a button
+ *   at its foot. Without one there is the × at its top, named by that symbol, and no button at its foot
  * @param {string} [props.className] - Additional CSS classes
  * @param {React.ReactNode} [props.children] - Custom trigger element
  *
@@ -124,6 +128,7 @@ export function Disclaimer({
   title,
   content,
   triggerText,
+  closeLabel,
   className,
   children,
   ...props
@@ -191,6 +196,7 @@ export function Disclaimer({
         onClose={handleClose}
         title={localizedTitle}
         content={localizedContent}
+        closeLabel={closeLabel}
       />
     </>
   )

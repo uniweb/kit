@@ -42,7 +42,7 @@ export function formatResultForDisplay(result) {
   return {
     id: result.id,
     href: result.href,
-    title: result.title || result.pageTitle || 'Untitled',
+    title: result.title || result.pageTitle || '',
     subtitle: result.type === 'section' ? result.pageTitle : null,
     text: result.snippetText || result.excerpt || '',
     html: result.snippetHtml || escapeHtml(result.excerpt || ''),

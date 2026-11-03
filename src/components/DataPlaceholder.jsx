@@ -12,9 +12,9 @@
  *   return <ArticleGrid articles={content.data.articles} />
  * }
  */
-export function DataPlaceholder({ lines = 3, className = '' }) {
+export function DataPlaceholder({ lines = 3, className = '', label }) {
   return (
-    <div className={`animate-pulse space-y-4 py-8 ${className}`} role="status" aria-label="Loading">
+    <div className={`animate-pulse space-y-4 py-8 ${className}`} role="status" aria-busy="true" aria-label={label}>
       {Array.from({ length: lines }, (_, i) => (
         <div key={i} className="h-4 rounded" style={{
           backgroundColor: 'var(--border, #e5e7eb)',

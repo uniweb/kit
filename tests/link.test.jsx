@@ -124,8 +124,9 @@ describe('<Link> — locale', () => {
   })
 })
 
-// A tooltip only where a link does something its text may not say (2026-09-30). ⛔ An
-// internal link got `Go to <its path>` until then — `Go to blog/writing for the web`.
+// A tooltip only holds what is the same in every language: a service's name, an address, a number.
+// ⛔ Kit wrote a sentence for every link that left the site, downloaded, wrote or called until
+// 2026-11-02, and an internal link got `Go to <its path>` until 2026-09-30.
 describe('<Link> — tooltip', () => {
   const titleOf = (markup) => markup.match(/title="([^"]*)"/)?.[1]
 
@@ -144,7 +145,7 @@ describe('<Link> — tooltip', () => {
     try {
       const html = render(makeWebsite(), <Link href="/blog/writing-for-the-web">Writing for the web</Link>)
       expect(html).not.toContain('title=')
-      expect(titleOf(render(makeWebsite(), <Link href="https://example.com/x">X</Link>))).toBe('Open external link')
+      expect(render(makeWebsite(), <Link href="https://example.com/x">X</Link>)).not.toContain('title=')
     } finally {
       if (prev === undefined) delete globalThis.window
       else globalThis.window = prev
@@ -155,12 +156,15 @@ describe('<Link> — tooltip', () => {
     expect(render(makeWebsite(), <Link reload href="/fr/about">FR</Link>)).not.toContain('title=')
   })
 
-  it('says what the text may not: leaving the site, a download, an email, a call', () => {
-    expect(titleOf(render(makeWebsite(), <Link href="https://example.com/x">Example</Link>))).toBe('Open external link')
-    expect(titleOf(render(makeWebsite(), <Link href="https://github.com/uniweb">Source</Link>))).toBe('View on GitHub')
-    expect(titleOf(render(makeWebsite(), <Link href="/files/report.pdf">Report</Link>))).toBe('Download file')
-    expect(titleOf(render(makeWebsite(), <Link href="mailto:hello@example.com">Write</Link>))).toBe('Send email to hello@example.com')
-    expect(titleOf(render(makeWebsite(), <Link href="tel:+15551234567">Call</Link>))).toBe('Call +15551234567')
+  it('writes no sentence for a link that leaves the site or downloads', () => {
+    expect(render(makeWebsite(), <Link href="https://example.com/x">Example</Link>)).not.toContain('title=')
+    expect(render(makeWebsite(), <Link href="/files/report.pdf">Report</Link>)).not.toContain('title=')
+  })
+
+  it('names the service, the address or the number, which read the same in any language', () => {
+    expect(titleOf(render(makeWebsite(), <Link href="https://github.com/uniweb">Source</Link>))).toBe('GitHub')
+    expect(titleOf(render(makeWebsite(), <Link href="mailto:hello@example.com?subject=Hi">Write</Link>))).toBe('hello@example.com')
+    expect(titleOf(render(makeWebsite(), <Link href="tel:+15551234567">Call</Link>))).toBe('+15551234567')
   })
 
   it('keeps a title the caller gives, internal or not', () => {

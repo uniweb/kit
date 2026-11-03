@@ -48,6 +48,8 @@ const SIZE_CLASSES = {
  * @param {Object} [props.components] - Per-element-type renderer overrides
  * @param {string} [props.size='lg'] - Text size: sm, base, lg, xl, 2xl
  * @param {string} [props.as='div'] - HTML element to render as
+ * @param {string} [props.footnoteBackLabel] - What a screen reader calls a footnote's link back to
+ *   the text. Without one, the link is the ↩ it shows, with the role saying what it is
  * @param {string} [props.className] - Additional CSS classes
  * @param {React.ReactNode} [props.children] - Alternative to content (pure wrapper mode)
  *
@@ -90,6 +92,7 @@ export function Prose({
   components,
   size = 'lg',
   as: Component = 'div',
+  footnoteBackLabel,
   className,
   children,
   ...props
@@ -114,7 +117,9 @@ export function Prose({
           {notes.map((note) => (
             <li key={note.id} id={note.id}>
               <SafeHtml value={note.html} as="span" />{' '}
-              <a href={`#${note.backId}`} className="footnote-back" aria-label="Back to the text">
+              {/* The role says what it is, in the reader's language; `footnoteBackLabel` is for a
+                  foundation with words of its own. */}
+              <a href={`#${note.backId}`} className="footnote-back" role="doc-backlink" aria-label={footnoteBackLabel}>
                 ↩
               </a>
             </li>

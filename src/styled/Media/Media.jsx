@@ -55,7 +55,7 @@ function getVideoThumbnail(src, type) {
 /**
  * YouTube Player Component
  */
-function YouTubePlayer({ videoId, autoplay, muted, loop, onReady, onStateChange, className }) {
+function YouTubePlayer({ videoId, autoplay, muted, loop, onReady, onStateChange, title, className }) {
   const iframeRef = useRef(null)
 
   const params = new URLSearchParams({
@@ -75,7 +75,8 @@ function YouTubePlayer({ videoId, autoplay, muted, loop, onReady, onStateChange,
       className={cn('w-full h-full', className)}
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       allowFullScreen
-      title="YouTube video"
+      // kit-words-ok: a service's name, the same in every language
+      title={title || 'YouTube'}
     />
   )
 }
@@ -83,7 +84,7 @@ function YouTubePlayer({ videoId, autoplay, muted, loop, onReady, onStateChange,
 /**
  * Vimeo Player Component
  */
-function VimeoPlayer({ videoId, autoplay, muted, loop, className }) {
+function VimeoPlayer({ videoId, autoplay, muted, loop, title, className }) {
   const params = new URLSearchParams({
     autoplay: autoplay ? '1' : '0',
     muted: muted ? '1' : '0',
@@ -97,7 +98,8 @@ function VimeoPlayer({ videoId, autoplay, muted, loop, className }) {
       className={cn('w-full h-full', className)}
       allow="autoplay; fullscreen; picture-in-picture"
       allowFullScreen
-      title="Vimeo video"
+      // kit-words-ok: a service's name, the same in every language
+      title={title || 'Vimeo'}
     />
   )
 }
@@ -146,7 +148,7 @@ function LocalVideo({ src, autoplay, muted, loop, controls, poster, onProgress, 
 /**
  * Play Button Overlay
  */
-function PlayButton({ onClick, className }) {
+function PlayButton({ onClick, className, label }) {
   return (
     <button
       onClick={onClick}
@@ -157,7 +159,7 @@ function PlayButton({ onClick, className }) {
         'group cursor-pointer',
         className
       )}
-      aria-label="Play video"
+      aria-label={label || '▶'}
     >
       {/* kit-palette-ok: a play control is a white disc with a dark glyph in
           every player ever built — not a themed surface */}
@@ -177,6 +179,8 @@ function PlayButton({ onClick, className }) {
  * @param {string|Object} props.src - Video URL or media object
  * @param {Object} [props.media] - Media object with src/caption
  * @param {string} [props.thumbnail] - Thumbnail URL
+ * @param {string} [props.playLabel] - What a screen reader calls the play button. Without one, the
+ *   video's caption or alt text, and without those, the ▶ it shows
  * @param {boolean} [props.autoplay=false] - Auto-play video
  * @param {boolean} [props.muted=false] - Mute video
  * @param {boolean} [props.loop=false] - Loop video
@@ -246,6 +250,7 @@ export function Media({
   onProgress,
   block,
   track = true,
+  playLabel,
   ...props
 }) {
   const [showVideo, setShowVideo] = useState(!facade)
@@ -294,10 +299,10 @@ export function Media({
       >
         <img
           src={thumbnailSrc}
-          alt={caption || 'Video thumbnail'}
+          alt={caption || alt || ''}
           className="w-full h-full object-cover"
         />
-        <PlayButton onClick={handlePlay} />
+        <PlayButton onClick={handlePlay} label={playLabel || caption || alt} />
       </div>
     )
   }
@@ -310,6 +315,7 @@ export function Media({
         if (!videoId) return null
         return (
           <YouTubePlayer
+            title={caption || alt || undefined}
             videoId={videoId}
             autoplay={autoplay || (facade && showVideo)}
             muted={muted}
@@ -323,6 +329,7 @@ export function Media({
         if (!videoId) return null
         return (
           <VimeoPlayer
+            title={caption || alt || undefined}
             videoId={videoId}
             autoplay={autoplay || (facade && showVideo)}
             muted={muted}
