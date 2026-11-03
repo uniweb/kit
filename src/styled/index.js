@@ -48,6 +48,10 @@ export { ChildGrid } from './ChildGrid/index.jsx'
 // Mermaid - A diagram drawn from its source, in a sandboxed frame
 export { Mermaid } from './Mermaid/index.jsx'
 
+// Enlargeable - A picture a reader can open larger, on demand
+export { Enlargeable } from './Enlargeable/index.jsx'
+export { EnlargeableImage } from './Enlargeable/image.jsx'
+
 // Media - Video player with styled play button facade
 export { Media } from './Media/index.js'
 

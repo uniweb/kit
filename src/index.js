@@ -164,6 +164,8 @@ export { Visual } from './styled/Visual/index.jsx'
 export { ChildGrid } from './styled/ChildGrid/index.jsx'
 export { Scene } from './styled/Scene/index.jsx'
 export { Mermaid } from './styled/Mermaid/index.jsx'
+export { Enlargeable } from './styled/Enlargeable/index.jsx'
+export { EnlargeableImage } from './styled/Enlargeable/image.jsx'
 
 // ============================================================================
 // Search

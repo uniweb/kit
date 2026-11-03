@@ -46,6 +46,7 @@
 import React, { useEffect, useState } from 'react'
 import { useInView } from '../../hooks/useInView.js'
 import { Code } from '../Section/renderers/Code.jsx'
+import { Enlargeable } from '../Enlargeable/index.jsx'
 import { drawDiagram } from './sandbox.js'
 
 let probe = null
@@ -151,12 +152,14 @@ const lastPicture = new Map()
  * @param {string} [props.alt] - what the picture says, for someone who can't see it.
  *   Otherwise the diagram's own `accTitle` and `accDescr`, else its source
  * @param {string} [props.className] - classes on the `<figure>`
+ * @param {boolean} [props.enlarge=true] - offer to open it larger when the page shows it smaller than
+ *   it was drawn. It opens at no less than 75% of that, 12px for its labels, and past that the reader scrolls
  *
  * @example
  * // A fence in a named slot: ```mermaid:flow, declared as `flow` in meta.js
  * <Mermaid source={content.data.flow} />
  */
-export function Mermaid({ source = '', alt, className, ...props }) {
+export function Mermaid({ source = '', alt, className, enlarge = true, ...props }) {
   const { ref, inView, entry } = useInView({ rootMargin: '400px', triggerOnce: true })
   const [picture, setPicture] = useState(() => {
     const last = lastPicture.get(source)
@@ -193,13 +196,15 @@ export function Mermaid({ source = '', alt, className, ...props }) {
   return (
     <figure ref={ref} data-kind="diagram" className={className} {...props}>
       {current ? (
-        <img
-          src={current.src}
-          alt={alt || current.label || source}
-          width={current.width}
-          height={current.height}
-          style={{ display: 'block', maxWidth: '100%', height: 'auto' }}
-        />
+        <Enlargeable minScale={0.75} disabled={!enlarge}>
+          <img
+            src={current.src}
+            alt={alt || current.label || source}
+            width={current.width}
+            height={current.height}
+            style={{ display: 'block', maxWidth: '100%', height: 'auto' }}
+          />
+        </Enlargeable>
       ) : (
         // Plain, since it stands only until the picture arrives: no highlighter loads for it.
         <Code content={source} language="mermaid" highlight={false} />

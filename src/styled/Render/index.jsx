@@ -351,6 +351,37 @@ function renderCell(cell, block, components) {
 }
 
 /**
+ * An image in the flow: its figure, its place on the page, and its caption line, which holds the
+ * caption and the image's author — its credit — as a document's holds its author and description.
+ * `frame` goes around the picture alone, for an entry of a foundation's `components` that keeps the rest.
+ *
+ * @param {Object} props
+ * @param {Object} props.element - the image element
+ * @param {React.ElementType} [props.frame]
+ */
+export function ImageElement({ element, frame: Frame = React.Fragment }) {
+  const { url, src, alt, caption, author, role, width, height, loading } = element.attrs || {}
+  if (role === 'icon') return <Icon {...element.attrs} />
+  return (
+    <figure id={authoredId(element)} data-placement={placementOf(element)}>
+      {/* The size holds the picture's place on the page while its file loads. ⛔ Until
+          2026-11-02 only `<Visual>` passed it on, so what's under a picture in a page's
+          body jumped when the file arrived, whatever its author wrote. */}
+      <Frame>
+        <Image src={url || src} alt={alt || caption || ''} width={width} height={height} loading={loading} />
+      </Frame>
+      {(caption || author) && (
+        <figcaption>
+          {caption}
+          {caption && author && ' — '}
+          {author && <span data-role="author">{author}</span>}
+        </figcaption>
+      )}
+    </figure>
+  )
+}
+
+/**
  * One element of a sequence.
  *
  * A `components` entry for the element's type replaces the default entirely and
@@ -413,27 +444,8 @@ export function SequenceElement({ element, block, components }) {
       )
     }
 
-    // The caption line holds the caption and the image's author — its credit —
-    // as a document's holds its author and description.
-    case 'image': {
-      const { url, src, alt, caption, author, role, width, height, loading } = element.attrs || {}
-      if (role === 'icon') return <Icon {...element.attrs} />
-      return (
-        <figure id={authoredId(element)} data-placement={placementOf(element)}>
-          {/* The size holds the picture's place on the page while its file loads. ⛔ Until
-              2026-11-02 only `<Visual>` passed it on, so what's under a picture in a page's
-              body jumped when the file arrived, whatever its author wrote. */}
-          <Image src={url || src} alt={alt || caption || ''} width={width} height={height} loading={loading} />
-          {(caption || author) && (
-            <figcaption>
-              {caption}
-              {caption && author && ' — '}
-              {author && <span data-role="author">{author}</span>}
-            </figcaption>
-          )}
-        </figure>
-      )
-    }
+    case 'image':
+      return <ImageElement element={element} />
 
     // A file — a PDF — with an optional preview: one link to the file, holding
     // the preview (or a file badge, when there is none) and the document's name.
