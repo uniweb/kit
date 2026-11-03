@@ -143,7 +143,8 @@ describe('in the browser', () => {
   it('opens the same picture, as an image, from the button and from the picture', () => {
     const { container } = render(<Enlargeable>{picture()}</Enlargeable>)
     fireEvent.click(screen.getByRole('button', { name: 'Enlarge' }))
-    const dialog = screen.getByRole('dialog', { name: 'The diagram' })
+    // Named shortly: a diagram's alt can be its whole source, and the picture inside says that.
+    const dialog = screen.getByRole('dialog', { name: 'Enlarged picture' })
     const big = dialog.querySelector('img')
     expect(big.getAttribute('src')).toBe('data:image/svg+xml,x')
     expect(big.alt).toBe('The diagram')

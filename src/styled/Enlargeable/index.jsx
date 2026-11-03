@@ -36,6 +36,7 @@ const GUTTER = 16
 
 const LABELS = {
   enlarge: { en: 'Enlarge', fr: 'Agrandir' },
+  enlarged: { en: 'Enlarged picture', fr: 'Image agrandie' },
   close: { en: 'Close', fr: 'Fermer' },
 }
 
@@ -52,8 +53,8 @@ function windowRoom() {
  * @param {number} [props.minScale] - the smallest it opens at, against its own size, for a picture
  *   with words in it. Past that the reader scrolls. Without it, a picture fits the window
  * @param {boolean} [props.disabled] - draw the picture and offer nothing
- * @param {{enlarge?: string, close?: string}} [props.labels] - what the two buttons are called, for
- *   a language kit doesn't say them in
+ * @param {{enlarge?: string, enlarged?: string, close?: string}} [props.labels] - what the button, the
+ *   open picture and its close button are called, for a language kit doesn't say them in
  * @param {string} [props.className]
  * @param {Object} [props.style]
  */
@@ -153,7 +154,7 @@ export function Enlargeable({ children, minScale, disabled, labels, className, s
       </div>
       {/* Beside the box and not in it: a portal's clicks bubble through the React tree. */}
       {opened && (
-        <Overlay data-enlarged="" onClose={close} className="items-center p-4" role="dialog" aria-modal="true" aria-label={opened.alt || say('enlarge')}>
+        <Overlay data-enlarged="" onClose={close} className="items-center p-4" role="dialog" aria-modal="true" aria-label={say('enlarged')}>
           {/* Focusable, and first, so the arrow keys pan a picture too big for the window. */}
           <div
             tabIndex={0}
