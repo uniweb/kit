@@ -292,3 +292,6 @@ export {
   isTrackingEnabled,
   isAssistantEnabled,
 } from './servicePredicates.js'
+
+// What a visitor did in a section, as a conversion or an engagement, as its author chose.
+export { trackAction } from './trackAction.js'

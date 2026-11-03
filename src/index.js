@@ -147,7 +147,9 @@ export {
   isSearchEnabled,
   isSubmitEnabled,
   isTrackingEnabled,
-  isAssistantEnabled
+  isAssistantEnabled,
+  // An act a section offers to count: a conversion or an engagement, as its author chose
+  trackAction
 } from './utils/index.js'
 
 // ============================================================================
