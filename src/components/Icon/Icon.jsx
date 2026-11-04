@@ -148,8 +148,10 @@ function parseSvg(svgContent) {
  * <Icon url="/icons/custom.svg" size="32" />
  *
  * @example
- * // Direct SVG content
- * <Icon svg="<svg>...</svg>" />
+ * // An icon your code draws: imported, so the page has it from the first render, with nothing
+ * // to fetch. A library + name is for a name an author wrote, and its drawing is fetched.
+ * import send from '@uniweb/icons/families/lu/send.js'
+ * <Icon svg={send} />
  */
 export function Icon({
   library,
