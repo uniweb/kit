@@ -140,7 +140,7 @@ function parseSvg(svgContent) {
  * <Icon name="check" size="20" color="green" />
  *
  * @example
- * // Library icon (lucide)
+ * // A name content supplied at runtime (markdown, a param, a record's field): its drawing is fetched
  * <Icon library="lucide" name="home" size="24" />
  *
  * @example

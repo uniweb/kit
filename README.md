@@ -116,6 +116,8 @@ import { Icon } from '@uniweb/kit'
 
 Built-in: check, alert, user, heart, settings, star, close, menu, chevronDown, chevronRight, externalLink, download, play
 
+A library icon's name (`icon="lu-house"`, `library` + `name`) is for an icon content supplies at runtime, and its drawing is fetched. Import the icons your own code draws, so the page has them from its first render.
+
 ### SocialIcon
 
 Social media platform icons with automatic detection.
