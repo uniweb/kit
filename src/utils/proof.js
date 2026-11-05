@@ -38,6 +38,7 @@
  */
 
 import { resolveServiceUrl } from './services.js'
+import { sha256 } from './sha256.js'
 
 /** The request header carrying the answer. */
 export const PROOF_HEADER = 'X-Proof'
@@ -104,18 +105,36 @@ export async function solveChallenge(puzzle) {
   if (typeof challenge !== 'string' || typeof salt !== 'string') {
     throw new Error('solveChallenge: a puzzle needs a challenge and a salt')
   }
-  const subtle = globalThis.crypto?.subtle
-  if (!subtle) throw new Error('solveChallenge: Web Crypto is unavailable')
-
   const target = hexToBytes(challenge)
   const max = Number.isFinite(puzzle.maxnumber) ? puzzle.maxnumber : 1e6
   const encoder = new TextEncoder()
 
+  if (algorithm === 'SHA-256') {
+    // Synchronous, in slices: a slice is a few milliseconds, and the pause
+    // between slices lets the page keep answering taps while it solves.
+    for (let n = 0; n <= max; n++) {
+      if (sameBytes(sha256(encoder.encode(salt + n)), target)) return n
+      if (n % SLICE === SLICE - 1) await pause()
+    }
+    throw new Error('solveChallenge: no answer within maxnumber')
+  }
+
+  // SHA-384 / SHA-512 are allowed by the format and not used by any host we
+  // know of; Web Crypto covers them without a second implementation here.
+  const subtle = globalThis.crypto?.subtle
+  if (!subtle) throw new Error('solveChallenge: Web Crypto is unavailable')
   for (let n = 0; n <= max; n++) {
     const digest = new Uint8Array(await subtle.digest(algorithm, encoder.encode(salt + n)))
     if (sameBytes(digest, target)) return n
   }
   throw new Error('solveChallenge: no answer within maxnumber')
+}
+
+/** Tries per slice before yielding to the page. */
+const SLICE = 5000
+
+function pause() {
+  return new Promise((resolve) => setTimeout(resolve, 0))
 }
 
 /**

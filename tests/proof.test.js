@@ -22,6 +22,7 @@ import {
   PROOF_HEADER,
 } from '../src/utils/proof.js'
 import { submitForm } from '../src/utils/submitForm.js'
+import { sha256 } from '../src/utils/sha256.js'
 
 function makePuzzle(number, salt = 'a1b2c3?expires=1999999999&k=x') {
   return {
@@ -56,10 +57,29 @@ function fakeFetch({ puzzles = [], answers = [] } = {}) {
 
 const decode = (v) => JSON.parse(atob(v))
 
+describe('sha256', () => {
+  it('matches Node across block boundaries', () => {
+    for (const s of ['', 'abc', 'x'.repeat(55), 'x'.repeat(56), 'x'.repeat(64), 'x'.repeat(200), 'é salt?expires=1#42']) {
+      const ours = Buffer.from(sha256(new TextEncoder().encode(s))).toString('hex')
+      expect(ours).toBe(createHash('sha256').update(s).digest('hex'))
+    }
+  })
+})
+
 describe('solveChallenge', () => {
   it('finds the number the puzzle was made from', async () => {
     expect(await solveChallenge(makePuzzle(1234))).toBe(1234)
     expect(await solveChallenge(makePuzzle(0))).toBe(0)
+  })
+
+  it('solves SHA-512 through Web Crypto', async () => {
+    const salt = 'q'
+    const challenge = createHash('sha512').update(salt + 21).digest('hex')
+    expect(await solveChallenge({ algorithm: 'SHA-512', challenge, maxnumber: 100, salt })).toBe(21)
+  })
+
+  it('answers past a slice boundary', async () => {
+    expect(await solveChallenge({ ...makePuzzle(12001), maxnumber: 20000 })).toBe(12001)
   })
 
   it('refuses an algorithm it does not know, and a puzzle with no answer in range', async () => {
