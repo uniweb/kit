@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import { getUniweb } from '@uniweb/core'
 import { submitForm } from '../utils/submitForm.js'
 import { resolveSubmitTarget } from '../utils/submitTarget.js'
-import { resolveServiceAddress } from '../utils/proof.js'
+import { resolveServiceAddress, prepareProof } from '../utils/proof.js'
 import { useWebsite } from './useWebsite.js'
 
 /**
@@ -49,6 +49,7 @@ import { useWebsite } from './useWebsite.js'
  *   error: Error | null,
  *   response: object | null,
  *   canSubmit: boolean,
+ *   prepare: () => void,
  *   submit: (formData: object, overrides?: object) => Promise<object>,
  *   reset: () => void,
  * }}
@@ -71,6 +72,15 @@ export function useFormSubmit(defaults = {}) {
   // computed from changing content would silently keep sending the original.
   const defaultsRef = useRef(defaults)
   defaultsRef.current = defaults
+
+  // Solve the host's puzzle while the visitor fills the form, so Send doesn't
+  // wait for it. Called by the form on its first focus, NOT on mount: a host
+  // counts puzzle fetches against the same per-visitor limit as sends, so one
+  // per page view would spend that limit on forms nobody opens (and, behind a
+  // shared address, on other people's page views). Idempotent.
+  const prepare = useCallback(() => {
+    prepareProof(challenge, defaultsRef.current.fetchFn)
+  }, [challenge])
 
   const submit = useCallback(
     async (formData, perCallOverrides = {}) => {
@@ -133,6 +143,10 @@ export function useFormSubmit(defaults = {}) {
     // component decides *whether to render a file input* separately from
     // whether to render the form, and that decision belongs at render time.
     canUploadFiles: !!target,
+    // Wire to the form's first focus (`<form onFocus={prepare}>`) so a host's
+    // puzzle is solved while the visitor types. Optional: without it, the
+    // puzzle is solved when they press Send.
+    prepare,
     submit,
     reset,
   }

@@ -17,6 +17,7 @@ import {
   solveChallenge,
   fetchProof,
   sendWithProof,
+  prepareProof,
   proofError,
   resolveServiceAddress,
   PROOF_HEADER,
@@ -163,6 +164,61 @@ describe('sendWithProof', () => {
     const res = await sendWithProof('/_submit', { method: 'POST', body: '{}' }, { challenge: '/_submit/challenge', fetchFn })
     expect(proofError(res)).toBe('proof-replayed')
     expect(fetchFn.calls.filter((c) => c.url === '/_submit')).toHaveLength(1)
+  })
+})
+
+describe('prepareProof', () => {
+  it('solves ahead, and the next send uses that answer once', async () => {
+    const fetchFn = fakeFetch({ puzzles: [makePuzzle(11), makePuzzle(12)] })
+    prepareProof('/a/challenge', fetchFn)
+    prepareProof('/a/challenge', fetchFn) // already waiting: no second fetch
+    await sendWithProof('/a', { method: 'POST', body: '{}' }, { challenge: '/a/challenge', fetchFn })
+    await sendWithProof('/a', { method: 'POST', body: '{}' }, { challenge: '/a/challenge', fetchFn })
+
+    expect(fetchFn.calls.map((c) => c.url)).toEqual(['/a/challenge', '/a', '/a/challenge', '/a'])
+    const numbers = fetchFn.calls.filter((c) => c.url === '/a').map((c) => decode(c.init.headers[PROOF_HEADER]).number)
+    expect(numbers).toEqual([11, 12])
+  })
+
+  it('falls back to a fresh fetch when preparing failed', async () => {
+    let first = true
+    const fetchFn = async (url, init) => {
+      if (url.endsWith('/challenge')) {
+        if (first) { first = false; return response({ status: 500 }) }
+        return response({ body: makePuzzle(4) })
+      }
+      return response({ body: { ok: 1 }, headers: {} , status: 200 })
+    }
+    prepareProof('/b/challenge', fetchFn)
+    await new Promise((r) => setTimeout(r, 0))
+    const res = await sendWithProof('/b', { method: 'POST', body: '{}' }, { challenge: '/b/challenge', fetchFn })
+    expect(res.ok).toBe(true)
+  })
+
+  it('does nothing with no challenge', () => {
+    const fetchFn = fakeFetch()
+    prepareProof(null, fetchFn)
+    expect(fetchFn.calls).toHaveLength(0)
+  })
+})
+
+describe('proof-too-soon', () => {
+  it('waits Retry-After and resends the same answer once', async () => {
+    const fetchFn = fakeFetch({
+      puzzles: [makePuzzle(8)],
+      answers: [
+        response({ status: 403, headers: { 'X-Uniweb-Error': 'proof-too-soon', 'Retry-After': '0.05' } }),
+        response({ body: { ok: 1 } }),
+      ],
+    })
+    const started = Date.now()
+    const res = await sendWithProof('/c', { method: 'POST', body: '{}' }, { challenge: '/c/challenge', fetchFn })
+    expect(res.ok).toBe(true)
+    expect(Date.now() - started).toBeGreaterThanOrEqual(45)
+    const posts = fetchFn.calls.filter((c) => c.url === '/c')
+    expect(posts).toHaveLength(2)
+    expect(posts[1].init.headers[PROOF_HEADER]).toBe(posts[0].init.headers[PROOF_HEADER])
+    expect(fetchFn.calls.filter((c) => c.url === '/c/challenge')).toHaveLength(1)
   })
 })
 

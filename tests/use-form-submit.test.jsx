@@ -368,8 +368,13 @@ describe('useFormSubmit with a host that protects its address', () => {
     })
 
     const { result } = renderHook(() => useFormSubmit({ fetchFn }))
+    // Nothing fetched for a form nobody has touched.
+    expect(calls).toHaveLength(0)
+
+    act(() => { result.current.prepare(); result.current.prepare() })
     await act(async () => { await result.current.submit({ Name: 'Ada' }) })
 
+    // One puzzle, solved on first focus and spent on the send; none after.
     expect(calls.map((c) => c.url)).toEqual(['/_submit/challenge', '/_submit'])
     expect(JSON.parse(atob(calls[1].init.headers['X-Proof'])).number).toBe(42)
   })

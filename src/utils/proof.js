@@ -154,12 +154,63 @@ export async function fetchProof(challengeUrl, fetchFn = globalThis.fetch) {
 }
 
 /**
- * Send a request to a protected address: fetch a puzzle, solve it, and send
- * the answer in `X-Proof`. With no `challenge`, this is `fetchFn(url, init)`.
+ * Proofs solved ahead of a send, one per challenge address. Each is used once:
+ * a host refuses an answer it has already seen (`proof-replayed`).
+ * @type {Map<string, Promise<string>>}
+ */
+const prepared = new Map()
+
+/**
+ * Fetch and solve a puzzle now, so the send that follows doesn't wait for it.
  *
- * On `403 proof-expired` it solves a fresh puzzle and sends once more. Any
- * other proof refusal comes back as the response, for the caller to report;
- * {@link proofError} reads its code.
+ * Call it on the form's first focus or input; `useFormSubmit` returns it as
+ * `prepare`. The next `sendWithProof` to the same challenge address takes the
+ * answer; without one it fetches as usual, so calling this is never required.
+ *
+ * ⛔ **Not when the form appears.** A host counts puzzle fetches against the
+ * same per-visitor limit as sends, so fetching on every page view spends it on
+ * forms nobody opens, and behind a shared address (an office, a mobile
+ * carrier) other people's page views can use it up and refuse a real send.
+ *
+ * Does nothing with no challenge, or when an answer is already waiting.
+ * Failures are kept quiet: the send fetches its own then.
+ *
+ * @param {string|null} challenge - the challenge address
+ * @param {typeof fetch} [fetchFn=fetch]
+ */
+export function prepareProof(challenge, fetchFn = globalThis.fetch) {
+  if (!challenge || prepared.has(challenge) || typeof fetchFn !== 'function') return
+  const proof = fetchProof(challenge, fetchFn)
+  proof.catch(() => { if (prepared.get(challenge) === proof) prepared.delete(challenge) })
+  prepared.set(challenge, proof)
+}
+
+/** The prepared answer for this address, used up; or a fresh one. */
+async function takeProof(challenge, fetchFn) {
+  const ready = prepared.get(challenge)
+  if (ready) {
+    prepared.delete(challenge)
+    try { return await ready } catch { /* fetch afresh below */ }
+  }
+  return fetchProof(challenge, fetchFn)
+}
+
+/** Longest wait honoured from a `Retry-After` on `proof-too-soon`, in seconds. */
+const MAX_TOO_SOON_WAIT = 30
+
+/**
+ * Send a request to a protected address: fetch a puzzle, solve it, and send
+ * the answer in `X-Proof`, or use one {@link prepareProof} has ready. With no
+ * `challenge`, this is `fetchFn(url, init)`.
+ *
+ * Sends once more, at most, on two refusals:
+ * - `403 proof-expired`: with a freshly solved puzzle;
+ * - `403 proof-too-soon`: with the same answer, after the response's
+ *   `Retry-After` seconds, since a host does not spend an answer it refused
+ *   for that.
+ *
+ * Any other proof refusal comes back as the response, for the caller to
+ * report; {@link proofError} reads its code.
  *
  * @param {string} url
  * @param {RequestInit} init - a body that can be sent twice (a string, not a stream)
@@ -171,13 +222,23 @@ export async function fetchProof(challengeUrl, fetchFn = globalThis.fetch) {
 export async function sendWithProof(url, init = {}, { challenge, fetchFn = globalThis.fetch } = {}) {
   if (!challenge) return fetchFn(url, init)
 
-  const send = async () => fetchFn(url, {
+  const send = (proof) => fetchFn(url, {
     ...init,
-    headers: { ...(init.headers || {}), [PROOF_HEADER]: await fetchProof(challenge, fetchFn) },
+    headers: { ...(init.headers || {}), [PROOF_HEADER]: proof },
   })
 
-  const res = await send()
-  return proofError(res) === 'proof-expired' ? send() : res
+  const proof = await takeProof(challenge, fetchFn)
+  const res = await send(proof)
+  const code = proofError(res)
+
+  if (code === 'proof-expired') return send(await fetchProof(challenge, fetchFn))
+  if (code === 'proof-too-soon') {
+    const seconds = Number(res.headers?.get?.('Retry-After'))
+    const wait = Number.isFinite(seconds) && seconds > 0 ? Math.min(seconds, MAX_TOO_SOON_WAIT) : 1
+    await new Promise((resolve) => setTimeout(resolve, wait * 1000))
+    return send(proof)
+  }
+  return res
 }
 
 /**

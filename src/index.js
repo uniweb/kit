@@ -141,6 +141,7 @@ export {
   resolveSubmitTarget,
   // Proof of work for a host-protected address (a visitor-request form, …)
   sendWithProof,
+  prepareProof,
   fetchProof,
   solveChallenge,
   proofError,

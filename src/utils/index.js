@@ -230,6 +230,7 @@ export { submitForm, deriveSummary } from './submitForm.js'
 export { resolveSubmitTarget } from './submitTarget.js'
 export {
   sendWithProof,
+  prepareProof,
   fetchProof,
   solveChallenge,
   proofError,
