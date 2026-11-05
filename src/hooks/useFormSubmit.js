@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import { getUniweb } from '@uniweb/core'
 import { submitForm } from '../utils/submitForm.js'
 import { resolveSubmitTarget } from '../utils/submitTarget.js'
+import { resolveServiceAddress } from '../utils/proof.js'
 import { useWebsite } from './useWebsite.js'
 
 /**
@@ -59,6 +60,9 @@ export function useFormSubmit(defaults = {}) {
 
   const { website } = useWebsite()
   const { url: target, source } = resolveSubmitTarget(website)
+  // A host that protects its submit address names a challenge beside it; the
+  // create request then solves it and carries `X-Proof` (`../utils/proof.js`).
+  const challenge = resolveServiceAddress(website, 'submit', 'challenge')
 
   // `defaults` is a fresh object every render, so listing it as a dependency
   // would rebuild the callback on each one. A ref is what actually makes "the
@@ -82,6 +86,7 @@ export function useFormSubmit(defaults = {}) {
           ...rest,
           formData,
           target,
+          challenge,
           // Block-derived context first so an explicit `context` overrides it.
           context: { ...contextFromBlock(block), ...context },
           summary: typeof summary === 'function' ? summary(formData) : summary,
@@ -100,7 +105,7 @@ export function useFormSubmit(defaults = {}) {
         throw err
       }
     },
-    [target, source],
+    [target, source, challenge],
   )
 
   const reset = useCallback(() => {

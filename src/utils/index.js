@@ -229,6 +229,14 @@ export function detectMediaType(url) {
 export { submitForm, deriveSummary } from './submitForm.js'
 export { resolveSubmitTarget } from './submitTarget.js'
 export {
+  sendWithProof,
+  fetchProof,
+  solveChallenge,
+  proofError,
+  resolveServiceAddress,
+  PROOF_HEADER
+} from './proof.js'
+export {
   resolveService,
   resolveServiceUrl
 } from './services.js'

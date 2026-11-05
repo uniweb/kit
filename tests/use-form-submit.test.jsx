@@ -344,3 +344,33 @@ describe('useFormSubmit — file uploads', () => {
     })
   })
 })
+
+describe('useFormSubmit with a host that protects its address', () => {
+  it('solves the host-named challenge and sends X-Proof with the create request', async () => {
+    const { createHash } = await import('node:crypto')
+    const salt = 's?expires=1999999999'
+    const puzzle = {
+      algorithm: 'SHA-256',
+      challenge: createHash('sha256').update(salt + 42).digest('hex'),
+      maxnumber: 1000,
+      salt,
+      signature: 'sig',
+    }
+    const calls = []
+    const fetchFn = async (url, init) => {
+      calls.push({ url, init })
+      const body = url.endsWith('/challenge') ? puzzle : { submissionId: 'abc' }
+      return { ok: true, status: 200, headers: { get: () => null }, json: async () => body }
+    }
+    setWebsite({
+      basePath: '',
+      config: { services: { submit: { endpoint: '/_submit', challenge: '/_submit/challenge' } } },
+    })
+
+    const { result } = renderHook(() => useFormSubmit({ fetchFn }))
+    await act(async () => { await result.current.submit({ Name: 'Ada' }) })
+
+    expect(calls.map((c) => c.url)).toEqual(['/_submit/challenge', '/_submit'])
+    expect(JSON.parse(atob(calls[1].init.headers['X-Proof'])).number).toBe(42)
+  })
+})

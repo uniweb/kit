@@ -1,3 +1,5 @@
+import { sendWithProof, proofError } from './proof.js'
+
 /**
  * POST a form's values to a submission endpoint.
  *
@@ -36,6 +38,13 @@
  *                                                   sent at the top level of the
  *                                                   body; the rest ride in
  *                                                   `metadata` (see below)
+ * @param {string|null} [args.challenge]           — the host's challenge address for
+ *                                                   this target, when it protects it
+ *                                                   with a puzzle (see `./proof.js`).
+ *                                                   `useFormSubmit` resolves it; the
+ *                                                   create request then carries
+ *                                                   `X-Proof`. Uploads never do: the
+ *                                                   submission id authorizes them
  * @param {string} [args.verificationToken]        — bot-protection token, when the
  *                                                   endpoint verifies one
  * @param {Array<File|{file:File,field?:string}>} [args.files]
@@ -53,12 +62,14 @@
  *
  * @returns {Promise<{ submissionId: string, uploadUrls?: Array }>}
  * @throws {Error} with no target, and on non-2xx with the server's message when present.
+ *   A host's proof refusal carries its code as `error.code` (`proof-invalid`, …).
  */
 export async function submitForm({
   formData,
   target,
   summary,
   context = {},
+  challenge,
   verificationToken,
   files,
   fileSlots,
@@ -116,16 +127,19 @@ export async function submitForm({
     ...(Array.isArray(slots) && slots.length ? { fileSlots: slots } : {}),
   }
 
-  const res = await fetchFn(target, {
+  const res = await sendWithProof(target, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-  })
+  }, { challenge, fetchFn })
 
   if (!res.ok) {
+    const code = proofError(res)
     let serverMessage
     try { serverMessage = (await res.json()).error } catch { /* not JSON */ }
-    throw new Error(serverMessage || `Submission failed (HTTP ${res.status})`)
+    const error = new Error(serverMessage || code || `Submission failed (HTTP ${res.status})`)
+    if (code) error.code = code
+    throw error
   }
 
   const result = await res.json()

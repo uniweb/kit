@@ -139,6 +139,13 @@ export {
   submitForm,
   deriveSummary,
   resolveSubmitTarget,
+  // Proof of work for a host-protected address (a visitor-request form, …)
+  sendWithProof,
+  fetchProof,
+  solveChallenge,
+  proofError,
+  resolveServiceAddress,
+  PROOF_HEADER,
   // Site services (search / submit / assistant / anything a host offers)
   resolveService,
   resolveServiceUrl,
