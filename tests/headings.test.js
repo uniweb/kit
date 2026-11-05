@@ -174,6 +174,45 @@ describe('headingsFromContent', () => {
     expect(texts(pageOf([blockOf('Article')]))).toEqual(['Windows'])
   })
 
+  describe("⭐ the type's own `header` decides, where its runtime schema says", () => {
+    // A docs page: `#> Guide`, `# Overview`, `## Comprehensive guide…` (a lead line), then its sections.
+    const docsPage = (type, defaultType) => pageOf([{
+      type,
+      website: { getDefaultBlockType: () => defaultType },
+      parsedContent: {
+        pretitle: 'Guide',
+        title: 'Overview',
+        subtitle: 'Comprehensive guide',
+        sequence: [heading(1, 'Overview'), heading(2, 'Comprehensive guide'), heading(3, 'Topics covered'), heading(3, 'Who is this for?')],
+      },
+    }])
+    const withMeta = (meta, run) => {
+      const saved = globalThis.uniweb
+      globalThis.uniweb = { getComponentMeta: (type) => meta[type] ?? null }
+      try {
+        return run()
+      } finally {
+        globalThis.uniweb = saved
+      }
+    }
+
+    it('a header type skips its header even when it is the default: named or not, one page, one rail', () => {
+      // ⛔ Until 2026-11-05 a docs starter declaring `defaultSection: 'DocSection'` listed the lead line.
+      const listed = withMeta({ DocSection: { header: true } }, () => texts(docsPage('DocSection', 'DocSection')))
+      expect(listed).toEqual(['Topics covered', 'Who is this for?'])
+    })
+
+    it('an as-written type counts every heading even when the file named it', () => {
+      const listed = withMeta({ Section: { header: false } }, () => texts(docsPage('Section', 'Article')))
+      expect(listed).toEqual(['Comprehensive guide', 'Topics covered', 'Who is this for?'])
+    })
+
+    it('CONTROL — a type that says neither keeps the guess from the type the file named', () => {
+      expect(withMeta({}, () => texts(docsPage('DocSection', 'DocSection')))).toEqual(['Comprehensive guide', 'Topics covered', 'Who is this for?'])
+      expect(withMeta({}, () => texts(docsPage('DocSection', 'Section')))).toEqual(['Topics covered', 'Who is this for?'])
+    })
+  })
+
   it('holds on core\'s own objects, with the parser\'s own fields', () => {
     const doc = {
       type: 'doc',

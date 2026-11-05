@@ -63,11 +63,19 @@ function headingText(html) {
  * headings — so a typed section would otherwise open every contents rail with
  * two entries no reader recognises as sections of the article.
  *
- * A file that names no type lands on the site's default section type, which
- * draws it as written, so everything in it counts, the `##` straight under its
- * `#` too. ⛔ Until 2026-11-01 this skipped the parser's fields there as well, on
- * the belief that an untyped document has none. It has them: the rail of a page
- * opening `# Install`, `## Homebrew` started at its second section.
+ * ⭐ WHAT THE SECTION'S TYPE SAYS IT DRAWS DECIDES, where it says: `header` in its
+ * runtime schema, from its `content:` (`@uniweb/build` `extractRuntimeSchema`).
+ * `true`: it draws the parser's pretitle, title and subtitle as its header, so they
+ * are skipped. `false`: it draws the section as written, a `sequence` alone, so every
+ * heading counts, the `##` straight under the `#` too: the rail of a page opening
+ * `# Install`, `## Homebrew` starts at Homebrew.
+ *
+ * A type that says neither falls back on the type the file named: none, so the
+ * site's default section type, counts everything; any other type skips its header.
+ * ⛔ Until 2026-11-05 that guess was the only rule. A default the foundation
+ * declares can be a type with a header, so a docs page's `DocSection`, named or
+ * not, listed its subtitle (a `<p>`, with no anchor) and nested the page's
+ * sections under it, and a rail with one entry is drawn as none.
  */
 export function headingsFromContent(page, levels = [2, 3]) {
   const blocks = page?.getBodyBlocks?.() ?? []
@@ -77,14 +85,18 @@ export function headingsFromContent(page, levels = [2, 3]) {
     const parsed = block?.parsedContent
     if (!Array.isArray(parsed?.sequence)) continue
 
-    const namesNoType = block.type && block.type === block.website?.getDefaultBlockType?.()
+    const declared = globalThis.uniweb?.getComponentMeta?.(block.type)?.header
+    const drawsHeader =
+      typeof declared === 'boolean'
+        ? declared
+        : !(block.type && block.type === block.website?.getDefaultBlockType?.())
     const claimed = new Set(
-      namesNoType
-        ? []
-        : [parsed.title, parsed.pretitle, parsed.subtitle]
+      drawsHeader
+        ? [parsed.title, parsed.pretitle, parsed.subtitle]
             .flat()
             .filter(Boolean)
             .map(value => String(value).trim())
+        : []
     )
 
     for (const element of parsed.sequence) {
