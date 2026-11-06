@@ -32,9 +32,10 @@ function visited(...paths) {
 }
 
 const navigated = []
-function site({ basePath = '' } = {}) {
+function site({ basePath = '', redirects = {} } = {}) {
   const website = {
     basePath,
+    resolveRoute: (path) => (redirects[path] ? { kind: 'redirect', location: redirects[path] } : { kind: 'page' }),
     makeHref: (href) => (href === 'page:store' ? '/store' : href),
     hasMultipleLocales: () => false,
     getActiveLocale: () => 'en',
@@ -99,6 +100,15 @@ describe('cameFrom — the step before is the page', () => {
     visited('/store', '/shop/store/courses')
     expect(previousPage(website)).toBeNull()
     expect(cameFrom('/store', website)).toBe(false)
+  })
+
+  it('⭐ a route that redirects is the page it leads to: a folder to its first page', () => {
+    // The visitor opened /solutions, which has no content of its own, and landed on its first page.
+    const website = site({ redirects: { '/solutions': '/solutions/overview' } })
+    visited('/solutions/overview', '/solutions/overview/courses')
+    expect(cameFrom('/solutions', website)).toBe(true)
+    // CONTROL: the folder's own path is not where anyone stood
+    expect(cameFrom('/solutions', site())).toBe(false)
   })
 
   it('⭐ is the page before, past steps within this page — a link to one of its sections', () => {

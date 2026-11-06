@@ -98,7 +98,28 @@ export function previousPage(website) {
 function cameFromEntry(route, website) {
   if (typeof route !== 'string' || !route.startsWith('/') || route.startsWith('//')) return null
   const before = previousPage(website)
-  return before && comparable(before.path) === comparable(route.split(/[?#]/)[0]) ? before : null
+  return before && comparable(before.path) === comparable(landingOf(route.split(/[?#]/)[0], website)) ? before : null
+}
+
+/**
+ * Where a link to `path` lands: the page a redirect leads to — a folder with no content of its own
+ * to its first page, an author's `redirect:` within the site — else the path itself. The browser
+ * holds where the visitor landed, never the address that sent them on. ⛔ Until 2026-11-06 a back
+ * link to a folder compared the folder's own path, matched nothing, and was an ordinary link.
+ *
+ * @param {string} path - a route, without query or fragment
+ * @param {Object} [website]
+ * @returns {string}
+ */
+function landingOf(path, website) {
+  let resolution = null
+  try {
+    resolution = website?.resolveRoute?.(path) ?? null
+  } catch {
+    return path
+  }
+  const location = resolution?.kind === 'redirect' ? resolution.location : null
+  return typeof location === 'string' && location.startsWith('/') && !location.startsWith('//') ? location.split(/[?#]/)[0] : path
 }
 
 /**
