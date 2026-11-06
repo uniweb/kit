@@ -9,7 +9,8 @@
  * without rebuilding the image, video, gradient and overlay handling.
  *
  * It fills the nearest positioned ancestor (`position: absolute; inset: 0`), so place it inside
- * an element with `position: relative`, before the content.
+ * an element with `position: relative`, before the content. The layer sits at `z-index: 0`, set on
+ * the element, so a `className` can't lower it: raise the content above it (`relative z-10`).
  *
  * @param {Object} props
  * @param {Object} props.block - The section's block — its `block.background`, normalized by core
