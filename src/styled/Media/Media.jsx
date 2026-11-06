@@ -14,28 +14,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { cn } from '../../utils/index.js'
 import { detectMediaType } from '../../utils/index.js'
-
-/**
- * Extract YouTube video ID from URL
- * @param {string} url
- * @returns {string|null}
- */
-function getYouTubeId(url) {
-  if (!url) return null
-  const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([^&?/]+)/)
-  return match?.[1] || null
-}
-
-/**
- * Extract Vimeo video ID from URL
- * @param {string} url
- * @returns {string|null}
- */
-function getVimeoId(url) {
-  if (!url) return null
-  const match = url.match(/vimeo\.com\/(?:video\/)?(\d+)/)
-  return match?.[1] || null
-}
+import { youTubeId, vimeoId, youTubeEmbedUrl, vimeoEmbedUrl } from '../../utils/video-embed.js'
 
 /**
  * Get thumbnail URL for a video
@@ -45,7 +24,7 @@ function getVimeoId(url) {
  */
 function getVideoThumbnail(src, type) {
   if (type === 'youtube') {
-    const id = getYouTubeId(src)
+    const id = youTubeId(src)
     return id ? `https://img.youtube.com/vi/${id}/maxresdefault.jpg` : null
   }
   // Vimeo requires API call, return null for now
@@ -58,20 +37,10 @@ function getVideoThumbnail(src, type) {
 function YouTubePlayer({ videoId, autoplay, muted, loop, onReady, onStateChange, title, className }) {
   const iframeRef = useRef(null)
 
-  const params = new URLSearchParams({
-    enablejsapi: '1',
-    autoplay: autoplay ? '1' : '0',
-    mute: muted ? '1' : '0',
-    loop: loop ? '1' : '0',
-    playlist: loop ? videoId : '',
-    rel: '0',
-    modestbranding: '1'
-  })
-
   return (
     <iframe
       ref={iframeRef}
-      src={`https://www.youtube.com/embed/${videoId}?${params}`}
+      src={youTubeEmbedUrl(videoId, { autoplay, muted, loop })}
       className={cn('w-full h-full', className)}
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       allowFullScreen
@@ -85,16 +54,9 @@ function YouTubePlayer({ videoId, autoplay, muted, loop, onReady, onStateChange,
  * Vimeo Player Component
  */
 function VimeoPlayer({ videoId, autoplay, muted, loop, title, className }) {
-  const params = new URLSearchParams({
-    autoplay: autoplay ? '1' : '0',
-    muted: muted ? '1' : '0',
-    loop: loop ? '1' : '0',
-    dnt: '1'
-  })
-
   return (
     <iframe
-      src={`https://player.vimeo.com/video/${videoId}?${params}`}
+      src={vimeoEmbedUrl(videoId, { autoplay, muted, loop })}
       className={cn('w-full h-full', className)}
       allow="autoplay; fullscreen; picture-in-picture"
       allowFullScreen
@@ -311,7 +273,7 @@ export function Media({
   const videoContent = (() => {
     switch (mediaType) {
       case 'youtube': {
-        const videoId = getYouTubeId(videoSrc)
+        const videoId = youTubeId(videoSrc)
         if (!videoId) return null
         return (
           <YouTubePlayer
@@ -325,7 +287,7 @@ export function Media({
       }
 
       case 'vimeo': {
-        const videoId = getVimeoId(videoSrc)
+        const videoId = vimeoId(videoSrc)
         if (!videoId) return null
         return (
           <VimeoPlayer

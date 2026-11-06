@@ -11,44 +11,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import { cn } from "../../utils/index.js";
 import { detectMediaType } from "../../utils/index.js";
-
-/**
- * Extract YouTube video ID from URL
- */
-function getYouTubeId(url) {
-    if (!url) return null;
-    const match = url.match(
-        /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([^&?/]+)/,
-    );
-    return match?.[1] || null;
-}
-
-/**
- * Extract Vimeo video ID from URL
- */
-function getVimeoId(url) {
-    if (!url) return null;
-    const match = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
-    return match?.[1] || null;
-}
+import { youTubeId, vimeoId, youTubeEmbedUrl, vimeoEmbedUrl } from "../../utils/video-embed.js";
 
 /**
  * YouTube Player Component
  */
 function YouTubePlayer({ videoId, autoplay, muted, loop, className }) {
-    const params = new URLSearchParams({
-        enablejsapi: "1",
-        autoplay: autoplay ? "1" : "0",
-        mute: muted ? "1" : "0",
-        loop: loop ? "1" : "0",
-        playlist: loop ? videoId : "",
-        rel: "0",
-        modestbranding: "1",
-    });
-
     return (
         <iframe
-            src={`https://www.youtube.com/embed/${videoId}?${params}`}
+            src={youTubeEmbedUrl(videoId, { autoplay, muted, loop })}
             className={className}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
@@ -62,16 +33,9 @@ function YouTubePlayer({ videoId, autoplay, muted, loop, className }) {
  * Vimeo Player Component
  */
 function VimeoPlayer({ videoId, autoplay, muted, loop, className }) {
-    const params = new URLSearchParams({
-        autoplay: autoplay ? "1" : "0",
-        muted: muted ? "1" : "0",
-        loop: loop ? "1" : "0",
-        dnt: "1",
-    });
-
     return (
         <iframe
-            src={`https://player.vimeo.com/video/${videoId}?${params}`}
+            src={vimeoEmbedUrl(videoId, { autoplay, muted, loop })}
             className={className}
             allow="autoplay; fullscreen; picture-in-picture"
             allowFullScreen
@@ -191,7 +155,7 @@ export function Media({
 
         switch (mediaType) {
             case "youtube": {
-                const videoId = getYouTubeId(videoSrc);
+                const videoId = youTubeId(videoSrc);
                 if (!videoId) return null;
                 return (
                     <YouTubePlayer
@@ -205,7 +169,7 @@ export function Media({
             }
 
             case "vimeo": {
-                const videoId = getVimeoId(videoSrc);
+                const videoId = vimeoId(videoSrc);
                 if (!videoId) return null;
                 return (
                     <VimeoPlayer
