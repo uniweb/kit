@@ -16,6 +16,7 @@ import React from 'react'
 import { useWebsite } from '../../hooks/useWebsite.js'
 import { isExternalUrl, isFileUrl } from '../../utils/index.js'
 import { applyBasePath, resolveRoute } from '../../utils/href.js'
+import { stepBackOnClick } from '../../utils/go-back.js'
 
 /**
  * Social media platforms for auto-generating link titles
@@ -102,6 +103,10 @@ function isRelativePath(href) {
  * @param {string} [props.className] - CSS classes
  * @param {boolean} [props.download] - Force download behavior
  * @param {boolean} [props.reload] - Force full page reload (renders <a> with basePath prefix)
+ * @param {boolean} [props.back] - A link back to the page the visitor came from: a plain click
+ *   steps back to it, where they left it, when the step before this one is that page, and follows
+ *   the link otherwise. It renders as any link does (`utils/go-back.js`)
+ * @param {Function} [props.onClick] - Called first; a click it prevents goes nowhere
  * @param {React.ReactNode} props.children - Link content
  *
  * @example
@@ -115,6 +120,10 @@ function isRelativePath(href) {
  * @example
  * // Download link
  * <Link href="/files/report.pdf" download>Download Report</Link>
+ *
+ * @example
+ * // Back to the list the visitor came from, scrolled where they left it
+ * <Link to="/store" back>All solutions</Link>
  */
 export function Link({
   to,
@@ -125,6 +134,8 @@ export function Link({
   className,
   children,
   reload,
+  back,
+  onClick,
   ...props
 }) {
   const { website, getRoutingComponents } = useWebsite()
@@ -155,6 +166,16 @@ export function Link({
   // A generated tooltip when none is given — none at all rather than an empty one.
   const linkTitle = title || generateTitle(linkHref) || undefined
 
+  // `back`: the click steps back when the visitor came from this page, and nothing else changes.
+  // A page load (`reload`) and another tab are what they say.
+  const handleClick =
+    back && !reload && (!target || target === '_self')
+      ? (event) => {
+          onClick?.(event)
+          stepBackOnClick(event, linkHref, website)
+        }
+      : onClick
+
   // Links with reload: render plain <a> for full page navigation
   // Used for locale switches (same-domain or cross-domain)
   if (reload && !isDownload) {
@@ -166,6 +187,7 @@ export function Link({
         title={linkTitle}
         className={className}
         data-reload="true"
+        onClick={handleClick}
         {...props}
       >
         {children}
@@ -186,6 +208,7 @@ export function Link({
         rel="noopener noreferrer"
         title={linkTitle}
         className={className}
+        onClick={handleClick}
         {...props}
       >
         {children}
@@ -202,6 +225,7 @@ export function Link({
         rel="noopener noreferrer"
         title={linkTitle}
         className={className}
+        onClick={handleClick}
         {...props}
       >
         {children}
@@ -217,6 +241,7 @@ export function Link({
         target={target}
         title={linkTitle}
         className={className}
+        onClick={handleClick}
         {...props}
       >
         {children}
@@ -240,6 +265,7 @@ export function Link({
         target={target}
         title={linkTitle}
         className={className}
+        onClick={handleClick}
         {...props}
       >
         {children}
@@ -260,6 +286,7 @@ export function Link({
         target={target}
         title={linkTitle}
         className={className}
+        onClick={handleClick}
         {...props}
       >
         {children}
@@ -275,6 +302,7 @@ export function Link({
         target={target}
         title={linkTitle}
         className={className}
+        onClick={handleClick}
         {...props}
       >
         {children}
@@ -290,6 +318,7 @@ export function Link({
       target={target}
       title={linkTitle}
       className={className}
+      onClick={handleClick}
       {...props}
     >
       {children}

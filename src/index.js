@@ -64,6 +64,7 @@ export {
   useQueryable,
   useRouting,
   useActiveRoute,
+  useGoBack,
   useVersion,
   useScrolled,
   useMobileMenu,
