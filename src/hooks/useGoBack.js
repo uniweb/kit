@@ -18,7 +18,7 @@
 import { useWebsite } from './useWebsite.js'
 import { useRouting } from './useRouting.js'
 import { resolveRoute } from '../utils/href.js'
-import { cameFrom } from '../utils/go-back.js'
+import { stepBackTo } from '../utils/go-back.js'
 
 export function useGoBack(to) {
   const { website } = useWebsite()
@@ -28,8 +28,7 @@ export function useGoBack(to) {
     if (event?.defaultPrevented) return
     const route = resolveRoute(to, website)
     event?.preventDefault?.()
-    if (cameFrom(route, website)) window.history.back()
-    else navigate(route)
+    if (!stepBackTo(route, website)) navigate(route)
   }
 }
 

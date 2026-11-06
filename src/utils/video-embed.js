@@ -16,27 +16,52 @@
 
 const YOUTUBE_HOST = /(^|\.)(youtube\.com|youtube-nocookie\.com)$/
 
+/** The characters a video's id is made of: what follows them in a pasted address (`?t=30`) is not the id. */
+const VIDEO_ID = /^[\w-]+/
+
+/**
+ * An address as an author wrote it, made absolute: a pasted `youtu.be/…` or `www.youtube.com/…`
+ * often has no scheme. Null for a path on the site itself, which names no video of YouTube's.
+ *
+ * @param {string} url
+ * @returns {URL|null}
+ */
+function absolute(url) {
+  const written = url.trim()
+  let address = written
+  if (written.startsWith('//')) address = `https:${written}`
+  else if (written.startsWith('/')) return null
+  else if (!/^[a-z][a-z\d+.-]*:/i.test(written)) address = `https://${written}`
+  try {
+    return new URL(address)
+  } catch {
+    return null
+  }
+}
+
 /**
  * A YouTube video's id, from any address that names one: `watch?v=`, `youtu.be/`, `embed/`,
- * `shorts/` or `live/`. Null for anything else.
+ * `shorts/` or `live/`, with or without a scheme. Null for anything else.
+ *
+ * ⛔ For part of 2026-11-06 an address with no scheme was read as a path on youtube.com, and
+ * `youtu.be/ID` or `www.youtube.com/embed/ID` named no video: the old pattern had found the id in
+ * the text, and those videos stopped playing.
  *
  * @param {string} url
  * @returns {string|null}
  */
 export function youTubeId(url) {
   if (!url || typeof url !== 'string') return null
-  let address
-  try {
-    address = new URL(url, 'https://www.youtube.com')
-  } catch {
-    return null
+  const address = absolute(url)
+  if (!address) return null
+  let id = null
+  if (address.hostname === 'youtu.be') {
+    id = address.pathname.split('/')[1]
+  } else if (YOUTUBE_HOST.test(address.hostname)) {
+    const [, kind, segment] = address.pathname.split('/')
+    id = address.searchParams.get('v') || (['embed', 'shorts', 'live'].includes(kind) ? segment : null)
   }
-  if (address.hostname === 'youtu.be') return address.pathname.split('/')[1] || null
-  if (!YOUTUBE_HOST.test(address.hostname)) return null
-  const named = address.searchParams.get('v')
-  if (named) return named
-  const [, kind, id] = address.pathname.split('/')
-  return id && ['embed', 'shorts', 'live'].includes(kind) ? id : null
+  return id?.match(VIDEO_ID)?.[0] || null
 }
 
 /**

@@ -203,7 +203,7 @@ export function detectMediaType(url) {
 
   const lowerUrl = url.toLowerCase()
 
-  if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be')) {
+  if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtube-nocookie.com') || lowerUrl.includes('youtu.be')) {
     return 'youtube'
   }
   if (lowerUrl.includes('vimeo.com')) {

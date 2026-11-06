@@ -9,6 +9,7 @@
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { youTubeId, vimeoId, youTubeEmbedUrl, vimeoEmbedUrl } from '../src/utils/video-embed.js'
+import { detectMediaType } from '../src/utils/index.js'
 import { Media } from '../src/components/Media/Media.jsx'
 import { Media as StyledMedia } from '../src/styled/Media/Media.jsx'
 
@@ -47,8 +48,44 @@ describe('youTubeId', () => {
     expect(youTubeId(url)).toBe(id)
   })
 
-  it.each([['https://vimeo.com/76979871'], ['https://example.com/watch?v=x'], [''], [null]])('CONTROL — no id in %s', (url) => {
+  it.each([
+    ['youtu.be/aqz-KE-bpKQ'],
+    ['youtu.be/aqz-KE-bpKQ?t=30'],
+    ['www.youtube.com/embed/aqz-KE-bpKQ'],
+    ['youtube.com/embed/aqz-KE-bpKQ'],
+    ['youtube.com/watch?v=aqz-KE-bpKQ'],
+    ['//www.youtube.com/embed/aqz-KE-bpKQ'],
+    ['  https://youtu.be/aqz-KE-bpKQ  '],
+  ])('⭐ reads an address pasted without its scheme: %s', (url) => {
+    expect(youTubeId(url)).toBe('aqz-KE-bpKQ')
+  })
+
+  it.each([
+    ['https://www.youtube.com/watch?v=aqz-KE-bpKQ?t=30'],
+    ['https://www.youtube.com/embed/aqz-KE-bpKQ&list=x'],
+  ])('keeps only the id from a pasted address that runs on: %s', (url) => {
+    expect(youTubeId(url)).toBe('aqz-KE-bpKQ')
+  })
+
+  it.each([
+    ['https://vimeo.com/76979871'],
+    ['https://example.com/watch?v=x'],
+    ['https://notyoutube.com/watch?v=x'],
+    ['/embed/aqz-KE-bpKQ'],
+    ['https://www.youtube.com/channel/UC123'],
+    [''],
+    [null],
+  ])('CONTROL — no id in %s', (url) => {
     expect(youTubeId(url)).toBeNull()
+  })
+})
+
+describe('detectMediaType', () => {
+  it.each([
+    ['https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ'],
+    ['youtu.be/aqz-KE-bpKQ'],
+  ])('a YouTube address, the privacy-enhanced host included, is YouTube: %s', (url) => {
+    expect(detectMediaType(url)).toBe('youtube')
   })
 })
 
@@ -70,5 +107,14 @@ describe('both Media components embed by these rules', () => {
     const src = srcOf(renderToStaticMarkup(<Component src="https://www.youtube.com/watch?v=aqz-KE-bpKQ" />))
     expect(src).toBe(youTubeEmbedUrl('aqz-KE-bpKQ'))
     expect(src).not.toContain('playlist')
+  })
+
+  it.each([
+    ['components/Media', Media],
+    ['styled/Media', StyledMedia],
+  ])('%s plays an address written without its scheme, and one on the privacy-enhanced host', (_, Component) => {
+    for (const written of ['youtu.be/aqz-KE-bpKQ', 'https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ']) {
+      expect(srcOf(renderToStaticMarkup(<Component src={written} />))).toBe(youTubeEmbedUrl('aqz-KE-bpKQ'))
+    }
   })
 })

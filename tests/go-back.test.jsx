@@ -13,14 +13,22 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { cleanup, fireEvent, render } from '@testing-library/react'
 import { Link } from '../src/components/Link/Link.jsx'
 import { useGoBack } from '../src/hooks/useGoBack.js'
-import { cameFrom, previousPath } from '../src/utils/go-back.js'
+import { cameFrom, previousPage } from '../src/utils/go-back.js'
 
 const ORIGIN = window.location.origin
 
-/** The tab's history, oldest first; the last is where the visitor is. */
+/** The tab's history, oldest first; the last is where the visitor is. Traversals are recorded by key. */
+const traversed = []
 function visited(...paths) {
-  const entries = paths.map((path, index) => ({ url: /^https?:/.test(path) ? path : ORIGIN + path, index }))
-  window.navigation = { entries: () => entries, currentEntry: entries.at(-1) }
+  const entries = paths.map((path, index) => ({ url: /^https?:/.test(path) ? path : ORIGIN + path, index, key: `key-${index}` }))
+  window.navigation = {
+    entries: () => entries,
+    currentEntry: entries.at(-1),
+    traverseTo: (key) => {
+      traversed.push(key)
+      return { committed: Promise.resolve(), finished: Promise.resolve() }
+    },
+  }
 }
 
 const navigated = []
@@ -50,6 +58,8 @@ let back
 beforeEach(() => {
   navigated.length = 0
   prevented.length = 0
+  traversed.length = 0
+  // `history.back()` steps the whole tab, frames included; nothing here may call it.
   back = vi.spyOn(window.history, 'back').mockImplementation(() => {})
   document.addEventListener('click', followLinks)
 })
@@ -79,7 +89,22 @@ describe('cameFrom — the step before is the page', () => {
   it('reads the path under the base path, as a route', () => {
     const website = site({ basePath: '/shop' })
     visited('/shop/store', '/shop/store/courses')
-    expect(previousPath(website)).toBe('/store')
+    expect(previousPage(website)).toEqual({ path: '/store', key: 'key-0' })
+    expect(cameFrom('/store', website)).toBe(true)
+  })
+
+  it('CONTROL — an address outside the base path is not a page of this site', () => {
+    // Another app on the same origin, at /store; this site lives at /shop.
+    const website = site({ basePath: '/shop' })
+    visited('/store', '/shop/store/courses')
+    expect(previousPage(website)).toBeNull()
+    expect(cameFrom('/store', website)).toBe(false)
+  })
+
+  it('⭐ is the page before, past steps within this page — a link to one of its sections', () => {
+    const website = site()
+    visited('/store', '/store/courses', '/store/courses#pricing', '/store/courses#faq')
+    expect(previousPage(website)).toEqual({ path: '/store', key: 'key-0' })
     expect(cameFrom('/store', website)).toBe(true)
   })
 
@@ -112,8 +137,31 @@ describe('<Link back>', () => {
     visited('/store', '/store/courses')
     const { getByText } = render(<Link to="/store" back>All solutions</Link>)
     fireEvent.click(getByText('All solutions'))
-    expect(back).toHaveBeenCalledTimes(1)
+    expect(traversed).toEqual(['key-0'])
     expect(prevented).toEqual([true]) // the browser's own navigation is not followed
+  })
+
+  it('⭐ steps to the entry it checked, never the whole tab back — a frame may have taken a step', () => {
+    site()
+    visited('/', '/store', '/store/courses#team', '/store/courses')
+    const { getByText } = render(<Link to="/store" back>All solutions</Link>)
+    fireEvent.click(getByText('All solutions'))
+    expect(traversed).toEqual(['key-1'])
+    expect(back).not.toHaveBeenCalled()
+  })
+
+  it('a traversal another navigation interrupts says nothing', async () => {
+    site()
+    visited('/store', '/store/courses')
+    window.navigation.traverseTo = () => ({
+      committed: Promise.reject(new DOMException('interrupted', 'AbortError')),
+      finished: Promise.reject(new DOMException('interrupted', 'AbortError')),
+    })
+    const { getByText } = render(<Link to="/store" back>All solutions</Link>)
+    fireEvent.click(getByText('All solutions'))
+    // An unhandled rejection would fail the run.
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(prevented).toEqual([true])
   })
 
   it('resolves a page: reference first', () => {
@@ -121,7 +169,7 @@ describe('<Link back>', () => {
     visited('/store', '/store/courses')
     const { getByText } = render(<Link to="page:store" back>All solutions</Link>)
     fireEvent.click(getByText('All solutions'))
-    expect(back).toHaveBeenCalledTimes(1)
+    expect(traversed).toEqual(['key-0'])
   })
 
   it.each([
@@ -133,7 +181,7 @@ describe('<Link back>', () => {
     history()
     const { getByText } = render(<Link to="/store" back>All solutions</Link>)
     fireEvent.click(getByText('All solutions'), init)
-    expect(back).not.toHaveBeenCalled()
+    expect(traversed).toEqual([])
     expect(prevented).toEqual([false])
   })
 
@@ -142,7 +190,7 @@ describe('<Link back>', () => {
     visited('/store', '/store/courses')
     const { getByText } = render(<Link to="/store">All solutions</Link>)
     fireEvent.click(getByText('All solutions'))
-    expect(back).not.toHaveBeenCalled()
+    expect(traversed).toEqual([])
   })
 
   it("calls the caller's onClick first, and a click it prevents goes nowhere", () => {
@@ -157,9 +205,9 @@ describe('<Link back>', () => {
     )
     fireEvent.click(getByText('A'))
     expect(seen).toEqual(['a'])
-    expect(back).toHaveBeenCalledTimes(1)
+    expect(traversed).toEqual(['key-0'])
     fireEvent.click(getByText('B'))
-    expect(back).toHaveBeenCalledTimes(1)
+    expect(traversed).toEqual(['key-0'])
   })
 
   it('a link that opens another tab is what it says', () => {
@@ -167,7 +215,7 @@ describe('<Link back>', () => {
     visited('/store', '/store/courses')
     const { getByText } = render(<Link to="/store" back target="_blank">All solutions</Link>)
     fireEvent.click(getByText('All solutions'))
-    expect(back).not.toHaveBeenCalled()
+    expect(traversed).toEqual([])
   })
 })
 
@@ -182,7 +230,7 @@ describe('useGoBack — for a button', () => {
     visited('/store', '/store/courses')
     const { getByText } = render(<Close to="/store" />)
     fireEvent.click(getByText('Close'))
-    expect(back).toHaveBeenCalledTimes(1)
+    expect(traversed).toEqual(['key-0'])
     expect(navigated).toEqual([])
   })
 
@@ -191,7 +239,7 @@ describe('useGoBack — for a button', () => {
     visited('/store/courses')
     const { getByText } = render(<Close to="page:store" />)
     fireEvent.click(getByText('Close'))
-    expect(back).not.toHaveBeenCalled()
+    expect(traversed).toEqual([])
     expect(navigated).toEqual(['/store'])
   })
 })
