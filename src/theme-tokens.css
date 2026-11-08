@@ -127,4 +127,19 @@
   html {
     overflow-wrap: break-word;
   }
+
+  /*
+   * A heading's lines are balanced, and a paragraph's last line keeps more than one word: what kit's
+   * prose layer sets inside prose (`prose-tokens.css`), set for every heading and paragraph, so a
+   * section that draws its words with kit's `H1`–`H6` and `P`, or its own elements, outside prose is
+   * set the same way. `:where()` weighs nothing, so a foundation's own `text-wrap`, or a `text-*`
+   * utility, wins. A browser without them wraps as before.
+   */
+  :where(h1, h2, h3, h4, h5, h6) {
+    text-wrap: balance;
+  }
+
+  :where(p) {
+    text-wrap: pretty;
+  }
 }
