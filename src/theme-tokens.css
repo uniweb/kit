@@ -134,12 +134,18 @@
    * section that draws its words with kit's `H1`–`H6` and `P`, or its own elements, outside prose is
    * set the same way. `:where()` weighs nothing, so a foundation's own `text-wrap`, or a `text-*`
    * utility, wins. A browser without them wraps as before.
+   *
+   * ⛔ The longhand, `text-wrap-style`, never the `text-wrap` shorthand: the shorthand also sets
+   * `text-wrap-mode: wrap` on the element, which undoes the `white-space: nowrap` it would inherit, so
+   * a heading or paragraph in a nowrap box (a ticker, a cell, a button) wrapped. Measured 2026-11-09:
+   * a paragraph in a 120px nowrap box took 3 lines in Chromium and WebKit, a heading 4 in every engine.
+   * Kit says how text wraps, never whether it does. `tests/text-wrap-style.test.js` holds it.
    */
   :where(h1, h2, h3, h4, h5, h6) {
-    text-wrap: balance;
+    text-wrap-style: balance;
   }
 
   :where(p) {
-    text-wrap: pretty;
+    text-wrap-style: pretty;
   }
 }
