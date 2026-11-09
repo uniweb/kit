@@ -11,8 +11,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react'
-import { getUniweb } from '@uniweb/core'
-import { sanitizeSVG } from '@uniweb/semantic-parser/sanitize'
+import { getUniweb, sanitizeSVG } from '@uniweb/core'
 import { cn, parseIconRef } from '../../utils/index.js'
 
 /**

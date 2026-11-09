@@ -1,5 +1,5 @@
 import { Scene as SceneRenderer, composeScene } from '@uniweb/scene'
-import { sanitizeSVG } from '@uniweb/semantic-parser/sanitize'
+import { sanitizeSVG } from '@uniweb/core'
 
 // The @uniweb/scene renderer reads `--vc-*` custom properties for its default
 // colors (an explicit value in the scene JSON always wins). Text, font, and
@@ -27,7 +27,7 @@ const THEME_VARS = {
  * through.
  *
  * An svg layer's markup is injected, so it is rebuilt from the SVG allowlist
- * first (`sanitizeSVG`, `@uniweb/semantic-parser/sanitize`) — a scene is content,
+ * first (the parser's `sanitizeSVG`, taken from `@uniweb/core`) — a scene is content,
  * and whoever composed it may not be the person who wrote the foundation. Pass
  * your own `sanitizeSvg` to replace it. ⛔ Until 2026-10-14 nothing was passed by
  * default, so a layer's `<script>` or `onload` ran on the page.

@@ -37,7 +37,8 @@ Kit is bundled into foundations for sites in any language and knows none of them
 
 ## Dependencies
 
-- `@uniweb/core`, `@uniweb/semantic-parser`, `@uniweb/scene`, `@uniweb/schemas`, `@uniweb/projections` — sibling packages, referenced as `workspace:~` (resolved from the monorepo during development; pnpm writes a tilde range of the real version at publish). ⛔ *This said `workspace:*` and named three of the five until 2026-10-15; `package.json` is the list.*
+- `@uniweb/core`, `@uniweb/scene`, `@uniweb/schemas`, `@uniweb/projections` — sibling packages, referenced as `workspace:~` (resolved from the monorepo during development; pnpm writes a tilde range of the real version at publish). `package.json` is the list.
+- **The content parser comes from `@uniweb/core`, never from `@uniweb/semantic-parser`.** A foundation leaves the bare `@uniweb/core` for the runtime to supply, so `parseContent`, `sanitizeSVG` and `isStyleName` taken from it are the runtime's copy, the one Block parses every section with. Imported from the parser's package, they bundled about 23 KB of it into every foundation, frozen at the foundation's build. `tests/parser-from-core.test.js` holds it.
 - `clsx` + `tailwind-merge` — Class name merging (`cn()` utility)
 - `shiki` — Syntax highlighting. ⚠️ **Only `shiki/core` and `shiki/engine/javascript`** — never a
   `bundle/*`. Grammars and themes are fetched from a corpus URL at render time

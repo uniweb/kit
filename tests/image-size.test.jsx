@@ -8,7 +8,7 @@
  */
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { parseContent } from '@uniweb/semantic-parser'
+import { parseContent } from '@uniweb/core'
 import { Article } from '../src/styled/Article/index.jsx'
 import { Prose } from '../src/styled/Prose/index.jsx'
 import { Render } from '../src/styled/Render/index.jsx'

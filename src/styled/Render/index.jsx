@@ -47,9 +47,9 @@
  */
 
 import React from 'react'
-import { getUniweb } from '@uniweb/core'
-import { parseContent } from '@uniweb/semantic-parser'
-import { isStyleName } from '@uniweb/semantic-parser/sanitize'
+// The parser is the runtime's: a foundation leaves `@uniweb/core` for the runtime to supply, so
+// taking it from there, not from `@uniweb/semantic-parser`, puts no copy in the foundation.
+import { getUniweb, parseContent, isStyleName } from '@uniweb/core'
 import { PLACEMENTS } from '@uniweb/schemas/content'
 import { getChildBlockRenderer, headingAnchor } from '../../utils/index.js'
 import { videoProps } from '../media-props.js'
