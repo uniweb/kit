@@ -4,7 +4,7 @@
  *
  * The shorthand also sets `text-wrap-mode: wrap` on the element, and `white-space: nowrap` sets that
  * same property on the box around it, by inheritance. So `text-wrap: balance` on every heading made a
- * heading inside a nowrap box wrap. Measured 2026-11-09 in a 120px nowrap box: a paragraph took 3 lines
+ * heading inside a nowrap box wrap. Measured 2026-11-08 in a 120px nowrap box: a paragraph took 3 lines
  * in Chromium 156 and WebKit 27.2, a heading 4 in those and Firefox 157, and one line each with the
  * longhand. Kit 1.7.15 and 1.7.16 shipped the shorthand outside prose; the prose layer had it since
  * 2026-10-19.
