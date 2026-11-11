@@ -200,12 +200,16 @@ export function useAppearance() {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
     const handleChange = (e) => {
-      // Only auto-switch if the visitor hasn't manually set a preference
+      // Only auto-switch if the visitor hasn't chosen with this site's switch. ⭐ On a site with no
+      // switch a stored value is another site's — the key is the origin's — and the runtime's boot
+      // ignores it too (`applyBootScheme`). ⛔ Until 2026-11-11 it stopped this from following the OS.
       let stored = null
-      try {
-        stored = localStorage.getItem(APPEARANCE_STORAGE_KEY)
-      } catch {
-        // Safari private mode throws on access — treat as "no preference"
+      if (appearance.allowToggle) {
+        try {
+          stored = localStorage.getItem(APPEARANCE_STORAGE_KEY)
+        } catch {
+          // Safari private mode throws on access — treat as "no preference"
+        }
       }
       if (stored) return
 
