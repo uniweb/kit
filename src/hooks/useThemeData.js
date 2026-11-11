@@ -42,10 +42,17 @@ const LIGHT_SCHEME_CLASS = 'scheme-light'
  * hook each applied their own answer, and the runtime's — which ignored the
  * stored preference — won, because React runs child effects before parent ones.
  *
+ * ⭐ With no document — the prerender — it is the scheme the runtime applies on a first visit: the
+ * site's `default` when that is dark, else light. A stored choice and the visitor's system are the
+ * browser's to read, as the pre-paint script reads them. ⛔ Until 2026-11-11 it was always 'light', so
+ * a dark site with a switch prerendered the switch for light mode, and a section following the site
+ * its light-mode look, which the browser's first render then changed.
+ *
+ * @param {Object} [appearance] - the site's appearance (`Theme#getAppearance`)
  * @returns {string} 'light' or 'dark'
  */
-function readAppliedScheme() {
-  if (typeof document === 'undefined') return 'light'
+function readAppliedScheme(appearance) {
+  if (typeof document === 'undefined') return appearance?.default === 'dark' ? 'dark' : 'light'
   return document.documentElement.classList.contains(DARK_SCHEME_CLASS) ? 'dark' : 'light'
 }
 
@@ -143,7 +150,7 @@ export function useAppearance() {
   const theme = useThemeData()
   const appearance = theme?.getAppearance() || { default: 'light', allowToggle: false }
 
-  const [scheme, setSchemeState] = useState(readAppliedScheme)
+  const [scheme, setSchemeState] = useState(() => readAppliedScheme(appearance))
 
   // Apply scheme to document.
   //
