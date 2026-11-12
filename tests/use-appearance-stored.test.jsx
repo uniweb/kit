@@ -61,3 +61,32 @@ describe('useAppearance and a stored choice', () => {
     expect(scheme()).toBe('light')
   })
 })
+
+// ⭐ A site set to dark stays dark when the system turns light, as the runtime's boot keeps it
+// (`applyBootScheme`: a system only ever chooses dark over a dark default). ⛔ Until 2026-11-11
+// the hook took it to light mid-visit, and the next load brought dark back.
+describe('useAppearance and the system turning light', () => {
+  for (const [label, appearance] of [
+    ['with a switch and no choice made', { default: 'dark', allowToggle: true, respectSystemPreference: true }],
+    ['with no switch', { default: 'dark', allowToggle: false, respectSystemPreference: true }]
+  ]) {
+    it(`a site set to dark stays dark, ${label}`, () => {
+      document.documentElement.classList.add('scheme-dark') // as the runtime applied it at boot
+      const turn = system(true)
+      const scheme = site(appearance)
+      act(() => turn(false))
+      expect(scheme()).toBe('dark')
+      expect(document.documentElement.classList.contains('scheme-dark')).toBe(true)
+      expect(document.documentElement.classList.contains('scheme-light')).toBe(false)
+    })
+  }
+
+  it('CONTROL — a site that follows the system turns light with it', () => {
+    document.documentElement.classList.add('scheme-dark')
+    const turn = system(true)
+    const scheme = site({ default: 'system', allowToggle: false, respectSystemPreference: true })
+    act(() => turn(false))
+    expect(scheme()).toBe('light')
+    expect(document.documentElement.classList.contains('scheme-light')).toBe(true)
+  })
+})

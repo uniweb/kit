@@ -220,7 +220,11 @@ export function useAppearance() {
       }
       if (stored) return
 
-      const newScheme = e.matches ? 'dark' : 'light'
+      // The scheme a first visit gets on this system (`applyBootScheme` in the runtime): dark on a
+      // dark system, else the site's own default. ⛔ Until 2026-11-11 a system turning light took
+      // every site to light, a site set to dark among them, which the runtime keeps dark whatever
+      // the system says, so it turned light mid-visit and dark again at the next load.
+      const newScheme = e.matches ? 'dark' : appearance.default === 'dark' ? 'dark' : 'light'
       // Light is always reachable; only going dark needs the site to support it.
       // Uses the same @uniweb/core predicate as the runtime's boot resolver, so
       // this mid-session path and first-visit agree on when dark is allowed.
