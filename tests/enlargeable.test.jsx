@@ -252,3 +252,66 @@ describe('in the browser', () => {
     })
   })
 })
+
+describe('whole: what the box draws, opened', () => {
+  const props = ['naturalWidth', 'naturalHeight']
+  let rect
+  let rects
+
+  beforeEach(() => {
+    for (const name of props) {
+      Object.defineProperty(HTMLImageElement.prototype, name, { configurable: true, get() { return Number(this.dataset[name]) || 0 } })
+    }
+    Object.defineProperty(document.documentElement, 'clientWidth', { configurable: true, value: 1280 })
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 })
+    rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function () {
+      return { top: 100, bottom: 286, left: 300, right: 988, width: 688, height: 186 }
+    })
+    // A version the page hides has no box, as `display: none` gives none.
+    rects = vi.spyOn(Element.prototype, 'getClientRects').mockImplementation(function () {
+      return this.dataset?.hidden ? [] : [{}]
+    })
+  })
+
+  afterEach(() => {
+    cleanup()
+    rect.mockRestore()
+    rects.mockRestore()
+    for (const name of props) delete HTMLImageElement.prototype[name]
+    document.body.style.overflow = ''
+  })
+
+  const versions = (
+    <div>
+      <img src="/light.png" alt="Light" data-hidden="1" data-natural-width="1550" data-natural-height="419" />
+      <img src="/dark.png" alt="The diagram" data-natural-width="1550" data-natural-height="419" />
+      <span className="words">Bonjour</span>
+    </div>
+  )
+
+  it('measures and names the version the page shows', () => {
+    render(<Enlargeable whole>{versions}</Enlargeable>)
+    expect(screen.getByRole('button', { name: 'The diagram' })).toBeTruthy()
+  })
+
+  it('draws the box again at the open width, words and all, in its color context', () => {
+    render(<div className="context-medium"><Enlargeable whole>{versions}</Enlargeable></div>)
+    fireEvent.click(screen.getByRole('button', { name: 'The diagram' }))
+    const dialog = screen.getByRole('dialog', { name: 'The diagram' })
+    const frame = dialog.firstElementChild
+    expect(frame.className).toContain('context-medium')
+    expect(frame.firstElementChild.style.width).toBe('1248px')
+    expect(dialog.querySelector('.words').textContent).toBe('Bonjour')
+    expect([...dialog.querySelectorAll('img')].map((img) => img.getAttribute('src'))).toEqual(['/light.png', '/dark.png'])
+  })
+
+  it('without it, opens the picture alone, as before', () => {
+    render(<div className="context-medium"><Enlargeable>{versions}</Enlargeable></div>)
+    fireEvent.click(screen.getByRole('button', { name: 'The diagram' }))
+    const dialog = screen.getByRole('dialog')
+    expect(dialog.querySelector('.words')).toBeNull()
+    // The version the page showed, by its full address (`currentSrc || src`).
+    expect(dialog.querySelector('img').getAttribute('src')).toMatch(/\/dark\.png$/)
+    expect(dialog.firstElementChild.className).not.toContain('context-medium')
+  })
+})

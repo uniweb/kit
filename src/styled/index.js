@@ -52,6 +52,9 @@ export { Mermaid } from './Mermaid/index.jsx'
 export { Enlargeable } from './Enlargeable/index.jsx'
 export { EnlargeableImage } from './Enlargeable/image.jsx'
 
+// LabeledImage - A picture with its words drawn over it, in the page's language (`@std/overlay`)
+export { LabeledImage } from './LabeledImage/index.jsx'
+
 // Media - Video player with styled play button facade
 export { Media } from './Media/index.js'
 

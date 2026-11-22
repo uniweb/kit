@@ -177,6 +177,7 @@ export { Scene } from './styled/Scene/index.jsx'
 export { Mermaid } from './styled/Mermaid/index.jsx'
 export { Enlargeable } from './styled/Enlargeable/index.jsx'
 export { EnlargeableImage } from './styled/Enlargeable/image.jsx'
+export { LabeledImage } from './styled/LabeledImage/index.jsx'
 
 // ============================================================================
 // Search

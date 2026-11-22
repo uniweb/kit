@@ -28,6 +28,12 @@
  * reader's language. The close button is a `×`. With no alt and no heading there is nothing to name
  * the button by, so it stays a target for a pointer and out of the way of everything else.
  *
+ * ⭐ **`whole` opens what the box draws**, not only its `<img>`: the words a `LabeledImage` lays
+ * over a picture, in the page's language, come along at the same proportion. The box's children are
+ * drawn again at the open width, with the section's color context, so the open view shows the
+ * version of the picture and the colors the page showed. The ⛔ above holds: what is drawn again is
+ * the same `<img>` and plain text, never the file as a document.
+ *
  * Overlay owns Escape, a click on the scrim, the scroll lock and focus. Its portal leaves the
  * section behind, and with it the tokens the picture was drawn for, so the ground comes along.
  */
@@ -59,6 +65,17 @@ function nameOf(img) {
   return above?.textContent.trim() || alt
 }
 
+/** The picture the box shows: of several versions, the one on view, such as a dark one. */
+function shownImage(box) {
+  const images = [...(box?.querySelectorAll('img') ?? [])]
+  return images.find((img) => img.getClientRects().length > 0) ?? images[0] ?? null
+}
+
+/** The section's color context, which a portal leaves behind. */
+function contextOf(box) {
+  return box?.closest('.context-light, .context-medium, .context-dark')?.className.match(/\bcontext-(?:light|medium|dark)\b/)?.[0]
+}
+
 function windowRoom() {
   return {
     availableWidth: document.documentElement.clientWidth - 2 * GUTTER,
@@ -72,16 +89,18 @@ function windowRoom() {
  * @param {number} [props.minScale] - the smallest it opens at, against its own size, for a picture
  *   with words in it. Past that the reader scrolls. Without it, a picture fits the window
  * @param {boolean} [props.disabled] - draw the picture and offer nothing
+ * @param {boolean} [props.whole] - open what the box draws, its children drawn again at the open
+ *   width, rather than its `<img>` alone: a picture with its words over it (`LabeledImage`)
  * @param {string} [props.className]
  * @param {Object} [props.style]
  */
-export function Enlargeable({ children, minScale, disabled, className, style, ...props }) {
+export function Enlargeable({ children, minScale, disabled, whole, className, style, ...props }) {
   const box = useRef(null)
   const [offer, setOffer] = useState(null)
   const [opened, setOpened] = useState(null)
 
   const measure = useCallback(() => {
-    const img = box.current?.querySelector('img')
+    const img = shownImage(box.current)
     if (disabled || !img || img.closest('a') || img.getAttribute('aria-hidden') === 'true') {
       setOffer(null)
       return
@@ -118,9 +137,10 @@ export function Enlargeable({ children, minScale, disabled, className, style, ..
   }, [measure])
 
   const open = () => {
-    const img = box.current?.querySelector('img')
+    const img = shownImage(box.current)
     if (!img) return
     setOpened({
+      context: whole ? contextOf(box.current) : undefined,
       src: img.currentSrc || img.src,
       alt: img.alt,
       name: nameOf(img),
@@ -176,15 +196,22 @@ export function Enlargeable({ children, minScale, disabled, className, style, ..
           {/* Focusable, and first, so the arrow keys pan a picture too big for the window. */}
           <div
             tabIndex={0}
-            className="max-h-full max-w-full min-w-0 overflow-auto overscroll-contain rounded-lg focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2"
+            className={`max-h-full max-w-full min-w-0 overflow-auto overscroll-contain rounded-lg focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2${opened.context ? ` ${opened.context}` : ''}`}
             style={{ background: opened.ground }}
           >
-            <img
-              src={opened.src}
-              alt={opened.alt}
-              onClick={fits ? close : undefined}
-              style={{ display: 'block', width: openWidth, height: 'auto', maxWidth: 'none', cursor: fits ? 'zoom-out' : undefined }}
-            />
+            {whole ? (
+              // What the box draws, again, at the open width: the picture and what is over it.
+              <div onClick={fits ? close : undefined} style={{ width: openWidth, cursor: fits ? 'zoom-out' : undefined }}>
+                {children}
+              </div>
+            ) : (
+              <img
+                src={opened.src}
+                alt={opened.alt}
+                onClick={fits ? close : undefined}
+                style={{ display: 'block', width: openWidth, height: 'auto', maxWidth: 'none', cursor: fits ? 'zoom-out' : undefined }}
+              />
+            )}
           </div>
           <button
             type="button"
