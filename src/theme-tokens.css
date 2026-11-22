@@ -149,3 +149,47 @@
     text-wrap-style: pretty;
   }
 }
+
+/*
+ * A picture's words (`LabeledImage`), in the colors of the version of the picture the place shows.
+ *
+ * An overlay may give the picture's own colors, for its words and for the ground they cover the
+ * picture's words with, and a pair for the picture's dark version (`@std/overlay`'s `color`,
+ * `ground` and `dark`). Each label carries them as `--label-color`, `--label-ground-color` and
+ * their `-dark` twins, and these rules say which applies where, by the theme's own rules for a dark
+ * place: the page dark (`.scheme-dark`, or a visitor's dark system when the site follows it), unless
+ * a section pins its own theme (`.context-*`), which wins. A value the overlay doesn't give falls to
+ * the light one, then to the foundation's `--label-ink` and `--label-ground`.
+ *
+ * Here, in the stylesheet every foundation imports, so a prerendered page shows a dark place's
+ * colors at its first paint. `:where()` weighs nothing, so the order below decides, as it does for
+ * the theme: a section's own theme after the page's.
+ */
+@layer base {
+  .labeled-image__label {
+    --label-color-now: var(--label-color);
+    --label-ground-now: var(--label-ground-color);
+  }
+
+  :where(.scheme-dark) .labeled-image__label {
+    --label-color-now: var(--label-color-dark, var(--label-color));
+    --label-ground-now: var(--label-ground-color-dark, var(--label-ground-color));
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :where(:root:not(.scheme-light)) .labeled-image__label {
+      --label-color-now: var(--label-color-dark, var(--label-color));
+      --label-ground-now: var(--label-ground-color-dark, var(--label-ground-color));
+    }
+  }
+
+  :where(.context-light, .context-medium) .labeled-image__label {
+    --label-color-now: var(--label-color);
+    --label-ground-now: var(--label-ground-color);
+  }
+
+  :where(.context-dark) .labeled-image__label {
+    --label-color-now: var(--label-color-dark, var(--label-color));
+    --label-ground-now: var(--label-ground-color-dark, var(--label-ground-color));
+  }
+}

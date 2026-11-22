@@ -38,8 +38,11 @@
  *
  * It brings no looks of its own and no words. A label is placed, and a foundation styles it by its
  * role (`labeled-image__label--<role>`): its font and weight, its colors (`--label-ink`,
- * `--label-ground`), and its size when the overlay gives none. The labels are hidden from assistive
- * technology, since the picture's alt text says what it shows, in the page's language.
+ * `--label-ground`), and its size when the overlay gives none. A picture made elsewhere has colors
+ * no foundation knows, so the overlay can give them: `color` and `ground` for every label or one,
+ * and `dark` for the picture's dark version, which apply where the page is dark by the theme's rule
+ * (`theme-tokens.css`), from the first paint. The labels are hidden from assistive technology, since
+ * the picture's alt text says what it shows, in the page's language.
  *
  * It opens larger with its words (`Enlargeable`'s `whole`), offered only when that shows it larger.
  */
@@ -57,15 +60,23 @@ const ALIGNS = new Set(['left', 'center', 'right'])
 
 const number = (value) => (typeof value === 'number' && Number.isFinite(value) ? value : null)
 
+/** A color as `@std/overlay` writes one, and nothing else: it goes into a style. */
+const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i
+const hex = (value) => (typeof value === 'string' && HEX.test(value) ? value : null)
+
 /**
- * A label's box, as inline style: placed by its point and the side it keeps, sized by the overlay,
- * and, when it covers the picture's words, with the part of the ground under it.
+ * A label's box, as inline style: placed by its point and the side it keeps, sized and colored by
+ * the overlay, and, when it covers the picture's words, with the part of the ground under it.
+ *
+ * Its colors are the label's own, else the overlay's, for the picture and its dark version, as
+ * custom properties: which applies where is the theme's rule for a dark place (`theme-tokens.css`).
+ * With none, the foundation's `--label-ink` and `--label-ground` color it.
  *
  * @param {Object} label - one of the overlay's labels
- * @param {Object} sizes - the overlay's size for each role
+ * @param {Object} [overlay] - the overlay: `sizes`, and `color`, `ground` and `dark` for every label
  * @param {boolean} covers - whether it hides the picture's own words
  */
-export function labelStyle(label, sizes, covers) {
+export function labelStyle(label, overlay, covers) {
   const role = ROLES.has(label.role) ? label.role : 'label'
   const frame = role === 'text' && number(label.w) != null
   const align = ALIGNS.has(label.align) ? label.align : frame ? 'left' : 'center'
@@ -73,7 +84,13 @@ export function labelStyle(label, sizes, covers) {
   const y = number(label.y) ?? 50
   const w = number(label.w)
   const h = number(label.h)
-  const size = number(label.size) ?? number(sizes?.[role])
+  const size = number(label.size) ?? number(overlay?.sizes?.[role])
+  const colors = {
+    '--label-color': hex(label.color) ?? hex(overlay?.color),
+    '--label-color-dark': hex(label.dark?.color) ?? hex(overlay?.dark?.color),
+    '--label-ground-color': hex(label.ground) ?? hex(overlay?.ground),
+    '--label-ground-color-dark': hex(label.dark?.ground) ?? hex(overlay?.dark?.ground),
+  }
 
   // Across: a centered label on its point; a left one keeps its box's left side, a right one its
   // right side. A frame stays where its box is, and its lines align.
@@ -89,7 +106,10 @@ export function labelStyle(label, sizes, covers) {
     top: `${top}%`,
     transform: `translate(${shiftX}, ${shiftY})`,
     boxSizing: 'border-box',
-    color: 'var(--label-ink, inherit)',
+    ...Object.fromEntries(Object.entries(colors).filter(([, value]) => value)),
+    // The place's color from the overlay (`--label-color-now`, `theme-tokens.css`), else the
+    // overlay's for the picture, else the foundation's.
+    color: 'var(--label-color-now, var(--label-color, var(--label-ink, inherit)))',
     textAlign: align,
     ...(size != null && { fontSize: `${size}cqw` }),
     ...(frame
@@ -126,7 +146,7 @@ export function labelStyle(label, sizes, covers) {
           : `calc(50% + ${50 - x} * 1cqw)`
     const down = frame && h != null ? `calc(${-top} * var(--label-ratio, 1) * 1cqw)` : `calc(50% + ${50 - y} * var(--label-ratio, 1) * 1cqw)`
     Object.assign(style, {
-      background: 'var(--label-ground, transparent)',
+      background: 'var(--label-ground-now, var(--label-ground-color, var(--label-ground, transparent)))',
       backgroundSize: '100cqw calc(100cqw * var(--label-ratio, 1))',
       backgroundPositionX: across,
       backgroundPositionY: down,
@@ -136,7 +156,7 @@ export function labelStyle(label, sizes, covers) {
 }
 
 /** The picture and its labels, measured on its own: drawn on the page, and again when opened. */
-function Drawn({ width, height, labels, sizes, covers, className, children }) {
+function Drawn({ width, height, labels, overlay, covers, className, children }) {
   const box = useRef(null)
   const given = width && height ? height / width : null
   const [measured, setMeasured] = useState(null)
@@ -170,7 +190,7 @@ function Drawn({ width, height, labels, sizes, covers, className, children }) {
             <span
               key={index}
               className={cn('labeled-image__label', `labeled-image__label--${ROLES.has(label.role) ? label.role : 'label'}`)}
-              style={labelStyle(label, sizes, covers)}
+              style={labelStyle(label, overlay, covers)}
             >
               {label.text}
             </span>
@@ -183,7 +203,8 @@ function Drawn({ width, height, labels, sizes, covers, className, children }) {
 
 /**
  * @param {Object} props
- * @param {Object} [props.overlay] - the section's `@std/overlay` block: `labels`, `sizes`, `baked`
+ * @param {Object} [props.overlay] - the section's `@std/overlay` block: `labels`, `sizes`, `baked`,
+ *   and the picture's colors, `color`, `ground` and `dark`
  * @param {number} [props.width] - the picture's width, for its proportions; without it and
  *   `height`, the proportions of the version shown, once it has loaded
  * @param {number} [props.height] - its height
@@ -204,7 +225,7 @@ export function LabeledImage({ overlay, width, height, enlarge = true, minScale,
   const labels = covers && baked.includes(locale) ? [] : all
 
   const drawn = (
-    <Drawn width={width} height={height} labels={labels} sizes={overlay?.sizes} covers={covers} className={className}>
+    <Drawn width={width} height={height} labels={labels} overlay={overlay} covers={covers} className={className}>
       {children}
     </Drawn>
   )

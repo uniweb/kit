@@ -122,15 +122,15 @@ describe('where a label sits', () => {
   })
 
   it('sizes its words by its own size, else its role’s, in percent of the picture’s width', () => {
-    expect(labelStyle({ text: 'YOU', x: 1, y: 1, role: 'title' }, { title: 4.3 }, false).fontSize).toBe('4.3cqw')
-    expect(labelStyle({ text: 'YOU', x: 1, y: 1, role: 'title', size: 5 }, { title: 4.3 }, false).fontSize).toBe('5cqw')
+    expect(labelStyle({ text: 'YOU', x: 1, y: 1, role: 'title' }, { sizes: { title: 4.3 } }, false).fontSize).toBe('4.3cqw')
+    expect(labelStyle({ text: 'YOU', x: 1, y: 1, role: 'title', size: 5 }, { sizes: { title: 4.3 } }, false).fontSize).toBe('5cqw')
     expect(labelStyle({ text: 'YOU', x: 1, y: 1, role: 'title' }, {}, false)).not.toHaveProperty('fontSize')
   })
 
   it('shows the part of the ground under its anchor when it covers the picture’s words', () => {
     const center = labelStyle({ text: 'YOU', x: 20, y: 10, w: 8, h: 6 }, {}, true)
     expect(center).toMatchObject({
-      background: 'var(--label-ground, transparent)',
+      background: 'var(--label-ground-now, var(--label-ground-color, var(--label-ground, transparent)))',
       backgroundSize: '100cqw calc(100cqw * var(--label-ratio, 1))',
       backgroundPositionX: 'calc(50% + 30 * 1cqw)',
       backgroundPositionY: 'calc(50% + 40 * var(--label-ratio, 1) * 1cqw)',
@@ -139,6 +139,50 @@ describe('where a label sits', () => {
     expect(labelStyle({ text: 'A', x: 50, y: 30, w: 10, align: 'right' }, {}, true).backgroundPositionX).toBe('right calc(-45 * 1cqw)')
     expect(labelStyle({ text: 'A', x: 40, y: 60, w: 12, h: 6, role: 'text' }, {}, true).backgroundPositionY).toBe('calc(-57 * var(--label-ratio, 1) * 1cqw)')
     expect(labelStyle({ text: 'A', x: 40, y: 60 }, {}, false)).not.toHaveProperty('background')
+  })
+})
+
+describe('the picture’s colors', () => {
+  const colored = { color: '#232d42', ground: '#ffffff', dark: { color: '#d6d9de', ground: '#0a1123' } }
+
+  it('come from the overlay for every label, and a label’s own over them, with the dark version’s', () => {
+    expect(labelStyle({ text: 'YOU', x: 1, y: 1 }, colored, true)).toMatchObject({
+      '--label-color': '#232d42',
+      '--label-color-dark': '#d6d9de',
+      '--label-ground-color': '#ffffff',
+      '--label-ground-color-dark': '#0a1123',
+      color: 'var(--label-color-now, var(--label-color, var(--label-ink, inherit)))',
+    })
+    const own = labelStyle({ text: 'NEW', x: 1, y: 1, color: '#fff', ground: '#2f6bff80', dark: { ground: '#1d3f99' } }, colored, true)
+    expect(own).toMatchObject({ '--label-color': '#fff', '--label-ground-color': '#2f6bff80', '--label-ground-color-dark': '#1d3f99', '--label-color-dark': '#d6d9de' })
+  })
+
+  it('leave the foundation’s colors when the overlay gives none', () => {
+    const style = labelStyle({ text: 'A', x: 1, y: 1 }, {}, true)
+    expect(Object.keys(style).filter((key) => key.startsWith('--'))).toEqual([])
+    expect(style.color).toBe('var(--label-color-now, var(--label-color, var(--label-ink, inherit)))')
+  })
+
+  it('take only a hex value, since it goes into a style', () => {
+    const style = labelStyle({ text: 'A', x: 1, y: 1, color: 'red;background:url(x)', ground: '#12345' }, { dark: { color: 'navy' } }, true)
+    expect(Object.keys(style).filter((key) => key.startsWith('--'))).toEqual([])
+  })
+
+  it('follow the place: the page dark unless a section pins its own theme, by the theme’s rules', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { fileURLToPath } = await import('node:url')
+    const { dirname, join } = await import('node:path')
+    const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../src/theme-tokens.css'), 'utf8')
+    const at = (rule) => css.indexOf(rule)
+    const rules = [
+      '.labeled-image__label {',
+      ':where(.scheme-dark) .labeled-image__label {',
+      ':where(:root:not(.scheme-light)) .labeled-image__label {',
+      ':where(.context-light, .context-medium) .labeled-image__label {',
+      ':where(.context-dark) .labeled-image__label {',
+    ]
+    // Each is there, and in that order: a section's own theme after the page's.
+    expect(rules.map(at).every((index, i, all) => index > -1 && (i === 0 || index > all[i - 1]))).toBe(true)
   })
 })
 
